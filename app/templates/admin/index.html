@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - {{ site_config.site_name if site_config else 'LMS' }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <h2>🎓 Admin Panel</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-section="dashboard">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="#site-settings" class="nav-item" data-section="site-settings">
+                    <span class="nav-icon">⚙️</span> Site Settings
+                </a>
+                <a href="#pages" class="nav-item" data-section="pages">
+                    <span class="nav-icon">📄</span> Pages
+                </a>
+                <a href="#courses" class="nav-item" data-section="courses">
+                    <span class="nav-icon">📚</span> Courses
+                </a>
+                <a href="#users" class="nav-item" data-section="users">
+                    <span class="nav-icon">👥</span> Users
+                </a>
+                <a href="#media" class="nav-item" data-section="media">
+                    <span class="nav-icon">🖼️</span> Media Library
+                </a>
+                <hr>
+                <a href="/" class="nav-item">
+                    <span class="nav-icon">🌐</span> View Site
+                </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <span class="nav-icon">🚪</span> Logout
+                </a>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Header -->
+            <header class="admin-header">
+                <h1 id="pageTitle">Dashboard</h1>
+                <div class="header-actions">
+                    <span class="user-info">
+                        Welcome, <strong>{{ current_user.username }}</strong>
+                        <span class="badge">{{ current_user.role.value }}</span>
+                    </span>
+                </div>
+            </header>
+            
+            <!-- Content Sections -->
+            <div class="admin-content">
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="content-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalUsers">0</span>
+                                <span class="stat-label">Total Users</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📚</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalCourses">0</span>
+                                <span class="stat-label">Total Courses</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📝</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalEnrollments">0</span>
+                                <span class="stat-label">Enrollments</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📄</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalPages">0</span>
+                                <span class="stat-label">Pages</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <h3>Recent Users</h3>
+                            <div id="recentUsers" class="list-container">Loading...</div>
+                        </div>
+                        <div class="card">
+                            <h3>Quick Actions</h3>
+                            <div class="quick-actions">
+                                <button onclick="showSection('courses')" class="action-btn">➕ Add Course</button>
+                                <button onclick="showSection('pages')" class="action-btn">📄 Create Page</button>
+                                <button onclick="showSection('users')" class="action-btn">👤 Add User</button>
+                                <button onclick="showSection('site-settings')" class="action-btn">🎨 Customize Site</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Site Settings Section -->
+                <section id="site-settings" class="content-section">
+                    <div class="card">
+                        <h3>Site Configuration</h3>
+                        <form id="siteSettingsForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="siteName">Site Name</label>
+                                    <input type="text" id="siteName" name="site_name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="siteDescription">Site Description</label>
+                                    <textarea id="siteDescription" name="site_description" rows="2"></textarea>
+                                </div>
+                            </div>
+                            
+                            <h4>Color Scheme</h4>
+                            <div class="color-grid">
+                                <div class="form-group">
+                                    <label>Primary Color</label>
+                                    <input type="color" id="primaryColor" name="primary_color">
+                                </div>
+                                <div class="form-group">
+                                    <label>Secondary Color</label>
+                                    <input type="color" id="secondaryColor" name="secondary_color">
+                                </div>
+                                <div class="form-group">
+                                    <label>Accent Color</label>
+                                    <input type="color" id="accentColor" name="accent_color">
+                                </div>
+                                <div class="form-group">
+                                    <label>Background Color</label>
+                                    <input type="color" id="backgroundColor" name="background_color">
+                                </div>
+                                <div class="form-group">
+                                    <label>Text Color</label>
+                                    <input type="color" id="textColor" name="text_color">
+                                </div>
+                                <div class="form-group">
+                                    <label>Header Background</label>
+                                    <input type="color" id="headerBgColor" name="header_bg_color">
+                                </div>
+                            </div>
+                            
+                            <h4>Features</h4>
+                            <div class="form-row">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="showLandingPage" name="show_landing_page">
+                                    Show Landing Page
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="requireLogin" name="require_login">
+                                    Require Login to View Courses
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="allowRegistration" name="allow_registration">
+                                    Allow User Registration
+                                </label>
+                            </div>
+                            
+                            <h4>Contact Information</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="contactEmail">Contact Email</label>
+                                    <input type="email" id="contactEmail" name="contact_email">
+                                </div>
+                                <div class="form-group">
+                                    <label for="contactPhone">Contact Phone</label>
+                                    <input type="text" id="contactPhone" name="contact_phone">
+                                </div>
+                            </div>
+                            
+                            <h4>Custom Code</h4>
+                            <div class="form-group">
+                                <label for="customCss">Custom CSS</label>
+                                <textarea id="customCss" name="custom_css" rows="5" placeholder="/* Add your custom CSS here */"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </form>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Site Logo</h3>
+                        <form id="logoForm" enctype="multipart/form-data">
+                            <div class="logo-preview" id="logoPreview">
+                                <p>No logo uploaded</p>
+                            </div>
+                            <input type="file" id="logoFile" name="file" accept="image/*">
+                            <button type="submit" class="btn btn-primary">Upload Logo</button>
+                        </form>
+                    </div>
+                </section>
+                
+                <!-- Pages Section -->
+                <section id="pages" class="content-section">
+                    <div class="section-header">
+                        <h3>Pages</h3>
+                        <button class="btn btn-primary" onclick="showPageModal()">➕ Create Page</button>
+                    </div>
+                    <div class="card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Slug</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pagesTable">
+                                <tr><td colspan="5">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <!-- Courses Section -->
+                <section id="courses" class="content-section">
+                    <div class="section-header">
+                        <h3>Courses</h3>
+                        <button class="btn btn-primary" onclick="showCourseModal()">➕ Create Course</button>
+                    </div>
+                    <div class="card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Lessons</th>
+                                    <th>Enrolled</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coursesTable">
+                                <tr><td colspan="6">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <!-- Users Section -->
+                <section id="users" class="content-section">
+                    <div class="section-header">
+                        <h3>Users</h3>
+                        <button class="btn btn-primary" onclick="showUserModal()">➕ Add User</button>
+                    </div>
+                    <div class="card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTable">
+                                <tr><td colspan="6">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <!-- Media Section -->
+                <section id="media" class="content-section">
+                    <div class="section-header">
+                        <h3>Media Library</h3>
+                        <button class="btn btn-primary" onclick="showUploadModal()">📤 Upload Files</button>
+                    </div>
+                    <div class="media-filters">
+                        <select id="mediaTypeFilter">
+                            <option value="">All Types</option>
+                            <option value="image">Images</option>
+                            <option value="video">Videos</option>
+                            <option value="document">Documents</option>
+                        </select>
+                    </div>
+                    <div class="media-grid" id="mediaGrid">
+                        <p>Loading media...</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    <div class="modal" id="modal">
+        <div class="modal-content" id="modalContent">
+            <!-- Dynamic content -->
+        </div>
+    </div>
+    
+    <script src="/static/js/admin.js"></script>
+    <script src="/static/js/quiz.js"></script>
+</body>
+</html>
+

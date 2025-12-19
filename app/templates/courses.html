@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Courses - {{ site_config.site_name if site_config else 'LMS' }}{% endblock %}
+
+{% block content %}
+<div class="courses-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>All Courses</h1>
+            <p>Explore our collection of courses</p>
+        </div>
+        
+        <!-- Filters -->
+        <div class="courses-filters">
+            <div class="filter-group">
+                <label for="categoryFilter">Category</label>
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="levelFilter">Level</label>
+                <select id="levelFilter">
+                    <option value="">All Levels</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <input type="text" id="searchInput" placeholder="Search courses...">
+            </div>
+        </div>
+        
+        <!-- Courses Grid -->
+        <div class="courses-grid" id="coursesGrid">
+            <p class="loading">Loading courses...</p>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination" id="pagination"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let allCourses = [];
+    
+    async function loadCourses() {
+        try {
+            const response = await fetch('/api/courses?limit=100');
+            allCourses = await response.json();
+            
+            // Extract unique categories
+            const categories = [...new Set(allCourses.map(c => c.category).filter(Boolean))];
+            const categorySelect = document.getElementById('categoryFilter');
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
+            
+            renderCourses(allCourses);
+        } catch (error) {
+            console.error('Error loading courses:', error);
+            document.getElementById('coursesGrid').innerHTML = '<p class="text-center text-muted">Unable to load courses.</p>';
+        }
+    }
+    
+    function renderCourses(courses) {
+        const container = document.getElementById('coursesGrid');
+        
+        if (courses.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted">No courses found.</p>';
+            return;
+        }
+        
+        container.innerHTML = courses.map(course => `
+            <div class="course-card">
+                <div class="course-thumbnail">
+                    ${course.thumbnail_url 
+                        ? `<img src="${course.thumbnail_url}" alt="${course.title}">`
+                        : `<div class="course-placeholder">📖</div>`
+                    }
+                    ${course.is_featured ? '<span class="featured-badge">Featured</span>' : ''}
+                </div>
+                <div class="course-content">
+                    <span class="course-category">${course.category || 'General'}</span>
+                    <h3 class="course-title">${course.title}</h3>
+                    <p class="course-description">${course.short_description || ''}</p>
+                    <div class="course-meta">
+                        <span class="course-lessons">📚 ${course.total_lessons} lessons</span>
+                        <span class="course-level badge-${course.difficulty_level}">${course.difficulty_level}</span>
+                    </div>
+                    <div class="course-footer">
+                        <span class="course-price">${course.is_free ? 'Free' : '$' + course.price}</span>
+                        <a href="/course/${course.id}" class="btn btn-primary btn-sm">View Course</a>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function filterCourses() {
+        const category = document.getElementById('categoryFilter').value;
+        const level = document.getElementById('levelFilter').value;
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        
+        let filtered = allCourses;
+        
+        if (category) {
+            filtered = filtered.filter(c => c.category === category);
+        }
+        
+        if (level) {
+            filtered = filtered.filter(c => c.difficulty_level === level);
+        }
+        
+        if (search) {
+            filtered = filtered.filter(c => 
+                c.title.toLowerCase().includes(search) || 
+                (c.description && c.description.toLowerCase().includes(search))
+            );
+        }
+        
+        renderCourses(filtered);
+    }
+    
+    document.getElementById('categoryFilter').addEventListener('change', filterCourses);
+    document.getElementById('levelFilter').addEventListener('change', filterCourses);
+    document.getElementById('searchInput').addEventListener('input', filterCourses);
+    
+    loadCourses();
+</script>
+{% endblock %}

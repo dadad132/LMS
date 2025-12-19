@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Your Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        .setup-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+        }
+        
+        .setup-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 3rem;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .setup-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .setup-header h1 {
+            font-size: 2rem;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .setup-header p {
+            color: #6b7280;
+        }
+        
+        .setup-steps {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .step {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        
+        .step.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .step.completed {
+            background: #10b981;
+            color: white;
+        }
+        
+        .form-section {
+            display: none;
+        }
+        
+        .form-section.active {
+            display: block;
+        }
+        
+        .color-preview {
+            width: 3rem;
+            height: 2rem;
+            border-radius: 0.25rem;
+            border: 1px solid #d1d5db;
+        }
+        
+        .color-input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .color-input-group input[type="color"] {
+            width: 3rem;
+            height: 2.5rem;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .setup-card .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .setup-card .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .setup-card .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .setup-card .btn-outline {
+            background: transparent;
+            border: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        .setup-card .btn-outline:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .success-message {
+            text-align: center;
+            display: none;
+        }
+        
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+        
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-card">
+            <div class="setup-header">
+                <h1>🚀 Welcome!</h1>
+                <p>Let's set up your learning platform</p>
+            </div>
+            
+            <div class="setup-steps">
+                <div class="step active" id="step1-indicator">1</div>
+                <div class="step" id="step2-indicator">2</div>
+                <div class="step" id="step3-indicator">3</div>
+            </div>
+            
+            <form id="setupForm">
+                <!-- Step 1: Admin Account -->
+                <div class="form-section active" id="step1">
+                    <h2>Create Admin Account</h2>
+                    <p class="text-muted">This will be your super admin account</p>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required placeholder="admin@example.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required placeholder="admin">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="full_name" placeholder="John Doe">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required minlength="8" placeholder="Minimum 8 characters">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" required placeholder="Confirm your password">
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary" onclick="nextStep(2)">Next →</button>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Site Info -->
+                <div class="form-section" id="step2">
+                    <h2>Site Information</h2>
+                    <p class="text-muted">Basic information about your platform</p>
+                    
+                    <div class="form-group">
+                        <label for="siteName">Site Name</label>
+                        <input type="text" id="siteName" name="site_name" required placeholder="My Learning Platform">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="siteDescription">Site Description</label>
+                        <textarea id="siteDescription" name="site_description" rows="3" placeholder="A brief description of your platform"></textarea>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline" onclick="prevStep(1)">← Back</button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep(3)">Next →</button>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Appearance -->
+                <div class="form-section" id="step3">
+                    <h2>Choose Your Colors</h2>
+                    <p class="text-muted">Customize your site's appearance</p>
+                    
+                    <div class="form-group">
+                        <label for="primaryColor">Primary Color</label>
+                        <div class="color-input-group">
+                            <input type="color" id="primaryColor" name="primary_color" value="#3b82f6">
+                            <input type="text" id="primaryColorText" value="#3b82f6" pattern="^#[0-9A-Fa-f]{6}$">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="secondaryColor">Secondary Color</label>
+                        <div class="color-input-group">
+                            <input type="color" id="secondaryColor" name="secondary_color" value="#10b981">
+                            <input type="text" id="secondaryColorText" value="#10b981" pattern="^#[0-9A-Fa-f]{6}$">
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline" onclick="prevStep(2)">← Back</button>
+                        <button type="submit" class="btn btn-primary">🎉 Launch Platform</button>
+                    </div>
+                </div>
+                
+                <!-- Success Message -->
+                <div class="success-message" id="successMessage">
+                    <div class="success-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h2>🎉 Setup Complete!</h2>
+                    <p>Your platform is ready. Redirecting to admin panel...</p>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let currentStep = 1;
+        
+        // Color picker sync
+        document.getElementById('primaryColor').addEventListener('input', function(e) {
+            document.getElementById('primaryColorText').value = e.target.value;
+        });
+        document.getElementById('primaryColorText').addEventListener('input', function(e) {
+            if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                document.getElementById('primaryColor').value = e.target.value;
+            }
+        });
+        document.getElementById('secondaryColor').addEventListener('input', function(e) {
+            document.getElementById('secondaryColorText').value = e.target.value;
+        });
+        document.getElementById('secondaryColorText').addEventListener('input', function(e) {
+            if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                document.getElementById('secondaryColor').value = e.target.value;
+            }
+        });
+        
+        function nextStep(step) {
+            // Validate current step
+            if (currentStep === 1) {
+                const email = document.getElementById('email').value;
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (!email || !username || !password) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                }
+                
+                if (password.length < 8) {
+                    alert('Password must be at least 8 characters');
+                    return;
+                }
+            }
+            
+            if (currentStep === 2) {
+                const siteName = document.getElementById('siteName').value;
+                if (!siteName) {
+                    alert('Please enter a site name');
+                    return;
+                }
+            }
+            
+            // Update steps
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}-indicator`).classList.remove('active');
+            document.getElementById(`step${currentStep}-indicator`).classList.add('completed');
+            
+            currentStep = step;
+            
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            document.getElementById(`step${currentStep}-indicator`).classList.add('active');
+        }
+        
+        function prevStep(step) {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}-indicator`).classList.remove('active');
+            
+            currentStep = step;
+            
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            document.getElementById(`step${currentStep}-indicator`).classList.add('active');
+            document.getElementById(`step${currentStep}-indicator`).classList.remove('completed');
+        }
+        
+        document.getElementById('setupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const data = {
+                email: document.getElementById('email').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                full_name: document.getElementById('fullName').value || null,
+                site_name: document.getElementById('siteName').value,
+                primary_color: document.getElementById('primaryColor').value
+            };
+            
+            try {
+                const response = await fetch('/api/auth/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    // Hide form, show success
+                    document.getElementById('step3').style.display = 'none';
+                    document.querySelector('.setup-steps').style.display = 'none';
+                    document.getElementById('successMessage').style.display = 'block';
+                    
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/super-secret-admin-panel-2024';
+                    }, 2000);
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Setup failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Setup error:', error);
+                alert('An error occurred. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

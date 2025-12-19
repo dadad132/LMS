@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} - {{ site_config.site_name if site_config else 'LMS' }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <div class="page-header">
+            <h1>{{ page.title }}</h1>
+        </div>
+        
+        <div class="page-body">
+            {{ page.content | safe }}
+        </div>
+    </div>
+</div>
+
+<style>
+.page-content {
+    padding: 3rem 0;
+    min-height: 60vh;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-color);
+}
+
+.page-body {
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+
+.page-body h2 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.page-body p {
+    margin-bottom: 1.5rem;
+}
+
+.page-body ul, .page-body ol {
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+}
+
+.page-body li {
+    margin-bottom: 0.5rem;
+}
+
+.page-body img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.page-body blockquote {
+    border-left: 4px solid var(--primary-color);
+    padding-left: 1.5rem;
+    margin: 1.5rem 0;
+    font-style: italic;
+    color: var(--gray-600);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ site_config.site_name if site_config else 'LMS' }}{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>Welcome back, {{ current_user.full_name or current_user.username }}!</h1>
+            <p>Continue your learning journey</p>
+        </div>
+        
+        <div class="dashboard-grid">
+            <!-- Stats Cards -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="enrolledCount">0</span>
+                        <span class="stat-label">Enrolled Courses</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="completedCount">0</span>
+                        <span class="stat-label">Completed</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="inProgressCount">0</span>
+                        <span class="stat-label">In Progress</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My Courses -->
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h2>My Courses</h2>
+                    <a href="/courses" class="btn btn-outline btn-sm">Browse More</a>
+                </div>
+                <div class="courses-grid" id="myCourses">
+                    <p class="loading">Loading your courses...</p>
+                </div>
+            </section>
+            
+            <!-- Recommended Courses -->
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h2>Recommended for You</h2>
+                </div>
+                <div class="courses-grid" id="recommendedCourses">
+                    <p class="loading">Loading recommendations...</p>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    async function loadDashboard() {
+        try {
+            // Load enrollments
+            const enrollmentsResponse = await fetch('/api/courses/my/enrollments');
+            const enrollments = await enrollmentsResponse.json();
+            
+            // Update stats
+            document.getElementById('enrolledCount').textContent = enrollments.length;
+            document.getElementById('completedCount').textContent = enrollments.filter(e => e.status === 'completed').length;
+            document.getElementById('inProgressCount').textContent = enrollments.filter(e => e.status === 'active').length;
+            
+            // Load course details for enrollments
+            const myCoursesContainer = document.getElementById('myCourses');
+            
+            if (enrollments.length === 0) {
+                myCoursesContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p>You haven't enrolled in any courses yet.</p>
+                        <a href="/courses" class="btn btn-primary">Browse Courses</a>
+                    </div>
+                `;
+            } else {
+                const coursePromises = enrollments.map(async (enrollment) => {
+                    const response = await fetch(`/api/courses/${enrollment.course_id}`);
+                    return { ...await response.json(), enrollment };
+                });
+                
+                const courses = await Promise.all(coursePromises);
+                
+                myCoursesContainer.innerHTML = courses.map(course => `
+                    <div class="course-card enrolled">
+                        <div class="course-thumbnail">
+                            ${course.thumbnail_url 
+                                ? `<img src="${course.thumbnail_url}" alt="${course.title}">`
+                                : `<div class="course-placeholder">📖</div>`
+                            }
+                        </div>
+                        <div class="course-content">
+                            <h3 class="course-title">${course.title}</h3>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${course.enrollment.progress_percentage}%"></div>
+                            </div>
+                            <p class="progress-text">${Math.round(course.enrollment.progress_percentage)}% complete</p>
+                            <a href="/course/${course.id}" class="btn btn-primary btn-sm">Continue Learning</a>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // Load recommended courses
+            const recommendedResponse = await fetch('/api/courses?limit=4');
+            const recommended = await recommendedResponse.json();
+            
+            const recommendedContainer = document.getElementById('recommendedCourses');
+            
+            // Filter out already enrolled courses
+            const enrolledIds = enrollments.map(e => e.course_id);
+            const filteredRecommended = recommended.filter(c => !enrolledIds.includes(c.id));
+            
+            if (filteredRecommended.length === 0) {
+                recommendedContainer.innerHTML = '<p class="text-muted">No recommendations at this time.</p>';
+            } else {
+                recommendedContainer.innerHTML = filteredRecommended.map(course => `
+                    <div class="course-card">
+                        <div class="course-thumbnail">
+                            ${course.thumbnail_url 
+                                ? `<img src="${course.thumbnail_url}" alt="${course.title}">`
+                                : `<div class="course-placeholder">📖</div>`
+                            }
+                        </div>
+                        <div class="course-content">
+                            <span class="course-category">${course.category || 'General'}</span>
+                            <h3 class="course-title">${course.title}</h3>
+                            <div class="course-meta">
+                                <span>📚 ${course.total_lessons} lessons</span>
+                            </div>
+                            <a href="/course/${course.id}" class="btn btn-outline btn-sm">View Course</a>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('Dashboard error:', error);
+        }
+    }
+    
+    loadDashboard();
+</script>
+{% endblock %}
