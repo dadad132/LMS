@@ -1,4 +1,4 @@
-"""
+﻿"""
 Main FastAPI Application
 """
 from fastapi import FastAPI, Request, Depends
@@ -45,7 +45,7 @@ app.include_router(contact_router)
 async def startup_event():
     """Initialize database and create default widgets on startup"""
     init_db()
-    
+
     # Create default widgets if they don't exist
     from .database import SessionLocal
     db = SessionLocal()
@@ -123,11 +123,27 @@ async def startup_event():
 
 
 def get_site_config(db: Session):
-    """Get site configuration or return defaults"""
+    """Get site configuration or return defaults - always get fresh data from database"""
+    # Force SQLAlchemy to query the database fresh (not use cached data)
+    db.expire_all()
+    
+    # Use a fresh query to get the latest config
     config = db.query(SiteConfig).first()
+    
     if config:
+        # Explicitly refresh the object to ensure all attributes are up to date
+        db.refresh(config)
         return config
-    return SiteConfig()  # Return default config
+    
+    return SiteConfig()  # Return default config if none exists
+
+
+def add_no_cache_headers(response):
+    """Add headers to prevent browser caching"""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 # ==================== Web Routes ====================
@@ -143,14 +159,16 @@ async def home(
     user_count = db.query(User).count()
     if user_count == 0:
         return RedirectResponse(url="/setup", status_code=302)
-    
+
     site_config = get_site_config(db)
-    
-    return templates.TemplateResponse("index.html", {
+
+    response = templates.TemplateResponse("index.html", {
         "request": request,
         "site_config": site_config,
         "current_user": current_user
     })
+
+    return add_no_cache_headers(response)
 
 
 @app.get("/setup", response_class=HTMLResponse)
@@ -162,10 +180,11 @@ async def setup_page(
     user_count = db.query(User).count()
     if user_count > 0:
         return RedirectResponse(url="/", status_code=302)
-    
-    return templates.TemplateResponse("setup.html", {
+
+    response = templates.TemplateResponse("setup.html", {
         "request": request
     })
+    return add_no_cache_headers(response)
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -177,12 +196,13 @@ async def login_page(
     """Login page"""
     if current_user:
         return RedirectResponse(url="/dashboard", status_code=302)
-    
+
     site_config = get_site_config(db)
-    return templates.TemplateResponse("login.html", {
+    response = templates.TemplateResponse("login.html", {
         "request": request,
         "site_config": site_config
     })
+    return add_no_cache_headers(response)
 
 
 @app.get("/register", response_class=HTMLResponse)
@@ -194,15 +214,16 @@ async def register_page(
     """Registration page"""
     if current_user:
         return RedirectResponse(url="/dashboard", status_code=302)
-    
+
     site_config = get_site_config(db)
     if not site_config.allow_registration:
         return RedirectResponse(url="/login", status_code=302)
-    
-    return templates.TemplateResponse("register.html", {
+
+    response = templates.TemplateResponse("register.html", {
         "request": request,
         "site_config": site_config
     })
+    return add_no_cache_headers(response)
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -216,11 +237,12 @@ async def dashboard(
         return RedirectResponse(url="/login", status_code=302)
     
     site_config = get_site_config(db)
-    return templates.TemplateResponse("dashboard.html", {
+    response = templates.TemplateResponse("dashboard.html", {
         "request": request,
         "site_config": site_config,
         "current_user": current_user
     })
+    return add_no_cache_headers(response)
 
 
 @app.get(f"/{ADMIN_SECRET_PATH}", response_class=HTMLResponse)
@@ -232,17 +254,18 @@ async def admin_panel(
     """Hidden admin panel - URL is configurable via ADMIN_SECRET_PATH"""
     if not current_user:
         return RedirectResponse(url="/login", status_code=302)
-    
+
     if not current_user.is_admin_or_above():
         return RedirectResponse(url="/dashboard", status_code=302)
-    
+
     site_config = get_site_config(db)
-    return templates.TemplateResponse("admin/index.html", {
+    response = templates.TemplateResponse("admin/index.html", {
         "request": request,
         "site_config": site_config,
         "current_user": current_user,
         "admin_path": ADMIN_SECRET_PATH
     })
+    return add_no_cache_headers(response)
 
 
 @app.get("/courses", response_class=HTMLResponse)
@@ -253,11 +276,12 @@ async def courses_page(
 ):
     """Courses listing page"""
     site_config = get_site_config(db)
-    return templates.TemplateResponse("courses.html", {
+    response = templates.TemplateResponse("courses.html", {
         "request": request,
         "site_config": site_config,
         "current_user": current_user
     })
+    return add_no_cache_headers(response)
 
 
 @app.get("/course/{course_id}", response_class=HTMLResponse)
@@ -269,18 +293,19 @@ async def course_detail(
 ):
     """Course detail page"""
     from .models.course import Course
-    
+
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course or (not course.is_published and (not current_user or not current_user.is_admin_or_above())):
         return RedirectResponse(url="/courses", status_code=302)
-    
+
     site_config = get_site_config(db)
-    return templates.TemplateResponse("course_detail.html", {
+    response = templates.TemplateResponse("course_detail.html", {
         "request": request,
         "site_config": site_config,
         "current_user": current_user,
         "course": course
     })
+    return add_no_cache_headers(response)
 
 
 # ==================== Custom Pages Route ====================
@@ -295,28 +320,28 @@ async def custom_page(
 ):
     """Serve custom pages by slug (e.g., /about, /contact, /privacy)"""
     from .models.site_config import Page
-    
+
     # Find published page by slug
     page = db.query(Page).filter(
         Page.slug == page_slug,
         Page.is_published == True
     ).first()
-    
+
     if not page:
         # Return 404 page
         site_config = get_site_config(db)
-        return templates.TemplateResponse("404.html", {
+        response = templates.TemplateResponse("404.html", {
             "request": request,
             "site_config": site_config,
             "current_user": current_user
         }, status_code=404)
-    
+        return add_no_cache_headers(response)
+
     site_config = get_site_config(db)
-    return templates.TemplateResponse("page.html", {
+    response = templates.TemplateResponse("page.html", {
         "request": request,
         "site_config": site_config,
         "current_user": current_user,
         "page": page
     })
-
-
+    return add_no_cache_headers(response)

@@ -145,12 +145,8 @@ document.getElementById('siteSettingsForm').addEventListener('submit', async fun
     };
     
     try {
-        await fetch('/api/admin/site-config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        alert('Settings saved successfully!');
+        const response = await fetch('/api/admin/site-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(await response.text());
+        alert('Settings saved successfully! Changes will be visible on your website.');
     } catch (error) {
         console.error('Save error:', error);
         alert('Failed to save settings');
@@ -478,7 +474,7 @@ async function manageLessons(courseId) {
                         <strong>${index + 1}. ${lesson.title}</strong>
                         <span class="badge" style="margin-left: 0.5rem;">${lesson.content_type}</span>
                         ${lesson.is_free_preview ? '<span class="badge" style="background: #28a745; color: white; margin-left: 0.5rem;">Free Preview</span>' : ''}
-                        ${lesson.video_url ? '<span style="margin-left: 0.5rem;">ðŸŽ¬</span>' : ''}
+                        ${lesson.video_url ? '<span style="margin-left: 0.5rem;">🎬</span>' : ''}
                     </div>
                     <div>
                         <button class="btn btn-sm btn-outline" onclick="editLesson(${lesson.id})">Edit</button>
@@ -1121,12 +1117,8 @@ document.getElementById('heroForm')?.addEventListener('submit', async function(e
     };
     
     try {
-        await fetch('/api/admin/site-config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        alert('Hero section saved successfully!');
+        const response = await fetch('/api/admin/site-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(await response.text());
+        alert('Hero section saved successfully! Changes will be visible on your homepage.');
     } catch (error) {
         console.error('Save error:', error);
         alert('Failed to save hero section');
@@ -1184,12 +1176,8 @@ document.getElementById('featuresForm')?.addEventListener('submit', async functi
     };
     
     try {
-        await fetch('/api/admin/site-config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        alert('Features section saved successfully!');
+        const response = await fetch('/api/admin/site-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(await response.text());
+        alert('Features section saved successfully! Changes will be visible on your homepage.');
     } catch (error) {
         console.error('Save error:', error);
         alert('Failed to save features section');
@@ -1237,12 +1225,8 @@ document.getElementById('statsForm')?.addEventListener('submit', async function(
     };
     
     try {
-        await fetch('/api/admin/site-config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        alert('Statistics section saved successfully!');
+        const response = await fetch('/api/admin/site-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(await response.text());
+        alert('Statistics section saved successfully! Changes will be visible on your homepage.');
     } catch (error) {
         console.error('Save error:', error);
         alert('Failed to save statistics section');
@@ -1307,12 +1291,8 @@ document.getElementById('testimonialsForm')?.addEventListener('submit', async fu
     };
     
     try {
-        await fetch('/api/admin/site-config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        alert('Testimonials section saved successfully!');
+        const response = await fetch('/api/admin/site-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(await response.text());
+        alert('Testimonials section saved successfully! Changes will be visible on your homepage.');
     } catch (error) {
         console.error('Save error:', error);
         alert('Failed to save testimonials section');
@@ -1334,12 +1314,8 @@ document.getElementById('ctaForm')?.addEventListener('submit', async function(e)
     };
     
     try {
-        await fetch('/api/admin/site-config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        alert('CTA section saved successfully!');
+        const response = await fetch('/api/admin/site-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(await response.text());
+        alert('CTA section saved successfully! Changes will be visible on your homepage.');
     } catch (error) {
         console.error('Save error:', error);
         alert('Failed to save CTA section');
@@ -1357,12 +1333,8 @@ document.getElementById('coursesSettingsForm')?.addEventListener('submit', async
     };
     
     try {
-        await fetch('/api/admin/site-config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        alert('Courses section settings saved successfully!');
+        const response = await fetch('/api/admin/site-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(await response.text());
+        alert('Courses section settings saved successfully! Changes will be visible on your homepage.');
     } catch (error) {
         console.error('Save error:', error);
         alert('Failed to save courses section settings');
@@ -1404,12 +1376,8 @@ async function saveGallery() {
     };
     
     try {
-        await fetch('/api/admin/site-config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        alert('Gallery saved successfully!');
+        const response = await fetch('/api/admin/site-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(await response.text());
+        alert('Gallery saved successfully! Changes will be visible on your homepage.');
     } catch (error) {
         console.error('Save error:', error);
         alert('Failed to save gallery');

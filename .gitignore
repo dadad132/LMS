@@ -9,14 +9,19 @@ venv/
 .venv/
 ENV/
 
-# Database
+# Database - IMPORTANT: Excludes all test data
 *.db
 *.sqlite
 *.sqlite3
+data.db
 
-# Uploads - user data
-uploads/*
+# Uploads - user uploaded content (test data)
+uploads/**
 !uploads/.gitkeep
+!uploads/general/.gitkeep
+!uploads/Info/.gitkeep
+!uploads/site/.gitkeep
+!uploads/Video/.gitkeep
 
 # IDE
 .idea/

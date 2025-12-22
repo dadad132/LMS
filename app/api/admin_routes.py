@@ -208,9 +208,15 @@ async def get_site_config(
     db: Session = Depends(get_db)
 ):
     """Get current site configuration with all homepage fields"""
+    # Force fresh query from database
+    db.expire_all()
+    
     config = db.query(SiteConfig).first()
     if not config:
         raise HTTPException(status_code=404, detail="Site configuration not found")
+    
+    # Refresh to ensure we have latest data
+    db.refresh(config)
     
     # Return all fields including homepage customization
     return {
@@ -288,21 +294,38 @@ async def update_site_config(
     db: Session = Depends(get_db)
 ):
     """Update site configuration"""
+    from sqlalchemy.orm.attributes import flag_modified
+    
+    # Expire any cached data first
+    db.expire_all()
+    
     config = db.query(SiteConfig).first()
     if not config:
         config = SiteConfig()
         db.add(config)
+        db.flush()  # Ensure the config gets an ID
     
     # Update fields
     update_data = config_update.model_dump(exclude_unset=True)
+    
+    # JSON fields that need explicit modification flagging
+    json_fields = {'features_items', 'testimonials_items', 'stats_items', 
+                   'footer_links', 'homepage_sections', 'gallery_images', 'social_links'}
+    
     for field, value in update_data.items():
-        setattr(config, field, value)
+        if hasattr(config, field):
+            setattr(config, field, value)
+            # Flag JSON fields as modified to ensure SQLAlchemy detects the change
+            if field in json_fields:
+                flag_modified(config, field)
     
     config.updated_at = datetime.utcnow()
+    
+    # Commit and refresh to ensure changes are persisted
     db.commit()
     db.refresh(config)
     
-    return {"message": "Site configuration updated successfully"}
+    return {"message": "Site configuration updated successfully", "updated_at": str(config.updated_at)}
 
 
 @router.post("/site-config/hero-image")
