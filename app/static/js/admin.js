@@ -1693,4 +1693,255 @@ const originalLoadSystemInfo = loadSystemInfo;
 loadSystemInfo = async function() {
     await originalLoadSystemInfo();
     loadBackupsList();
+    refreshHealth();
+    loadDatabaseStats();
+    loadErrorLogs();
 };
+
+
+// ==================== System Diagnostics Functions ====================
+
+async function refreshHealth() {
+    try {
+        const response = await fetch('/api/admin/diagnostics/health');
+        const data = await response.json();
+        
+        const indicator = document.getElementById('healthIndicator');
+        const text = document.getElementById('healthText');
+        
+        if (data.status === 'healthy') {
+            indicator.style.background = '#10b981';
+            text.innerHTML = '✅ <strong>System Healthy</strong> - All checks passed';
+        } else if (data.status === 'degraded') {
+            indicator.style.background = '#f59e0b';
+            text.innerHTML = '⚠️ <strong>System Degraded</strong> - Some issues detected';
+        } else {
+            indicator.style.background = '#ef4444';
+            text.innerHTML = '❌ <strong>System Unhealthy</strong> - Critical issues found';
+        }
+        
+        // Show check details
+        let details = '<div style="margin-top: 0.5rem; font-size: 0.875rem; color: #666;">';
+        for (const [check, result] of Object.entries(data.checks)) {
+            const icon = result.status === 'ok' ? '✅' : (result.status === 'missing' ? '⚠️' : '❌');
+            details += `${icon} ${check.replace('_', ' ')}: ${result.status}`;
+            if (result.message) details += ` - ${result.message}`;
+            details += '<br>';
+        }
+        details += '</div>';
+        text.innerHTML += details;
+        
+    } catch (error) {
+        console.error('Health check error:', error);
+        document.getElementById('healthIndicator').style.background = '#9ca3af';
+        document.getElementById('healthText').innerHTML = '❓ Unable to check system health';
+    }
+}
+
+async function runDiagnostics() {
+    const btn = document.getElementById('diagnosticsBtn');
+    const resultsDiv = document.getElementById('diagnosticsResults');
+    const content = document.getElementById('diagnosticsContent');
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ Running...';
+    resultsDiv.style.display = 'block';
+    content.innerHTML = '<p style="color: #9ca3af;">Running comprehensive diagnostics...</p>';
+    
+    try {
+        const response = await fetch('/api/admin/diagnostics/run?auto_repair=false');
+        const data = await response.json();
+        
+        let html = `
+            <div style="margin-bottom: 1rem;">
+                <strong>Status:</strong> ${getStatusBadge(data.status)}<br>
+                <strong>Checks Run:</strong> ${data.checks_run}<br>
+                <strong>Errors Found:</strong> ${data.errors_found}<br>
+                <strong>Errors Fixed:</strong> ${data.errors_fixed}
+            </div>
+            <hr style="border-color: #374151; margin: 1rem 0;">
+            <div style="font-family: monospace;">
+        `;
+        
+        data.results.forEach(result => {
+            const icon = result.status === 'ok' ? '✅' : 
+                        (result.status === 'fixed' ? '🔧' : 
+                        (result.status === 'warning' ? '⚠️' : '❌'));
+            const color = result.status === 'ok' ? '#10b981' : 
+                         (result.status === 'fixed' ? '#3b82f6' : 
+                         (result.status === 'warning' ? '#f59e0b' : '#ef4444'));
+            
+            html += `
+                <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #374151; border-radius: 4px;">
+                    <span style="color: ${color};">${icon} <strong>${result.name}</strong></span>
+                    <div style="color: #9ca3af; font-size: 0.875rem; margin-top: 0.25rem;">${result.message}</div>
+                    ${result.auto_fixed ? '<span style="color: #10b981; font-size: 0.75rem;">✓ Auto-fixed</span>' : ''}
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        content.innerHTML = html;
+        
+        // Refresh health status
+        refreshHealth();
+        
+    } catch (error) {
+        content.innerHTML = `<p style="color: #ef4444;">❌ Error running diagnostics: ${error.message}</p>`;
+        console.error('Diagnostics error:', error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Run Diagnostics';
+    }
+}
+
+async function runRepair() {
+    if (!confirm('This will attempt to automatically repair common issues. Continue?')) return;
+    
+    const btn = document.getElementById('repairBtn');
+    const resultsDiv = document.getElementById('diagnosticsResults');
+    const content = document.getElementById('diagnosticsContent');
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ Repairing...';
+    resultsDiv.style.display = 'block';
+    content.innerHTML = '<p style="color: #9ca3af;">Running automatic repairs...</p>';
+    
+    try {
+        const response = await fetch('/api/admin/diagnostics/repair', { method: 'POST' });
+        const data = await response.json();
+        
+        let html = `
+            <div style="margin-bottom: 1rem;">
+                <strong>Result:</strong> ${data.success ? '✅ Success' : '❌ Failed'}<br>
+                <strong>Message:</strong> ${data.message}
+            </div>
+        `;
+        
+        if (data.repairs_made && data.repairs_made.length > 0) {
+            html += '<hr style="border-color: #374151; margin: 1rem 0;">';
+            html += '<strong>Repairs Made:</strong><ul style="margin: 0.5rem 0; padding-left: 1.5rem;">';
+            data.repairs_made.forEach(repair => {
+                html += `<li style="color: #10b981;">🔧 ${repair}</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        if (data.errors && data.errors.length > 0) {
+            html += '<hr style="border-color: #374151; margin: 1rem 0;">';
+            html += '<strong>Errors:</strong><ul style="margin: 0.5rem 0; padding-left: 1.5rem;">';
+            data.errors.forEach(err => {
+                html += `<li style="color: #ef4444;">❌ ${err}</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        content.innerHTML = html;
+        
+        // Refresh health status and stats
+        refreshHealth();
+        loadDatabaseStats();
+        
+        if (data.success) {
+            alert(data.message);
+        }
+        
+    } catch (error) {
+        content.innerHTML = `<p style="color: #ef4444;">❌ Error running repair: ${error.message}</p>`;
+        console.error('Repair error:', error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔧 Run Auto-Repair';
+    }
+}
+
+async function loadDatabaseStats() {
+    try {
+        const response = await fetch('/api/admin/diagnostics/database-stats');
+        const data = await response.json();
+        
+        if (data.success) {
+            const stats = data.stats;
+            const statCards = document.querySelectorAll('#dbStats .stat-card');
+            
+            if (statCards.length >= 6) {
+                statCards[0].querySelector('div:first-child').textContent = stats.users || 0;
+                statCards[1].querySelector('div:first-child').textContent = stats.courses || 0;
+                statCards[2].querySelector('div:first-child').textContent = stats.lessons || 0;
+                statCards[3].querySelector('div:first-child').textContent = stats.enrollments || 0;
+                statCards[4].querySelector('div:first-child').textContent = stats.media_files || 0;
+                statCards[5].querySelector('div:first-child').textContent = stats.database_size_mb || 0;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading database stats:', error);
+    }
+}
+
+async function loadErrorLogs() {
+    try {
+        const response = await fetch('/api/admin/diagnostics/logs?limit=20');
+        const data = await response.json();
+        
+        const logsDiv = document.getElementById('errorLogs');
+        
+        if (!data.success) {
+            logsDiv.innerHTML = `<p style="color: #ef4444;">Error loading logs: ${data.error}</p>`;
+            return;
+        }
+        
+        if (data.logs.length === 0) {
+            logsDiv.innerHTML = '<p style="color: #10b981;">✅ No errors logged. System is running smoothly!</p>';
+            return;
+        }
+        
+        let html = `<div style="color: #9ca3af; margin-bottom: 0.5rem;">Showing ${data.logs.length} of ${data.total_entries} entries</div>`;
+        html += '<div style="max-height: 250px; overflow-y: auto;">';
+        
+        data.logs.reverse().forEach(log => {
+            html += `<div style="margin-bottom: 1rem; padding: 0.5rem; background: #374151; border-radius: 4px; white-space: pre-wrap; word-break: break-word;">${escapeHtml(log)}</div>`;
+        });
+        
+        html += '</div>';
+        logsDiv.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading logs:', error);
+        document.getElementById('errorLogs').innerHTML = `<p style="color: #ef4444;">Failed to load error logs</p>`;
+    }
+}
+
+async function clearErrorLogs() {
+    if (!confirm('Are you sure you want to clear all error logs? They will be archived first.')) return;
+    
+    try {
+        const response = await fetch('/api/admin/diagnostics/logs', { method: 'DELETE' });
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            loadErrorLogs();
+        } else {
+            alert('Failed to clear logs: ' + data.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+        console.error('Clear logs error:', error);
+    }
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'healthy': '<span style="background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Healthy</span>',
+        'repaired': '<span style="background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Repaired</span>',
+        'issues_found': '<span style="background: #f59e0b; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Issues Found</span>',
+        'needs_attention': '<span style="background: #ef4444; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Needs Attention</span>'
+    };
+    return badges[status] || status;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}

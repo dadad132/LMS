@@ -26,6 +26,10 @@ uploads/**
 # Backups - user backup files
 backups/
 
+# Logs - runtime error logs
+logs/
+!logs/.gitkeep
+
 # IDE
 .idea/
 .vscode/

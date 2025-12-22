@@ -1185,3 +1185,286 @@ async def restore_backup(
             "message": "Restore failed",
             "error": str(e)
         }
+
+
+# ==================== System Diagnostics & Self-Repair ====================
+
+@router.get("/diagnostics/run")
+async def run_diagnostics(
+    auto_repair: bool = True,
+    admin: User = Depends(get_super_admin)
+):
+    """
+    Run system diagnostics and optionally auto-repair issues.
+    This will check database, file system, configuration, and more.
+    """
+    try:
+        from ..diagnostics import SystemDiagnostics
+        
+        diagnostics = SystemDiagnostics()
+        results = diagnostics.run_all_checks(auto_repair=auto_repair)
+        
+        return {
+            "success": True,
+            **results
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Diagnostics failed to run",
+            "error": str(e)
+        }
+
+
+@router.get("/diagnostics/health")
+async def health_check(
+    db: Session = Depends(get_db)
+):
+    """
+    Quick health check endpoint - returns basic system status.
+    This is a lightweight check that can be called frequently.
+    """
+    status = {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "checks": {}
+    }
+    
+    # Check database
+    try:
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+        status["checks"]["database"] = {"status": "ok"}
+    except Exception as e:
+        status["status"] = "unhealthy"
+        status["checks"]["database"] = {"status": "error", "message": str(e)}
+    
+    # Check site config exists
+    try:
+        config = db.query(SiteConfig).first()
+        if config:
+            status["checks"]["site_config"] = {"status": "ok", "site_name": config.site_name}
+        else:
+            status["status"] = "degraded"
+            status["checks"]["site_config"] = {"status": "missing"}
+    except Exception as e:
+        status["checks"]["site_config"] = {"status": "error", "message": str(e)}
+    
+    # Check upload directory
+    if UPLOAD_DIR.exists():
+        status["checks"]["upload_dir"] = {"status": "ok"}
+    else:
+        status["status"] = "degraded"
+        status["checks"]["upload_dir"] = {"status": "missing"}
+    
+    return status
+
+
+@router.post("/diagnostics/repair")
+async def repair_system(
+    admin: User = Depends(get_super_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Attempt to repair common system issues automatically.
+    """
+    repairs_made = []
+    errors = []
+    
+    try:
+        # 1. Ensure upload directories exist
+        upload_dirs = [
+            UPLOAD_DIR,
+            UPLOAD_DIR / "general",
+            UPLOAD_DIR / "site",
+            UPLOAD_DIR / "Video",
+            UPLOAD_DIR / "Info"
+        ]
+        for dir_path in upload_dirs:
+            if not dir_path.exists():
+                dir_path.mkdir(parents=True, exist_ok=True)
+                repairs_made.append(f"Created directory: {dir_path.name}")
+        
+        # 2. Ensure site config exists
+        config = db.query(SiteConfig).first()
+        if not config:
+            config = SiteConfig(
+                site_name="My Learning Platform",
+                site_description="Welcome to our learning platform",
+                primary_color="#3b82f6",
+                secondary_color="#10b981",
+                is_setup_complete=False
+            )
+            db.add(config)
+            db.commit()
+            repairs_made.append("Created default site configuration")
+        
+        # 3. Create backup directory
+        if not BACKUP_DIR.exists():
+            BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+            repairs_made.append("Created backup directory")
+        
+        # 4. Ensure logs directory exists
+        logs_dir = BASE_DIR / "logs"
+        if not logs_dir.exists():
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            repairs_made.append("Created logs directory")
+        
+        # 5. Recreate database tables if needed
+        try:
+            from ..database import Base, engine
+            Base.metadata.create_all(bind=engine)
+            # We always run this but only report if tables were created
+        except Exception as e:
+            errors.append(f"Database table check failed: {str(e)}")
+        
+        # 6. Clean up orphaned records
+        try:
+            from ..models.course import Enrollment, Course
+            from ..models.user import User as UserModel
+            
+            # Remove enrollments for deleted courses
+            orphaned = db.query(Enrollment).filter(
+                ~Enrollment.course_id.in_(db.query(Course.id))
+            ).all()
+            if orphaned:
+                for e in orphaned:
+                    db.delete(e)
+                db.commit()
+                repairs_made.append(f"Removed {len(orphaned)} orphaned enrollments")
+        except Exception as e:
+            errors.append(f"Orphan cleanup failed: {str(e)}")
+        
+        return {
+            "success": True,
+            "message": f"Repair completed. {len(repairs_made)} repairs made.",
+            "repairs_made": repairs_made,
+            "errors": errors if errors else None
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Repair failed",
+            "error": str(e),
+            "repairs_made": repairs_made
+        }
+
+
+@router.get("/diagnostics/logs")
+async def get_error_logs(
+    limit: int = 50,
+    admin: User = Depends(get_super_admin)
+):
+    """Get recent error logs"""
+    try:
+        logs_dir = BASE_DIR / "logs"
+        error_log = logs_dir / "errors.log"
+        
+        if not error_log.exists():
+            return {
+                "success": True,
+                "logs": [],
+                "message": "No error logs found"
+            }
+        
+        with open(error_log, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # Parse log entries (separated by ===)
+        entries = content.split("=" * 50)
+        entries = [e.strip() for e in entries if e.strip()]
+        
+        # Return most recent entries
+        recent = entries[-limit:] if len(entries) > limit else entries
+        
+        return {
+            "success": True,
+            "logs": recent,
+            "total_entries": len(entries)
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to read logs",
+            "error": str(e)
+        }
+
+
+@router.delete("/diagnostics/logs")
+async def clear_error_logs(
+    admin: User = Depends(get_super_admin)
+):
+    """Clear error logs"""
+    try:
+        logs_dir = BASE_DIR / "logs"
+        error_log = logs_dir / "errors.log"
+        
+        if error_log.exists():
+            # Archive old logs before clearing
+            archive_name = f"errors_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.log"
+            archive_path = logs_dir / "archive"
+            archive_path.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(error_log, archive_path / archive_name)
+            
+            # Clear the log file
+            with open(error_log, "w") as f:
+                f.write("")
+        
+        return {
+            "success": True,
+            "message": "Error logs cleared and archived"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to clear logs",
+            "error": str(e)
+        }
+
+
+@router.get("/diagnostics/database-stats")
+async def get_database_stats(
+    admin: User = Depends(get_super_admin),
+    db: Session = Depends(get_db)
+):
+    """Get database statistics"""
+    try:
+        from ..models.course import Course, Lesson, Enrollment
+        from ..models.user import User as UserModel
+        from ..models.media import MediaFile
+        from ..models.contact import ContactInquiry
+        
+        stats = {
+            "users": db.query(UserModel).count(),
+            "courses": db.query(Course).count(),
+            "lessons": db.query(Lesson).count(),
+            "enrollments": db.query(Enrollment).count(),
+            "media_files": db.query(MediaFile).count(),
+            "contact_inquiries": db.query(ContactInquiry).count(),
+            "pages": db.query(Page).count()
+        }
+        
+        # Get database file size
+        db_path = BASE_DIR / "data.db"
+        if db_path.exists():
+            stats["database_size_mb"] = round(db_path.stat().st_size / (1024 * 1024), 2)
+        
+        # Get upload directory size
+        if UPLOAD_DIR.exists():
+            total_size = sum(f.stat().st_size for f in UPLOAD_DIR.rglob('*') if f.is_file())
+            stats["uploads_size_mb"] = round(total_size / (1024 * 1024), 2)
+        
+        return {
+            "success": True,
+            "stats": stats
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to get stats",
+            "error": str(e)
+        }

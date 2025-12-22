@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }} - {{ site_config.site_name if site_config else 'LMS' }}{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="container">
+        <div class="error-content">
+            <h1>{{ error_code }}</h1>
+            <h2>Something Went Wrong</h2>
+            <p>{{ error_message or "We encountered an unexpected error. Our system is attempting to diagnose and fix the issue." }}</p>
+            
+            <div class="error-info">
+                <div class="error-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <p class="auto-repair-notice">
+                    <strong>Auto-Repair System Active</strong><br>
+                    Our system automatically detects and attempts to fix common issues.
+                </p>
+            </div>
+            
+            <div class="error-actions">
+                <a href="javascript:location.reload()" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    Try Again
+                </a>
+                <a href="/" class="btn btn-outline">Go Home</a>
+            </div>
+            
+            {% if current_user and current_user.role == 'super_admin' %}
+            <div class="admin-options">
+                <h4>Admin Options</h4>
+                <div class="admin-actions">
+                    <a href="/admin" class="btn btn-sm">Admin Panel</a>
+                    <button onclick="runDiagnostics()" class="btn btn-sm btn-warning">Run Diagnostics</button>
+                    <button onclick="attemptRepair()" class="btn btn-sm btn-danger">Attempt Repair</button>
+                </div>
+                <div id="diagnostic-results" style="display: none; margin-top: 1rem; text-align: left;"></div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.error-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.error-content h1 {
+    font-size: 6rem;
+    font-weight: 700;
+    color: #ef4444;
+    margin-bottom: 0;
+    line-height: 1;
+}
+
+.error-content h2 {
+    font-size: 2rem;
+    color: var(--text-color, #333);
+    margin-bottom: 1rem;
+}
+
+.error-content p {
+    color: var(--gray-500, #6b7280);
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+.error-info {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: inline-block;
+}
+
+.error-icon {
+    color: #f59e0b;
+    margin-bottom: 0.5rem;
+}
+
+.auto-repair-notice {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #92400e;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btn-primary {
+    background-color: var(--primary-color, #3b82f6);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 2px solid var(--primary-color, #3b82f6);
+    color: var(--primary-color, #3b82f6);
+}
+
+.btn-outline:hover {
+    background-color: var(--primary-color, #3b82f6);
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-warning {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+.admin-options {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.admin-options h4 {
+    color: #6b7280;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+#diagnostic-results {
+    background: #f3f4f6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    font-family: monospace;
+    font-size: 0.875rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+    .error-content h1 {
+        font-size: 4rem;
+    }
+    
+    .error-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+async function runDiagnostics() {
+    const resultsDiv = document.getElementById('diagnostic-results');
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<p>Running diagnostics...</p>';
+    
+    try {
+        const response = await fetch('/api/admin/diagnostics/run?auto_repair=false');
+        const data = await response.json();
+        
+        let html = '<h5>Diagnostic Results</h5>';
+        html += `<p>Status: <strong>${data.status}</strong></p>`;
+        html += `<p>Errors Found: ${data.errors_found}</p>`;
+        html += '<ul>';
+        data.results.forEach(r => {
+            const icon = r.status === 'ok' ? '✅' : (r.status === 'fixed' ? '🔧' : '❌');
+            html += `<li>${icon} ${r.name}: ${r.message}</li>`;
+        });
+        html += '</ul>';
+        
+        resultsDiv.innerHTML = html;
+    } catch (error) {
+        resultsDiv.innerHTML = `<p style="color: red;">Failed to run diagnostics: ${error.message}</p>`;
+    }
+}
+
+async function attemptRepair() {
+    const resultsDiv = document.getElementById('diagnostic-results');
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<p>Attempting repairs...</p>';
+    
+    try {
+        const response = await fetch('/api/admin/diagnostics/repair', { method: 'POST' });
+        const data = await response.json();
+        
+        let html = '<h5>Repair Results</h5>';
+        html += `<p>${data.message}</p>`;
+        
+        if (data.repairs_made && data.repairs_made.length > 0) {
+            html += '<p>Repairs made:</p><ul>';
+            data.repairs_made.forEach(r => {
+                html += `<li>🔧 ${r}</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        if (data.success) {
+            html += '<p style="color: green;">Repair completed! Try refreshing the page.</p>';
+        }
+        
+        resultsDiv.innerHTML = html;
+    } catch (error) {
+        resultsDiv.innerHTML = `<p style="color: red;">Repair failed: ${error.message}</p>`;
+    }
+}
+</script>
+{% endblock %}
