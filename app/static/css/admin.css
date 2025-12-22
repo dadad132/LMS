@@ -568,3 +568,37 @@ select:focus {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==================== Rich Text Editor Styles ==================== */
+.ql-toolbar.ql-snow {
+    border-radius: 8px 8px 0 0;
+    background: #f8f9fa;
+    border-color: #e5e7eb;
+}
+
+.ql-container.ql-snow {
+    border-radius: 0 0 8px 8px;
+    border-color: #e5e7eb;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.ql-editor {
+    min-height: 120px;
+}
+
+.ql-editor.ql-blank::before {
+    color: #9ca3af;
+    font-style: normal;
+}
+
+/* Make editor responsive in modals */
+.modal-content .ql-toolbar.ql-snow {
+    padding: 8px;
+}
+
+.modal-content .ql-formats button {
+    width: 26px;
+    height: 26px;
+}
+

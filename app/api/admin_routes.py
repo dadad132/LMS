@@ -1327,6 +1327,134 @@ async def repair_system(
             logs_dir.mkdir(parents=True, exist_ok=True)
             repairs_made.append("Created logs directory")
         
+        # 4b. Create default pages if they don't exist
+        try:
+            about_page = db.query(Page).filter(Page.slug == "about").first()
+            contact_page = db.query(Page).filter(Page.slug == "contact").first()
+            
+            if not about_page:
+                about_page = Page(
+                    title="About Us",
+                    slug="about",
+                    content="""
+<div class="about-page">
+    <h1>About Us</h1>
+    <p>Welcome to our learning platform! We are dedicated to providing high-quality online education to learners worldwide.</p>
+    
+    <h2>Our Mission</h2>
+    <p>Our mission is to make quality education accessible to everyone, anywhere, anytime. We believe that learning should be engaging, interactive, and tailored to individual needs.</p>
+    
+    <h2>What We Offer</h2>
+    <ul>
+        <li>Expert-led courses across various subjects</li>
+        <li>Interactive learning experiences</li>
+        <li>Self-paced learning options</li>
+        <li>Certificates upon completion</li>
+        <li>Community support and networking</li>
+    </ul>
+    
+    <h2>Our Team</h2>
+    <p>We are a passionate team of educators, technologists, and lifelong learners committed to transforming the way people learn online.</p>
+</div>
+                    """,
+                    page_type="standard",
+                    is_published=True,
+                    is_in_navigation=True,
+                    navigation_order=1,
+                    meta_title="About Us",
+                    meta_description="Learn more about our learning platform and mission."
+                )
+                db.add(about_page)
+                repairs_made.append("Created About Us page")
+            
+            if not contact_page:
+                contact_page = Page(
+                    title="Contact Us",
+                    slug="contact",
+                    content="""
+<div class="contact-page">
+    <h1>Contact Us</h1>
+    <p>We'd love to hear from you! Whether you have a question, feedback, or need assistance, feel free to reach out.</p>
+    
+    <div class="contact-info">
+        <h2>Get in Touch</h2>
+        <p><strong>Email:</strong> support@example.com</p>
+        <p><strong>Phone:</strong> +1 (555) 123-4567</p>
+        <p><strong>Address:</strong> 123 Learning Street, Education City, EC 12345</p>
+    </div>
+    
+    <div class="contact-form-section">
+        <h2>Send Us a Message</h2>
+        <form id="contactForm" onsubmit="submitContactForm(event)">
+            <div class="form-group">
+                <label for="name">Your Name</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Your Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="subject" required>
+            </div>
+            <div class="form-group">
+                <label for="message">Message</label>
+                <textarea id="message" name="message" rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Send Message</button>
+        </form>
+        <div id="contactFormResult" style="margin-top: 1rem;"></div>
+    </div>
+</div>
+
+<script>
+async function submitContactForm(e) {
+    e.preventDefault();
+    const form = e.target;
+    const result = document.getElementById('contactFormResult');
+    
+    const data = {
+        name: form.name.value,
+        email: form.email.value,
+        subject: form.subject.value,
+        message: form.message.value
+    };
+    
+    try {
+        const response = await fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            result.innerHTML = '<div class="alert alert-success">Thank you! Your message has been sent successfully.</div>';
+            form.reset();
+        } else {
+            result.innerHTML = '<div class="alert alert-error">Failed to send message. Please try again.</div>';
+        }
+    } catch (error) {
+        result.innerHTML = '<div class="alert alert-error">An error occurred. Please try again later.</div>';
+    }
+}
+</script>
+                    """,
+                    page_type="standard",
+                    is_published=True,
+                    is_in_navigation=True,
+                    navigation_order=2,
+                    meta_title="Contact Us",
+                    meta_description="Get in touch with us. We're here to help!"
+                )
+                db.add(contact_page)
+                repairs_made.append("Created Contact Us page")
+            
+            if not about_page or not contact_page:
+                db.commit()
+        except Exception as e:
+            errors.append(f"Default pages creation failed: {str(e)}")
+        
         # 5. Recreate database tables if needed
         try:
             from ..database import Base, engine

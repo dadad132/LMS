@@ -208,6 +208,11 @@ async function loadPages() {
     }
 }
 
+// Global variable to store Quill editor instances
+let pageEditor = null;
+let lessonEditor = null;
+let courseEditor = null;
+
 function showPageModal(page = null) {
     const modal = document.getElementById('modal');
     const content = document.getElementById('modalContent');
@@ -226,10 +231,11 @@ function showPageModal(page = null) {
             <div class="form-group">
                 <label for="pageSlug">Slug (URL)</label>
                 <input type="text" id="pageSlug" value="${page?.slug || ''}" required>
+                <small style="color: #666;">This will be the URL: /your-slug</small>
             </div>
             <div class="form-group">
-                <label for="pageContent">Content (HTML)</label>
-                <textarea id="pageContent" rows="10">${page?.content || ''}</textarea>
+                <label>Content</label>
+                <div id="pageEditorContainer" style="height: 300px; background: white; border-radius: 4px;"></div>
             </div>
             <div class="form-row">
                 <label class="checkbox-label">
@@ -248,6 +254,29 @@ function showPageModal(page = null) {
         </form>
     `;
     
+    // Initialize Quill rich text editor
+    pageEditor = new Quill('#pageEditorContainer', {
+        theme: 'snow',
+        placeholder: 'Start typing your content here...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'align': [] }],
+                ['link', 'image'],
+                ['blockquote', 'code-block'],
+                ['clean']
+            ]
+        }
+    });
+    
+    // Set initial content if editing
+    if (page?.content) {
+        pageEditor.root.innerHTML = page.content;
+    }
+    
     document.getElementById('pageForm').addEventListener('submit', savePage);
     modal.classList.add('active');
 }
@@ -259,7 +288,7 @@ async function savePage(e) {
     const data = {
         title: document.getElementById('pageTitle').value,
         slug: document.getElementById('pageSlug').value,
-        content: document.getElementById('pageContent').value,
+        content: pageEditor ? pageEditor.root.innerHTML : '',
         is_published: document.getElementById('pagePublished').checked,
         is_landing_page: document.getElementById('pageLanding').checked
     };
@@ -347,8 +376,8 @@ function showCourseModal(course = null) {
                 <input type="text" id="courseTitle" value="${course?.title || ''}" required>
             </div>
             <div class="form-group">
-                <label for="courseDescription">Description</label>
-                <textarea id="courseDescription" rows="4">${course?.description || ''}</textarea>
+                <label>Description</label>
+                <div id="courseEditorContainer" style="height: 150px; background: white; border-radius: 4px;"></div>
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -393,6 +422,27 @@ function showCourseModal(course = null) {
     `;
     
     document.getElementById('courseForm').addEventListener('submit', saveCourse);
+    
+    // Initialize Quill rich text editor for course description
+    courseEditor = new Quill('#courseEditorContainer', {
+        theme: 'snow',
+        placeholder: 'Describe your course...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['link'],
+                ['clean']
+            ]
+        }
+    });
+    
+    // Set initial content if editing
+    if (course?.description) {
+        courseEditor.root.innerHTML = course.description;
+    }
+    
     modal.classList.add('active');
 }
 
@@ -402,7 +452,7 @@ async function saveCourse(e) {
     const id = document.getElementById('courseId').value;
     const data = {
         title: document.getElementById('courseTitle').value,
-        description: document.getElementById('courseDescription').value,
+        description: courseEditor ? courseEditor.root.innerHTML : '',
         category: document.getElementById('courseCategory').value,
         difficulty_level: document.getElementById('courseLevel').value,
         thumbnail_url: document.getElementById('courseThumbnail').value || null,
@@ -494,6 +544,9 @@ function showLessonModal(lesson = null) {
     const modal = document.getElementById('modal');
     const content = document.getElementById('modalContent');
     
+    // Store content for editor initialization
+    window.currentLessonContent = lesson?.content || '';
+    
     content.innerHTML = `
         <div class="modal-header">
             <h2>${lesson ? 'Edit Lesson' : 'Add Lesson'}</h2>
@@ -536,8 +589,9 @@ function showLessonModal(lesson = null) {
                 <input type="number" id="lessonDuration" value="${lesson?.video_duration_minutes || 0}" min="0">
             </div>
             <div id="textFields" class="form-group" style="display: none;">
-                <label for="lessonContent">Lesson Content (HTML)</label>
-                <textarea id="lessonContent" rows="8">${lesson?.content || ''}</textarea>
+                <label>Lesson Content</label>
+                <div id="lessonEditorContainer" style="height: 250px; background: white; border-radius: 4px;"></div>
+                <input type="hidden" id="lessonContentHidden" value="">
             </div>
             <div id="quizFields" style="display: none;">
                 <div class="form-group">
@@ -586,6 +640,35 @@ function toggleLessonFields() {
     document.getElementById('videoDurationField').style.display = type === 'video' ? 'block' : 'none';
     document.getElementById('textFields').style.display = type === 'text' ? 'block' : 'none';
     document.getElementById('quizFields').style.display = type === 'quiz' ? 'block' : 'none';
+    
+    if (type === 'text') {
+        // Initialize Quill editor for lesson content if not already done
+        const container = document.getElementById('lessonEditorContainer');
+        if (container && !lessonEditor) {
+            lessonEditor = new Quill('#lessonEditorContainer', {
+                theme: 'snow',
+                placeholder: 'Start typing your lesson content here...',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'align': [] }],
+                        ['link', 'image'],
+                        ['blockquote', 'code-block'],
+                        ['clean']
+                    ]
+                }
+            });
+            
+            // Set initial content if editing
+            if (window.currentLessonContent) {
+                lessonEditor.root.innerHTML = window.currentLessonContent;
+            }
+        }
+    }
+    
     if (type === 'quiz') loadQuizQuestions();
 }
 
@@ -608,7 +691,7 @@ async function saveLesson(e) {
         data.video_url = document.getElementById('lessonVideoUrl').value;
         data.video_duration_minutes = parseInt(document.getElementById('lessonDuration').value) || 0;
     } else if (contentType === 'text') {
-        data.content = document.getElementById('lessonContent').value;
+        data.content = lessonEditor ? lessonEditor.root.innerHTML : '';
     } else if (contentType === 'quiz') {
         const quizData = getQuizData();
         data.quiz_questions = quizData.quiz_questions;
@@ -941,6 +1024,11 @@ function formatFileSize(bytes) {
 // ==================== Modal ====================
 function closeModal() {
     document.getElementById('modal').classList.remove('active');
+    // Reset Quill editors when closing modal
+    pageEditor = null;
+    lessonEditor = null;
+    courseEditor = null;
+    window.currentLessonContent = '';
 }
 
 // Close modal on backdrop click

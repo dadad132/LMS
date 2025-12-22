@@ -958,3 +958,133 @@ select:focus {
         position: static;
     }
 }
+
+/* ==================== Custom Pages ==================== */
+.about-page,
+.contact-page,
+.privacy-page,
+.terms-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.about-page h1,
+.contact-page h1,
+.privacy-page h1,
+.terms-page h1 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    border-bottom: 3px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+}
+
+.about-page h2,
+.contact-page h2,
+.privacy-page h2,
+.terms-page h2 {
+    font-size: 1.5rem;
+    color: var(--gray-800);
+    margin: 2rem 0 1rem;
+}
+
+.about-page p,
+.contact-page p,
+.privacy-page p,
+.terms-page p {
+    margin-bottom: 1rem;
+    line-height: 1.8;
+}
+
+.about-page ul,
+.privacy-page ul,
+.terms-page ul {
+    margin: 1rem 0 1.5rem 1.5rem;
+}
+
+.about-page li,
+.privacy-page li,
+.terms-page li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+/* Contact Page Specific */
+.contact-info {
+    background: var(--gray-100);
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    margin: 1.5rem 0;
+}
+
+.contact-info p {
+    margin-bottom: 0.5rem;
+}
+
+.contact-form-section {
+    margin-top: 2rem;
+}
+
+.contact-form-section .form-group {
+    margin-bottom: 1rem;
+}
+
+.contact-form-section label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.contact-form-section input,
+.contact-form-section textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.contact-form-section input:focus,
+.contact-form-section textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.contact-form-section .btn-primary {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.contact-form-section .btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+/* Alert messages for contact form */
+.alert {
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    margin: 1rem 0;
+}
+
+.alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
