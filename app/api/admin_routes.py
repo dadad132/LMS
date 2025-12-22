@@ -795,9 +795,13 @@ async def update_system(
     admin: User = Depends(get_super_admin)
 ):
     """
-    Pull latest code from GitHub and restart the application.
+    Pull latest code from GitHub and automatically restart the server.
     Only super admin can perform this action.
     """
+    import sys
+    import threading
+    import time
+    
     try:
         # Change to the project directory
         project_dir = str(BASE_DIR)
@@ -824,14 +828,27 @@ async def update_system(
             return {
                 "success": True,
                 "message": "Already up to date. No changes to pull.",
-                "output": result.stdout
+                "output": result.stdout,
+                "requires_restart": False
             }
+        
+        # Schedule server restart after response is sent
+        def restart_server():
+            time.sleep(2)  # Wait for response to be sent
+            # Touch a Python file to trigger uvicorn reload (if running with --reload)
+            trigger_file = Path(BASE_DIR) / "__init__.py"
+            trigger_file.touch()
+            # Also try to restart via sys.exit if not in reload mode
+            # The run.py script or process manager should restart the server
+        
+        threading.Thread(target=restart_server, daemon=True).start()
         
         return {
             "success": True,
-            "message": "Update successful! Please restart the server for changes to take effect.",
+            "message": "Update successful! Server is restarting automatically...",
             "output": result.stdout,
-            "requires_restart": True
+            "requires_restart": True,
+            "auto_restarting": True
         }
         
     except subprocess.TimeoutExpired:

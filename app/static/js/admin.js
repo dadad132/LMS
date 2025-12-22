@@ -1492,7 +1492,7 @@ async function checkForUpdates() {
 }
 
 async function updateSystem() {
-    if (!confirm('Are you sure you want to pull updates from GitHub? The server may need to be restarted after updating.')) {
+    if (!confirm('Are you sure you want to pull updates from GitHub? The server will automatically restart after updating.')) {
         return;
     }
     
@@ -1516,15 +1516,33 @@ async function updateSystem() {
             outputPre.textContent += '\n✅ ' + data.message + '\n\n';
             outputPre.textContent += 'Output:\n' + (data.output || 'No output');
             
-            if (data.requires_restart) {
+            if (data.auto_restarting) {
+                outputPre.textContent += '\n\n🔄 Server is restarting automatically...';
+                outputPre.textContent += '\n⏳ Page will reload in 5 seconds...';
+                
+                // Show countdown and reload
+                let countdown = 5;
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0) {
+                        outputPre.textContent = outputPre.textContent.replace(/⏳ Page will reload in \d+ seconds.../, `⏳ Page will reload in ${countdown} seconds...`);
+                    } else {
+                        clearInterval(countdownInterval);
+                        outputPre.textContent += '\n\n🔄 Reloading page...';
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                }, 1000);
+            } else if (data.requires_restart) {
                 outputPre.textContent += '\n\n⚠️ Please restart the server for changes to take effect.';
                 alert('Update successful! Please restart the server for changes to take effect.');
             } else {
                 alert(data.message);
             }
             
-            // Refresh version info
-            await loadSystemInfo();
+            // Don't refresh version info if restarting, page will reload
+            if (!data.auto_restarting) {
+                await loadSystemInfo();
+            }
         } else {
             outputPre.textContent += '\n❌ ' + data.message + '\n\n';
             if (data.error) {
