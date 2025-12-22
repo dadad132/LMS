@@ -141,6 +141,35 @@ def generate_slug(title: str) -> str:
     return slug
 
 
+def update_enrollment_progress(db: Session, enrollment: Enrollment) -> None:
+    """Update overall progress percentage for an enrollment based on completed lessons"""
+    from ..models.course import QuizAttempt
+    
+    # Get total lessons in course
+    total_lessons = db.query(Lesson).filter(
+        Lesson.course_id == enrollment.course_id
+    ).count()
+    
+    if total_lessons == 0:
+        enrollment.progress_percentage = 0
+        return
+    
+    # Get completed lessons (non-quiz lessons marked as completed)
+    completed_lesson_progress = db.query(LessonProgress).filter(
+        LessonProgress.enrollment_id == enrollment.id,
+        LessonProgress.is_completed == True
+    ).count()
+    
+    # Calculate progress percentage
+    progress = (completed_lesson_progress / total_lessons) * 100
+    enrollment.progress_percentage = min(progress, 100)
+    
+    # Mark course as completed if 100%
+    if enrollment.progress_percentage >= 100:
+        enrollment.status = "completed"
+        enrollment.completed_at = datetime.utcnow()
+
+
 # ==================== Course CRUD ====================
 
 @router.get("", response_model=List[CourseResponse])
@@ -721,6 +750,9 @@ async def submit_quiz(
         
         progress.is_completed = True
         progress.completed_at = datetime.utcnow()
+        
+        # Update overall enrollment progress
+        update_enrollment_progress(db, enrollment)
     
     db.commit()
     

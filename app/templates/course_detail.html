@@ -824,20 +824,45 @@
         const answers = {};
         
         lesson.quiz_questions.forEach((q, qi) => {
+            const qId = q.id || qi;
             const answer = formData.get(`q${qi}`);
-            answers[qi] = parseInt(answer);
+            answers[qId] = parseInt(answer);
         });
         
-        // Calculate score locally
-        let correct = 0;
-        lesson.quiz_questions.forEach((q, qi) => {
-            if (answers[qi] === q.correct_answer) {
-                correct++;
+        let score = 0;
+        let passed = false;
+        let serverResult = null;
+        
+        // Submit to server first to get proper score and save the attempt
+        if (isEnrolled) {
+            try {
+                const response = await fetch(`/api/courses/${courseId}/lessons/${lessonId}/quiz/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers })
+                });
+                if (response.ok) {
+                    serverResult = await response.json();
+                    score = serverResult.score;
+                    passed = serverResult.passed;
+                }
+            } catch (e) {
+                console.log('Could not save quiz attempt:', e);
             }
-        });
+        }
         
-        const score = Math.round((correct / lesson.quiz_questions.length) * 100);
-        const passed = score >= (lesson.quiz_passing_score || 70);
+        // If server didn't respond, calculate locally
+        if (!serverResult) {
+            let correct = 0;
+            lesson.quiz_questions.forEach((q, qi) => {
+                const qId = q.id || qi;
+                if (answers[qId] === q.correct_answer) {
+                    correct++;
+                }
+            });
+            score = Math.round((correct / lesson.quiz_questions.length) * 100);
+            passed = score >= (lesson.quiz_passing_score || 70);
+        }
         
         // Show results
         const resultDiv = document.getElementById('quizResult');
@@ -845,27 +870,27 @@
         resultDiv.innerHTML = `
             <div class="quiz-result ${passed ? 'passed' : 'failed'}">
                 <h3>${passed ? '🎉 Congratulations!' : '😔 Not Quite'}</h3>
-                <p>Your score: <strong>${score}%</strong> (${correct}/${lesson.quiz_questions.length} correct)</p>
-                <p>${passed ? 'You passed the quiz!' : `You need ${lesson.quiz_passing_score || 70}% to pass. Try again!`}</p>
-                ${!passed ? '<button class="btn btn-primary" onclick="resetQuiz()">Try Again</button>' : ''}
+                <p>Your score: <strong>${Math.round(score)}%</strong></p>
+                <p>${passed ? '✅ You passed the quiz! This lesson is now complete.' : `❌ You need ${lesson.quiz_passing_score || 70}% to pass. Try again!`}</p>
+                ${passed ? '<button class="btn btn-success" onclick="closeLessonModal()">Continue Course</button>' : '<button class="btn btn-primary" onclick="resetQuiz()">Try Again</button>'}
             </div>
         `;
         
         // Hide form
         form.style.display = 'none';
         
-        // Submit to server for tracking (if enrolled)
-        if (isEnrolled) {
-            try {
-                await fetch(`/api/courses/${courseId}/lessons/${lessonId}/quiz/submit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers })
-                });
-            } catch (e) {
-                console.log('Could not save quiz attempt');
-            }
+        // Reload progress and update lesson list if passed
+        if (passed && isEnrolled) {
+            await loadProgress();
+            await loadLessons();
         }
+    }
+    
+    function closeLessonModal() {
+        const modal = document.getElementById('lessonModal');
+        modal.classList.remove('active');
+        // Reload lessons to show updated completion status
+        loadLessons();
     }
     
     function resetQuiz() {
@@ -908,9 +933,16 @@
             });
             if (response.ok) {
                 const result = await response.json();
-                alert('Lesson marked as complete!');
-                // Reload to update UI
-                loadLessons();
+                // Reload progress data and lessons to update UI
+                await loadProgress();
+                await loadLessons();
+                
+                // Update the button to show completion
+                const markCompleteSection = document.querySelector('.mark-complete-section');
+                if (markCompleteSection) {
+                    markCompleteSection.innerHTML = '<div class="completed-message">✅ Lesson Complete!</div>';
+                    markCompleteSection.classList.add('completed');
+                }
             } else {
                 const error = await response.json();
                 alert(error.detail || 'Could not mark lesson complete');
