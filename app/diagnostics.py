@@ -388,19 +388,20 @@ class SystemDiagnostics:
                         db.commit()
                         fixed.append("Removed orphaned enrollments")
                 
-                # Check for courses without valid instructor
+                # Check for courses without valid creator
                 invalid_courses = db.query(Course).filter(
-                    Course.instructor_id.isnot(None),
-                    ~Course.instructor_id.in_(db.query(User.id))
+                    Course.creator_id.isnot(None),
+                    ~Course.creator_id.in_(db.query(User.id))
                 ).all()
                 
                 if invalid_courses:
-                    issues.append(f"{len(invalid_courses)} courses with invalid instructor")
+                    issues.append(f"{len(invalid_courses)} courses with invalid creator")
                     if auto_repair:
+                        # Delete courses with invalid creator since creator_id is required
                         for c in invalid_courses:
-                            c.instructor_id = None
+                            db.delete(c)
                         db.commit()
-                        fixed.append("Fixed courses with invalid instructor")
+                        fixed.append("Removed courses with invalid creator")
                 
             finally:
                 db.close()
