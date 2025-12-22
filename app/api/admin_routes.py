@@ -8,13 +8,15 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import shutil
 import uuid
+import subprocess
+import os
 
 from ..database import get_db
 from ..models.user import User, UserRole
 from ..models.site_config import SiteConfig, Page, Widget, PageWidget, NavigationMenu
 from ..models.media import MediaFile
 from .auth import get_admin_user, get_super_admin, get_password_hash
-from ..config import UPLOAD_DIR, ALLOWED_EXTENSIONS
+from ..config import UPLOAD_DIR, ALLOWED_EXTENSIONS, BASE_DIR
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -776,3 +778,114 @@ async def list_media(
         }
         for f in files
     ]
+
+
+# ==================== System Update ====================
+
+@router.post("/system/update")
+async def update_system(
+    admin: User = Depends(get_super_admin)
+):
+    """
+    Pull latest code from GitHub and restart the application.
+    Only super admin can perform this action.
+    """
+    try:
+        # Change to the project directory
+        project_dir = str(BASE_DIR)
+        
+        # Run git pull
+        result = subprocess.run(
+            ["git", "pull", "origin", "main"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "message": "Git pull failed",
+                "error": result.stderr,
+                "output": result.stdout
+            }
+        
+        # Check if there were any updates
+        if "Already up to date" in result.stdout:
+            return {
+                "success": True,
+                "message": "Already up to date. No changes to pull.",
+                "output": result.stdout
+            }
+        
+        return {
+            "success": True,
+            "message": "Update successful! Please restart the server for changes to take effect.",
+            "output": result.stdout,
+            "requires_restart": True
+        }
+        
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "message": "Update timed out. Please try again.",
+            "error": "Git pull operation timed out after 60 seconds"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Update failed",
+            "error": str(e)
+        }
+
+
+@router.get("/system/version")
+async def get_system_version(
+    admin: User = Depends(get_admin_user)
+):
+    """Get current git commit info"""
+    try:
+        project_dir = str(BASE_DIR)
+        
+        # Get current commit hash
+        commit_result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True
+        )
+        
+        # Get commit date
+        date_result = subprocess.run(
+            ["git", "log", "-1", "--format=%ci"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True
+        )
+        
+        # Check for updates
+        subprocess.run(["git", "fetch", "origin"], cwd=project_dir, capture_output=True)
+        
+        behind_result = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD..origin/main"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True
+        )
+        
+        commits_behind = int(behind_result.stdout.strip()) if behind_result.returncode == 0 else 0
+        
+        return {
+            "commit": commit_result.stdout.strip(),
+            "date": date_result.stdout.strip(),
+            "updates_available": commits_behind > 0,
+            "commits_behind": commits_behind
+        }
+    except Exception as e:
+        return {
+            "commit": "unknown",
+            "date": "unknown",
+            "updates_available": False,
+            "error": str(e)
+        }

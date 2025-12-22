@@ -49,7 +49,8 @@ function showSection(sectionId) {
         'pages': 'Pages',
         'courses': 'Courses',
         'users': 'Users',
-        'media': 'Media Library'
+        'media': 'Media Library',
+        'system': 'System Update'
     };
     document.getElementById('pageTitle').textContent = titles[sectionId] || 'Dashboard';
     
@@ -58,6 +59,7 @@ function showSection(sectionId) {
         case 'homepage': loadHomepageSettings(); break;
         case 'pages': loadPages(); break;
         case 'courses': loadCourses(); break;
+        case 'system': loadSystemInfo(); break;
         case 'users': loadUsers(); break;
         case 'media': loadMedia(); break;
     }
@@ -1442,4 +1444,103 @@ function previewHomepage() {
 }
 
 
+// ==================== System Update Functions ====================
 
+async function loadSystemInfo() {
+    try {
+        const response = await fetch('/api/admin/system/version');
+        const data = await response.json();
+        
+        document.getElementById('currentCommit').textContent = data.commit || 'Unknown';
+        document.getElementById('commitDate').textContent = data.date || 'Unknown';
+        
+        const statusEl = document.getElementById('updateStatus');
+        if (data.updates_available) {
+            statusEl.innerHTML = `<span style="color: #f59e0b;">⚠️ ${data.commits_behind} update(s) available!</span>`;
+            document.getElementById('updateBtn').classList.add('btn-warning');
+        } else {
+            statusEl.innerHTML = '<span style="color: #10b981;">✅ Your system is up to date!</span>';
+        }
+    } catch (error) {
+        console.error('Error loading system info:', error);
+        document.getElementById('currentCommit').textContent = 'Error loading';
+        document.getElementById('commitDate').textContent = 'Error loading';
+    }
+}
+
+async function checkForUpdates() {
+    const statusEl = document.getElementById('updateStatus');
+    statusEl.innerHTML = '<span style="color: #3b82f6;">🔄 Checking for updates...</span>';
+    
+    try {
+        const response = await fetch('/api/admin/system/version');
+        const data = await response.json();
+        
+        document.getElementById('currentCommit').textContent = data.commit || 'Unknown';
+        document.getElementById('commitDate').textContent = data.date || 'Unknown';
+        
+        if (data.updates_available) {
+            statusEl.innerHTML = `<span style="color: #f59e0b;">⚠️ ${data.commits_behind} update(s) available! Click "Pull Updates" to update.</span>`;
+            document.getElementById('updateBtn').style.background = '#f59e0b';
+        } else {
+            statusEl.innerHTML = '<span style="color: #10b981;">✅ Your system is up to date!</span>';
+        }
+    } catch (error) {
+        statusEl.innerHTML = '<span style="color: #dc3545;">❌ Error checking for updates</span>';
+        console.error('Error:', error);
+    }
+}
+
+async function updateSystem() {
+    if (!confirm('Are you sure you want to pull updates from GitHub? The server may need to be restarted after updating.')) {
+        return;
+    }
+    
+    const outputDiv = document.getElementById('updateOutput');
+    const outputPre = outputDiv.querySelector('pre');
+    outputDiv.style.display = 'block';
+    outputPre.textContent = '🔄 Pulling updates from GitHub...\n';
+    
+    document.getElementById('updateBtn').disabled = true;
+    document.getElementById('updateBtn').textContent = '⏳ Updating...';
+    
+    try {
+        const response = await fetch('/api/admin/system/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            outputPre.textContent += '\n✅ ' + data.message + '\n\n';
+            outputPre.textContent += 'Output:\n' + (data.output || 'No output');
+            
+            if (data.requires_restart) {
+                outputPre.textContent += '\n\n⚠️ Please restart the server for changes to take effect.';
+                alert('Update successful! Please restart the server for changes to take effect.');
+            } else {
+                alert(data.message);
+            }
+            
+            // Refresh version info
+            await loadSystemInfo();
+        } else {
+            outputPre.textContent += '\n❌ ' + data.message + '\n\n';
+            if (data.error) {
+                outputPre.textContent += 'Error: ' + data.error + '\n';
+            }
+            if (data.output) {
+                outputPre.textContent += 'Output: ' + data.output;
+            }
+            alert('Update failed: ' + data.message);
+        }
+    } catch (error) {
+        outputPre.textContent += '\n❌ Error: ' + error.message;
+        alert('Update failed: ' + error.message);
+        console.error('Update error:', error);
+    } finally {
+        document.getElementById('updateBtn').disabled = false;
+        document.getElementById('updateBtn').textContent = '⬇️ Pull Updates';
+    }
+}

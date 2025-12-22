@@ -36,6 +36,11 @@
                 <a href="#media" class="nav-item" data-section="media">
                     <span class="nav-icon">🖼️</span> Media Library
                 </a>
+                {% if current_user.role.value == 'super_admin' %}
+                <a href="#system" class="nav-item" data-section="system">
+                    <span class="nav-icon">🔧</span> System Update
+                </a>
+                {% endif %}
                 <hr>
                 <a href="/" class="nav-item">
                     <span class="nav-icon">🌐</span> View Site
@@ -509,6 +514,46 @@
                         <p>Loading media...</p>
                     </div>
                 </section>
+                
+                <!-- System Update Section (Super Admin Only) -->
+                {% if current_user.role.value == 'super_admin' %}
+                <section id="system" class="content-section">
+                    <div class="section-header">
+                        <h3>System Update</h3>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>🔄 Update from GitHub</h3>
+                        <p>Pull the latest code from the GitHub repository to update your website.</p>
+                        
+                        <div id="versionInfo" style="margin: 1.5rem 0; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                            <p><strong>Current Version:</strong> <span id="currentCommit">Loading...</span></p>
+                            <p><strong>Last Updated:</strong> <span id="commitDate">Loading...</span></p>
+                            <p id="updateStatus" style="margin-top: 0.5rem;"></p>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button class="btn btn-outline" onclick="checkForUpdates()">🔍 Check for Updates</button>
+                            <button class="btn btn-primary" onclick="updateSystem()" id="updateBtn">⬇️ Pull Updates</button>
+                        </div>
+                        
+                        <div id="updateOutput" style="margin-top: 1.5rem; display: none;">
+                            <h4>Update Log:</h4>
+                            <pre style="background: #1f2937; color: #10b981; padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap;"></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <h3>⚠️ Important Notes</h3>
+                        <ul style="line-height: 1.8; color: #666;">
+                            <li>Updates will pull the latest code from the main branch on GitHub.</li>
+                            <li>After updating, you may need to restart the server for changes to take effect.</li>
+                            <li>Make sure to backup your database before major updates.</li>
+                            <li>Your uploaded files and database will NOT be affected by updates.</li>
+                        </ul>
+                    </div>
+                </section>
+                {% endif %}
             </div>
         </main>
     </div>
