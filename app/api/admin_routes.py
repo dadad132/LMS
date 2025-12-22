@@ -3,6 +3,7 @@ Admin Routes - Site configuration, user management, and admin-only operations
 """
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -10,6 +11,9 @@ import shutil
 import uuid
 import subprocess
 import os
+import json
+import zipfile
+from pathlib import Path
 
 from ..database import get_db
 from ..models.user import User, UserRole
@@ -19,6 +23,10 @@ from .auth import get_admin_user, get_super_admin, get_password_hash
 from ..config import UPLOAD_DIR, ALLOWED_EXTENSIONS, BASE_DIR
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
+
+# Backup directory
+BACKUP_DIR = BASE_DIR / "backups"
+BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ==================== Pydantic Models ====================
@@ -887,5 +895,293 @@ async def get_system_version(
             "commit": "unknown",
             "date": "unknown",
             "updates_available": False,
+            "error": str(e)
+        }
+
+
+# ==================== Backup & Restore ====================
+
+@router.post("/backup/create")
+async def create_backup(
+    admin: User = Depends(get_super_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a complete backup of the website including database and uploaded files.
+    Only super admin can perform this action.
+    """
+    try:
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        backup_name = f"backup_{timestamp}"
+        backup_path = BACKUP_DIR / backup_name
+        backup_path.mkdir(parents=True, exist_ok=True)
+        
+        # 1. Export site configuration
+        config = db.query(SiteConfig).first()
+        if config:
+            config_data = {
+                "site_name": config.site_name,
+                "site_description": config.site_description,
+                "site_logo_url": config.site_logo_url,
+                "favicon_url": config.favicon_url,
+                "primary_color": config.primary_color,
+                "secondary_color": config.secondary_color,
+                "accent_color": config.accent_color,
+                "background_color": config.background_color,
+                "text_color": config.text_color,
+                "header_bg_color": config.header_bg_color,
+                "header_text_color": config.header_text_color,
+                "footer_bg_color": config.footer_bg_color,
+                "footer_text_color": config.footer_text_color,
+                "font_family": config.font_family,
+                "heading_font_family": config.heading_font_family,
+                "show_landing_page": config.show_landing_page,
+                "require_login": config.require_login,
+                "allow_registration": config.allow_registration,
+                "contact_email": config.contact_email,
+                "contact_phone": config.contact_phone,
+                "contact_address": config.contact_address,
+                "social_links": config.social_links,
+                "custom_css": config.custom_css,
+                "custom_js": config.custom_js,
+                "hero_title": config.hero_title,
+                "hero_subtitle": config.hero_subtitle,
+                "hero_button_text": config.hero_button_text,
+                "hero_button_link": config.hero_button_link,
+                "hero_button2_text": config.hero_button2_text,
+                "hero_button2_link": config.hero_button2_link,
+                "hero_background_image": config.hero_background_image,
+                "hero_background_color": config.hero_background_color,
+                "hero_style": config.hero_style,
+                "features_title": config.features_title,
+                "features_enabled": config.features_enabled,
+                "features_items": config.features_items,
+                "courses_section_title": config.courses_section_title,
+                "courses_section_enabled": config.courses_section_enabled,
+                "courses_max_display": config.courses_max_display,
+                "cta_title": config.cta_title,
+                "cta_subtitle": config.cta_subtitle,
+                "cta_button_text": config.cta_button_text,
+                "cta_button_link": config.cta_button_link,
+                "cta_enabled": config.cta_enabled,
+                "cta_background_color": config.cta_background_color,
+                "cta_background_image": config.cta_background_image,
+                "testimonials_title": config.testimonials_title,
+                "testimonials_enabled": config.testimonials_enabled,
+                "testimonials_items": config.testimonials_items,
+                "stats_enabled": config.stats_enabled,
+                "stats_items": config.stats_items,
+                "footer_text": config.footer_text,
+                "footer_links": config.footer_links,
+                "homepage_sections": config.homepage_sections,
+                "gallery_images": config.gallery_images,
+            }
+            with open(backup_path / "site_config.json", "w", encoding="utf-8") as f:
+                json.dump(config_data, f, indent=2, ensure_ascii=False, default=str)
+        
+        # 2. Export pages
+        pages = db.query(Page).all()
+        pages_data = []
+        for page in pages:
+            pages_data.append({
+                "title": page.title,
+                "slug": page.slug,
+                "content": page.content,
+                "page_type": page.page_type,
+                "is_landing_page": page.is_landing_page,
+                "is_published": page.is_published,
+                "is_in_navigation": page.is_in_navigation,
+                "navigation_order": page.navigation_order,
+                "meta_title": page.meta_title,
+                "meta_description": page.meta_description,
+            })
+        with open(backup_path / "pages.json", "w", encoding="utf-8") as f:
+            json.dump(pages_data, f, indent=2, ensure_ascii=False)
+        
+        # 3. Copy database file
+        db_path = BASE_DIR / "data.db"
+        if db_path.exists():
+            shutil.copy2(db_path, backup_path / "data.db")
+        
+        # 4. Copy uploaded files
+        uploads_backup = backup_path / "uploads"
+        if UPLOAD_DIR.exists():
+            shutil.copytree(UPLOAD_DIR, uploads_backup, dirs_exist_ok=True)
+        
+        # 5. Create ZIP archive
+        zip_path = BACKUP_DIR / f"{backup_name}.zip"
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(backup_path):
+                for file in files:
+                    file_path = Path(root) / file
+                    arcname = file_path.relative_to(backup_path)
+                    zipf.write(file_path, arcname)
+        
+        # Clean up unzipped backup folder
+        shutil.rmtree(backup_path)
+        
+        # Get file size
+        file_size = zip_path.stat().st_size
+        
+        return {
+            "success": True,
+            "message": "Backup created successfully!",
+            "backup_name": f"{backup_name}.zip",
+            "file_size": file_size,
+            "download_url": f"/api/admin/backup/download/{backup_name}.zip"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Backup failed",
+            "error": str(e)
+        }
+
+
+@router.get("/backup/download/{backup_name}")
+async def download_backup(
+    backup_name: str,
+    admin: User = Depends(get_super_admin)
+):
+    """Download a backup file"""
+    backup_path = BACKUP_DIR / backup_name
+    
+    if not backup_path.exists():
+        raise HTTPException(status_code=404, detail="Backup not found")
+    
+    return FileResponse(
+        path=backup_path,
+        filename=backup_name,
+        media_type="application/zip"
+    )
+
+
+@router.get("/backup/list")
+async def list_backups(
+    admin: User = Depends(get_super_admin)
+):
+    """List all available backups"""
+    backups = []
+    
+    if BACKUP_DIR.exists():
+        for file in sorted(BACKUP_DIR.glob("*.zip"), reverse=True):
+            stat = file.stat()
+            backups.append({
+                "name": file.name,
+                "size": stat.st_size,
+                "created": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "download_url": f"/api/admin/backup/download/{file.name}"
+            })
+    
+    return backups
+
+
+@router.delete("/backup/{backup_name}")
+async def delete_backup(
+    backup_name: str,
+    admin: User = Depends(get_super_admin)
+):
+    """Delete a backup file"""
+    backup_path = BACKUP_DIR / backup_name
+    
+    if not backup_path.exists():
+        raise HTTPException(status_code=404, detail="Backup not found")
+    
+    backup_path.unlink()
+    return {"success": True, "message": "Backup deleted"}
+
+
+@router.post("/backup/restore")
+async def restore_backup(
+    file: UploadFile = File(...),
+    admin: User = Depends(get_super_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Restore website from a backup ZIP file.
+    This will overwrite current site configuration and uploaded files.
+    """
+    try:
+        # Save uploaded file
+        temp_zip = BACKUP_DIR / f"restore_temp_{uuid.uuid4().hex}.zip"
+        with open(temp_zip, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Extract to temp directory
+        extract_dir = BACKUP_DIR / f"restore_temp_{uuid.uuid4().hex}"
+        with zipfile.ZipFile(temp_zip, 'r') as zipf:
+            zipf.extractall(extract_dir)
+        
+        restored_items = []
+        
+        # 1. Restore site configuration
+        config_file = extract_dir / "site_config.json"
+        if config_file.exists():
+            with open(config_file, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+            
+            config = db.query(SiteConfig).first()
+            if not config:
+                config = SiteConfig()
+                db.add(config)
+            
+            for key, value in config_data.items():
+                if hasattr(config, key):
+                    setattr(config, key, value)
+            
+            db.commit()
+            restored_items.append("Site configuration")
+        
+        # 2. Restore pages
+        pages_file = extract_dir / "pages.json"
+        if pages_file.exists():
+            with open(pages_file, "r", encoding="utf-8") as f:
+                pages_data = json.load(f)
+            
+            for page_data in pages_data:
+                existing_page = db.query(Page).filter(Page.slug == page_data["slug"]).first()
+                if existing_page:
+                    for key, value in page_data.items():
+                        setattr(existing_page, key, value)
+                else:
+                    new_page = Page(**page_data)
+                    db.add(new_page)
+            
+            db.commit()
+            restored_items.append(f"{len(pages_data)} pages")
+        
+        # 3. Restore uploaded files
+        uploads_backup = extract_dir / "uploads"
+        if uploads_backup.exists():
+            # Backup current uploads first
+            if UPLOAD_DIR.exists():
+                current_backup = BACKUP_DIR / f"pre_restore_uploads_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+                shutil.copytree(UPLOAD_DIR, current_backup)
+            
+            # Copy restored uploads
+            shutil.copytree(uploads_backup, UPLOAD_DIR, dirs_exist_ok=True)
+            restored_items.append("Uploaded files")
+        
+        # Clean up temp files
+        temp_zip.unlink()
+        shutil.rmtree(extract_dir)
+        
+        return {
+            "success": True,
+            "message": "Backup restored successfully!",
+            "restored_items": restored_items
+        }
+        
+    except Exception as e:
+        # Clean up on error
+        if 'temp_zip' in locals() and temp_zip.exists():
+            temp_zip.unlink()
+        if 'extract_dir' in locals() and extract_dir.exists():
+            shutil.rmtree(extract_dir)
+        
+        return {
+            "success": False,
+            "message": "Restore failed",
             "error": str(e)
         }

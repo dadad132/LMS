@@ -543,13 +543,35 @@
                         </div>
                     </div>
                     
+                    <!-- Backup & Restore Section -->
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <h3>💾 Backup & Restore</h3>
+                        <p>Create backups of your website data or restore from a previous backup.</p>
+                        
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.5rem 0;">
+                            <button class="btn btn-primary" onclick="createBackup()" id="backupBtn">📦 Create Backup</button>
+                            <label class="btn btn-outline" style="cursor: pointer;">
+                                📤 Restore from Backup
+                                <input type="file" accept=".zip" onchange="restoreBackup(this)" style="display: none;">
+                            </label>
+                        </div>
+                        
+                        <div id="backupStatus" style="margin: 1rem 0; padding: 1rem; background: #f8f9fa; border-radius: 8px; display: none;"></div>
+                        
+                        <h4 style="margin-top: 1.5rem;">📁 Available Backups</h4>
+                        <div id="backupsList" style="margin-top: 1rem;">
+                            <p style="color: #666;">Loading backups...</p>
+                        </div>
+                    </div>
+                    
                     <div class="card" style="margin-top: 1.5rem;">
                         <h3>⚠️ Important Notes</h3>
                         <ul style="line-height: 1.8; color: #666;">
                             <li>Updates will pull the latest code from the main branch on GitHub.</li>
                             <li>After updating, you may need to restart the server for changes to take effect.</li>
-                            <li>Make sure to backup your database before major updates.</li>
-                            <li>Your uploaded files and database will NOT be affected by updates.</li>
+                            <li><strong>Always create a backup before major updates!</strong></li>
+                            <li>Backups include: site configuration, pages, and uploaded files.</li>
+                            <li>Restoring a backup will overwrite current settings and files.</li>
                         </ul>
                     </div>
                 </section>

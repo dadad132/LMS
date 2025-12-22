@@ -23,6 +23,9 @@ uploads/**
 !uploads/site/.gitkeep
 !uploads/Video/.gitkeep
 
+# Backups - user backup files
+backups/
+
 # IDE
 .idea/
 .vscode/

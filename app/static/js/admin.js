@@ -1544,3 +1544,153 @@ async function updateSystem() {
         document.getElementById('updateBtn').textContent = '⬇️ Pull Updates';
     }
 }
+
+
+// ==================== Backup & Restore Functions ====================
+
+async function loadBackupsList() {
+    try {
+        const response = await fetch('/api/admin/backup/list');
+        const backups = await response.json();
+        
+        const container = document.getElementById('backupsList');
+        
+        if (backups.length === 0) {
+            container.innerHTML = '<p style="color: #666;">No backups available. Create your first backup!</p>';
+            return;
+        }
+        
+        container.innerHTML = backups.map(backup => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8f9fa; border-radius: 8px; margin-bottom: 0.5rem;">
+                <div>
+                    <strong>${backup.name}</strong>
+                    <div style="font-size: 0.85rem; color: #666;">
+                        ${formatFileSize(backup.size)} • ${new Date(backup.created).toLocaleString()}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="${backup.download_url}" class="btn btn-sm btn-outline" download>⬇️ Download</a>
+                    <button class="btn btn-sm btn-outline" style="color: #dc3545;" onclick="deleteBackup('${backup.name}')">🗑️ Delete</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading backups:', error);
+        document.getElementById('backupsList').innerHTML = '<p style="color: #dc3545;">Error loading backups</p>';
+    }
+}
+
+async function createBackup() {
+    const btn = document.getElementById('backupBtn');
+    const statusDiv = document.getElementById('backupStatus');
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ Creating backup...';
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<span style="color: #3b82f6;">🔄 Creating backup... This may take a moment.</span>';
+    
+    try {
+        const response = await fetch('/api/admin/backup/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            statusDiv.innerHTML = `
+                <span style="color: #10b981;">✅ ${data.message}</span><br>
+                <span style="font-size: 0.9rem; color: #666;">File: ${data.backup_name} (${formatFileSize(data.file_size)})</span><br>
+                <a href="${data.download_url}" class="btn btn-sm btn-primary" style="margin-top: 0.5rem;" download>⬇️ Download Backup</a>
+            `;
+            loadBackupsList();
+        } else {
+            statusDiv.innerHTML = `<span style="color: #dc3545;">❌ ${data.message}: ${data.error || ''}</span>`;
+        }
+    } catch (error) {
+        statusDiv.innerHTML = `<span style="color: #dc3545;">❌ Error: ${error.message}</span>`;
+        console.error('Backup error:', error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '📦 Create Backup';
+    }
+}
+
+async function restoreBackup(input) {
+    if (!input.files[0]) return;
+    
+    const file = input.files[0];
+    
+    if (!file.name.endsWith('.zip')) {
+        alert('Please select a valid backup file (.zip)');
+        return;
+    }
+    
+    if (!confirm(`⚠️ WARNING: Restoring from "${file.name}" will overwrite your current site configuration and uploaded files.\n\nAre you sure you want to continue?`)) {
+        input.value = '';
+        return;
+    }
+    
+    const statusDiv = document.getElementById('backupStatus');
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<span style="color: #3b82f6;">🔄 Restoring backup... Please wait.</span>';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/api/admin/backup/restore', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            statusDiv.innerHTML = `
+                <span style="color: #10b981;">✅ ${data.message}</span><br>
+                <span style="font-size: 0.9rem; color: #666;">Restored: ${data.restored_items.join(', ')}</span><br>
+                <span style="font-size: 0.9rem; color: #f59e0b;">⚠️ Refresh the page to see changes.</span>
+            `;
+            alert('Backup restored successfully! Please refresh the page to see changes.');
+        } else {
+            statusDiv.innerHTML = `<span style="color: #dc3545;">❌ ${data.message}: ${data.error || ''}</span>`;
+            alert('Restore failed: ' + data.message);
+        }
+    } catch (error) {
+        statusDiv.innerHTML = `<span style="color: #dc3545;">❌ Error: ${error.message}</span>`;
+        alert('Restore failed: ' + error.message);
+        console.error('Restore error:', error);
+    } finally {
+        input.value = '';
+    }
+}
+
+async function deleteBackup(backupName) {
+    if (!confirm(`Are you sure you want to delete "${backupName}"?`)) return;
+    
+    try {
+        const response = await fetch(`/api/admin/backup/${backupName}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Backup deleted');
+            loadBackupsList();
+        } else {
+            alert('Failed to delete backup');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+        console.error('Delete error:', error);
+    }
+}
+
+// Update loadSystemInfo to also load backups list
+const originalLoadSystemInfo = loadSystemInfo;
+loadSystemInfo = async function() {
+    await originalLoadSystemInfo();
+    loadBackupsList();
+};
