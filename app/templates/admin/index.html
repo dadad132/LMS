@@ -18,6 +18,9 @@
                 <a href="#dashboard" class="nav-item active" data-section="dashboard">
                     <span class="nav-icon">📊</span> Dashboard
                 </a>
+                <a href="#homepage" class="nav-item" data-section="homepage">
+                    <span class="nav-icon">🏠</span> Homepage Builder
+                </a>
                 <a href="#site-settings" class="nav-item" data-section="site-settings">
                     <span class="nav-icon">⚙️</span> Site Settings
                 </a>
@@ -102,12 +105,224 @@
                                 <button onclick="showSection('courses')" class="action-btn">➕ Add Course</button>
                                 <button onclick="showSection('pages')" class="action-btn">📄 Create Page</button>
                                 <button onclick="showSection('users')" class="action-btn">👤 Add User</button>
-                                <button onclick="showSection('site-settings')" class="action-btn">🎨 Customize Site</button>
+                                <button onclick="showSection('homepage')" class="action-btn">🏠 Edit Homepage</button>
                             </div>
                         </div>
                     </div>
                 </section>
                 
+                <!-- Homepage Builder Section -->
+                <section id="homepage" class="content-section">
+                    <div class="section-header">
+                        <h3>Homepage Builder</h3>
+                        <button class="btn btn-primary" onclick="previewHomepage()">👁️ Preview</button>
+                    </div>
+                    
+                    <!-- Hero Section Editor -->
+                    <div class="card">
+                        <h3>🦸 Hero Section</h3>
+                        <form id="heroForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="heroTitle">Hero Title</label>
+                                    <input type="text" id="heroTitle" placeholder="Welcome to Our Platform">
+                                </div>
+                                <div class="form-group">
+                                    <label for="heroStyle">Hero Style</label>
+                                    <select id="heroStyle">
+                                        <option value="centered">Centered</option>
+                                        <option value="left">Left Aligned</option>
+                                        <option value="right">Right Aligned</option>
+                                        <option value="split">Split (Image + Text)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="heroSubtitle">Hero Subtitle</label>
+                                <textarea id="heroSubtitle" rows="2" placeholder="Start your learning journey today"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="heroButton1Text">Primary Button Text</label>
+                                    <input type="text" id="heroButton1Text" placeholder="Browse Courses">
+                                </div>
+                                <div class="form-group">
+                                    <label for="heroButton1Link">Primary Button Link</label>
+                                    <input type="text" id="heroButton1Link" placeholder="/courses">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="heroButton2Text">Secondary Button Text</label>
+                                    <input type="text" id="heroButton2Text" placeholder="Get Started">
+                                </div>
+                                <div class="form-group">
+                                    <label for="heroButton2Link">Secondary Button Link</label>
+                                    <input type="text" id="heroButton2Link" placeholder="/register">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="heroBgColor">Background Color</label>
+                                    <input type="color" id="heroBgColor" value="#1f2937">
+                                </div>
+                                <div class="form-group">
+                                    <label>Background Image</label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <input type="text" id="heroBgImage" placeholder="Select or upload an image" style="flex: 1;">
+                                        <button type="button" class="btn btn-outline" onclick="showMediaPicker('heroBgImage')">📁 Browse</button>
+                                        <button type="button" class="btn btn-outline" onclick="uploadHeroImage()">📤 Upload</button>
+                                    </div>
+                                    <div id="heroBgPreview" style="margin-top: 10px;"></div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Hero Section</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Features Section Editor -->
+                    <div class="card">
+                        <h3>✨ Features Section</h3>
+                        <form id="featuresForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="featuresTitle">Section Title</label>
+                                    <input type="text" id="featuresTitle" placeholder="Why Choose Us">
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-label" style="padding-top: 2rem;">
+                                        <input type="checkbox" id="featuresEnabled" checked>
+                                        Enable Features Section
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="featuresContainer"></div>
+                            <button type="button" class="btn btn-outline" onclick="addFeature()">➕ Add Feature</button>
+                            <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Save Features</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Stats Section Editor -->
+                    <div class="card">
+                        <h3>📊 Statistics Section</h3>
+                        <form id="statsForm">
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="statsEnabled">
+                                    Enable Statistics Section
+                                </label>
+                            </div>
+                            <div id="statsContainer"></div>
+                            <button type="button" class="btn btn-outline" onclick="addStat()">➕ Add Statistic</button>
+                            <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Save Statistics</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Testimonials Section Editor -->
+                    <div class="card">
+                        <h3>💬 Testimonials Section</h3>
+                        <form id="testimonialsForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="testimonialsTitle">Section Title</label>
+                                    <input type="text" id="testimonialsTitle" placeholder="What Our Students Say">
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-label" style="padding-top: 2rem;">
+                                        <input type="checkbox" id="testimonialsEnabled">
+                                        Enable Testimonials Section
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="testimonialsContainer"></div>
+                            <button type="button" class="btn btn-outline" onclick="addTestimonial()">➕ Add Testimonial</button>
+                            <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Save Testimonials</button>
+                        </form>
+                    </div>
+                    
+                    <!-- CTA Section Editor -->
+                    <div class="card">
+                        <h3>📢 Call to Action Section</h3>
+                        <form id="ctaForm">
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="ctaEnabled" checked>
+                                    Enable CTA Section
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="ctaTitle">CTA Title</label>
+                                <input type="text" id="ctaTitle" placeholder="Ready to Start Learning?">
+                            </div>
+                            <div class="form-group">
+                                <label for="ctaSubtitle">CTA Subtitle</label>
+                                <textarea id="ctaSubtitle" rows="2" placeholder="Join thousands of students today"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="ctaButtonText">Button Text</label>
+                                    <input type="text" id="ctaButtonText" placeholder="Get Started Today">
+                                </div>
+                                <div class="form-group">
+                                    <label for="ctaButtonLink">Button Link</label>
+                                    <input type="text" id="ctaButtonLink" placeholder="/register">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="ctaBgColor">Background Color</label>
+                                    <input type="color" id="ctaBgColor" value="#3b82f6">
+                                </div>
+                                <div class="form-group">
+                                    <label>Background Image</label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <input type="text" id="ctaBgImage" placeholder="Optional background image" style="flex: 1;">
+                                        <button type="button" class="btn btn-outline" onclick="showMediaPicker('ctaBgImage')">📁 Browse</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save CTA Section</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Image Gallery Section -->
+                    <div class="card">
+                        <h3>🖼️ Image Gallery / Decorative Images</h3>
+                        <p style="color: #666; margin-bottom: 1rem;">Add decorative images to your homepage. These will appear in a gallery section.</p>
+                        <div id="galleryContainer" class="gallery-grid"></div>
+                        <div style="margin-top: 1rem;">
+                            <button type="button" class="btn btn-outline" onclick="showMediaPicker('addGalleryImage')">📁 Add from Media</button>
+                            <button type="button" class="btn btn-primary" onclick="uploadGalleryImage()">📤 Upload New Image</button>
+                            <button type="button" class="btn btn-primary" onclick="saveGallery()" style="margin-left: 10px;">Save Gallery</button>
+                        </div>
+                        <input type="hidden" id="addGalleryImage" onchange="addGalleryImageFromPicker(this.value)">
+                    </div>
+                    
+                    <!-- Courses Section Settings -->
+                    <div class="card">
+                        <h3>📚 Featured Courses Section</h3>
+                        <form id="coursesSettingsForm">
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="coursesEnabled" checked>
+                                    Show Featured Courses Section
+                                </label>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="coursesSectionTitle">Section Title</label>
+                                    <input type="text" id="coursesSectionTitle" placeholder="Featured Courses">
+                                </div>
+                                <div class="form-group">
+                                    <label for="coursesMaxDisplay">Max Courses to Show</label>
+                                    <input type="number" id="coursesMaxDisplay" value="6" min="1" max="12">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Courses Settings</button>
+                        </form>
+                    </div>
+                </section>
+
                 <!-- Site Settings Section -->
                 <section id="site-settings" class="content-section">
                     <div class="card">

@@ -106,6 +106,13 @@ class SiteConfig(Base):
     # Footer Content
     footer_text = Column(Text, default="© 2025 All rights reserved.")
     footer_links = Column(JSON, default=list)  # [{"title": "...", "url": "..."}]
+    
+    # Custom Homepage Sections (for full drag-and-drop customization)
+    # JSON array: [{"id": "...", "type": "...", "order": 1, "config": {...}}]
+    homepage_sections = Column(JSON, default=list)
+    
+    # Gallery/Image Sections
+    gallery_images = Column(JSON, default=list)  # [{"url": "...", "title": "...", "description": "..."}]
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

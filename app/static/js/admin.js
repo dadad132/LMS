@@ -2,6 +2,12 @@
  * Admin Panel JavaScript
  */
 
+// ==================== Global Variables ====================
+let currentFeatures = [];
+let currentStats = [];
+let currentTestimonials = [];
+let currentGalleryImages = [];
+
 // ==================== Navigation ====================
 document.addEventListener('DOMContentLoaded', function() {
     // Setup navigation
@@ -17,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load initial data
     loadDashboardData();
     loadSiteSettings();
+    loadHomepageSettings();
 });
 
 function showSection(sectionId) {
@@ -37,6 +44,7 @@ function showSection(sectionId) {
     // Update title
     const titles = {
         'dashboard': 'Dashboard',
+        'homepage': 'Homepage Builder',
         'site-settings': 'Site Settings',
         'pages': 'Pages',
         'courses': 'Courses',
@@ -47,6 +55,7 @@ function showSection(sectionId) {
     
     // Load section data
     switch(sectionId) {
+        case 'homepage': loadHomepageSettings(); break;
         case 'pages': loadPages(); break;
         case 'courses': loadCourses(); break;
         case 'users': loadUsers(); break;
@@ -1031,6 +1040,437 @@ function getQuizData() {
         quiz_passing_score: parseInt(document.getElementById('quizPassingScore').value) || 70,
         quiz_time_limit: parseInt(document.getElementById('quizTimeLimit').value) || null
     };
+}
+
+
+// ==================== Homepage Builder Functions ====================
+
+async function loadHomepageSettings() {
+    try {
+        const config = await fetch('/api/admin/site-config').then(r => r.json());
+        
+        // Hero Section
+        document.getElementById('heroTitle').value = config.hero_title || '';
+        document.getElementById('heroSubtitle').value = config.hero_subtitle || '';
+        document.getElementById('heroButton1Text').value = config.hero_button_text || '';
+        document.getElementById('heroButton1Link').value = config.hero_button_link || '';
+        document.getElementById('heroButton2Text').value = config.hero_button2_text || '';
+        document.getElementById('heroButton2Link').value = config.hero_button2_link || '';
+        document.getElementById('heroStyle').value = config.hero_style || 'centered';
+        document.getElementById('heroBgColor').value = config.hero_background_color || '#1f2937';
+        document.getElementById('heroBgImage').value = config.hero_background_image || '';
+        
+        if (config.hero_background_image) {
+            document.getElementById('heroBgPreview').innerHTML = `<img src="${config.hero_background_image}" style="max-width: 200px; border-radius: 8px;">`;
+        }
+        
+        // Features Section
+        document.getElementById('featuresTitle').value = config.features_title || '';
+        document.getElementById('featuresEnabled').checked = config.features_enabled !== false;
+        currentFeatures = config.features_items || [];
+        renderFeatures();
+        
+        // Stats Section
+        document.getElementById('statsEnabled').checked = config.stats_enabled || false;
+        currentStats = config.stats_items || [];
+        renderStats();
+        
+        // Testimonials Section
+        document.getElementById('testimonialsTitle').value = config.testimonials_title || '';
+        document.getElementById('testimonialsEnabled').checked = config.testimonials_enabled || false;
+        currentTestimonials = config.testimonials_items || [];
+        renderTestimonials();
+        
+        // CTA Section
+        document.getElementById('ctaEnabled').checked = config.cta_enabled !== false;
+        document.getElementById('ctaTitle').value = config.cta_title || '';
+        document.getElementById('ctaSubtitle').value = config.cta_subtitle || '';
+        document.getElementById('ctaButtonText').value = config.cta_button_text || '';
+        document.getElementById('ctaButtonLink').value = config.cta_button_link || '';
+        document.getElementById('ctaBgColor').value = config.cta_background_color || '#3b82f6';
+        document.getElementById('ctaBgImage').value = config.cta_background_image || '';
+        
+        // Courses Section
+        document.getElementById('coursesEnabled').checked = config.courses_section_enabled !== false;
+        document.getElementById('coursesSectionTitle').value = config.courses_section_title || '';
+        document.getElementById('coursesMaxDisplay').value = config.courses_max_display || 6;
+        
+        // Gallery Images
+        currentGalleryImages = config.gallery_images || [];
+        renderGallery();
+        
+    } catch (error) {
+        console.error('Error loading homepage settings:', error);
+    }
+}
+
+// Hero Form
+document.getElementById('heroForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = {
+        hero_title: document.getElementById('heroTitle').value,
+        hero_subtitle: document.getElementById('heroSubtitle').value,
+        hero_button_text: document.getElementById('heroButton1Text').value,
+        hero_button_link: document.getElementById('heroButton1Link').value,
+        hero_button2_text: document.getElementById('heroButton2Text').value,
+        hero_button2_link: document.getElementById('heroButton2Link').value,
+        hero_style: document.getElementById('heroStyle').value,
+        hero_background_color: document.getElementById('heroBgColor').value,
+        hero_background_image: document.getElementById('heroBgImage').value
+    };
+    
+    try {
+        await fetch('/api/admin/site-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('Hero section saved successfully!');
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save hero section');
+    }
+});
+
+// Features Functions
+function renderFeatures() {
+    const container = document.getElementById('featuresContainer');
+    container.innerHTML = currentFeatures.map((f, idx) => `
+        <div class="feature-item" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <strong>Feature ${idx + 1}</strong>
+                <button type="button" onclick="removeFeature(${idx})" style="color: red; background: none; border: none; cursor: pointer;">🗑️ Delete</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Icon (emoji or FontAwesome)</label>
+                    <input type="text" value="${f.icon || ''}" onchange="updateFeature(${idx}, 'icon', this.value)" placeholder="🎓">
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" value="${f.title || ''}" onchange="updateFeature(${idx}, 'title', this.value)" placeholder="Feature Title">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea rows="2" onchange="updateFeature(${idx}, 'description', this.value)" placeholder="Feature description...">${f.description || ''}</textarea>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addFeature() {
+    currentFeatures.push({ icon: '✨', title: '', description: '' });
+    renderFeatures();
+}
+
+function updateFeature(idx, field, value) {
+    currentFeatures[idx][field] = value;
+}
+
+function removeFeature(idx) {
+    currentFeatures.splice(idx, 1);
+    renderFeatures();
+}
+
+document.getElementById('featuresForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = {
+        features_title: document.getElementById('featuresTitle').value,
+        features_enabled: document.getElementById('featuresEnabled').checked,
+        features_items: currentFeatures
+    };
+    
+    try {
+        await fetch('/api/admin/site-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('Features section saved successfully!');
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save features section');
+    }
+});
+
+// Stats Functions
+function renderStats() {
+    const container = document.getElementById('statsContainer');
+    container.innerHTML = currentStats.map((s, idx) => `
+        <div class="stat-item" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center;">
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Number/Value</label>
+                <input type="text" value="${s.number || ''}" onchange="updateStat(${idx}, 'number', this.value)" placeholder="1000+">
+            </div>
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Label</label>
+                <input type="text" value="${s.label || ''}" onchange="updateStat(${idx}, 'label', this.value)" placeholder="Students">
+            </div>
+            <button type="button" onclick="removeStat(${idx})" style="color: red; background: none; border: none; cursor: pointer; margin-top: 1.5rem;">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function addStat() {
+    currentStats.push({ number: '', label: '' });
+    renderStats();
+}
+
+function updateStat(idx, field, value) {
+    currentStats[idx][field] = value;
+}
+
+function removeStat(idx) {
+    currentStats.splice(idx, 1);
+    renderStats();
+}
+
+document.getElementById('statsForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = {
+        stats_enabled: document.getElementById('statsEnabled').checked,
+        stats_items: currentStats
+    };
+    
+    try {
+        await fetch('/api/admin/site-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('Statistics section saved successfully!');
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save statistics section');
+    }
+});
+
+// Testimonials Functions
+function renderTestimonials() {
+    const container = document.getElementById('testimonialsContainer');
+    container.innerHTML = currentTestimonials.map((t, idx) => `
+        <div class="testimonial-item" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <strong>Testimonial ${idx + 1}</strong>
+                <button type="button" onclick="removeTestimonial(${idx})" style="color: red; background: none; border: none; cursor: pointer;">🗑️ Delete</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" value="${t.name || ''}" onchange="updateTestimonial(${idx}, 'name', this.value)" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Role/Title</label>
+                    <input type="text" value="${t.role || ''}" onchange="updateTestimonial(${idx}, 'role', this.value)" placeholder="Student">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Testimonial Text</label>
+                <textarea rows="2" onchange="updateTestimonial(${idx}, 'text', this.value)" placeholder="Their feedback...">${t.text || ''}</textarea>
+            </div>
+            <div class="form-group">
+                <label>Image URL (optional)</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" value="${t.image || ''}" id="testimonialImage${idx}" onchange="updateTestimonial(${idx}, 'image', this.value)" placeholder="Profile image URL" style="flex: 1;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="showMediaPicker('testimonialImage${idx}')">📁</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addTestimonial() {
+    currentTestimonials.push({ name: '', role: '', text: '', image: '' });
+    renderTestimonials();
+}
+
+function updateTestimonial(idx, field, value) {
+    currentTestimonials[idx][field] = value;
+}
+
+function removeTestimonial(idx) {
+    currentTestimonials.splice(idx, 1);
+    renderTestimonials();
+}
+
+document.getElementById('testimonialsForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = {
+        testimonials_title: document.getElementById('testimonialsTitle').value,
+        testimonials_enabled: document.getElementById('testimonialsEnabled').checked,
+        testimonials_items: currentTestimonials
+    };
+    
+    try {
+        await fetch('/api/admin/site-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('Testimonials section saved successfully!');
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save testimonials section');
+    }
+});
+
+// CTA Form
+document.getElementById('ctaForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = {
+        cta_enabled: document.getElementById('ctaEnabled').checked,
+        cta_title: document.getElementById('ctaTitle').value,
+        cta_subtitle: document.getElementById('ctaSubtitle').value,
+        cta_button_text: document.getElementById('ctaButtonText').value,
+        cta_button_link: document.getElementById('ctaButtonLink').value,
+        cta_background_color: document.getElementById('ctaBgColor').value,
+        cta_background_image: document.getElementById('ctaBgImage').value
+    };
+    
+    try {
+        await fetch('/api/admin/site-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('CTA section saved successfully!');
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save CTA section');
+    }
+});
+
+// Courses Settings Form
+document.getElementById('coursesSettingsForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = {
+        courses_section_enabled: document.getElementById('coursesEnabled').checked,
+        courses_section_title: document.getElementById('coursesSectionTitle').value,
+        courses_max_display: parseInt(document.getElementById('coursesMaxDisplay').value) || 6
+    };
+    
+    try {
+        await fetch('/api/admin/site-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('Courses section settings saved successfully!');
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save courses section settings');
+    }
+});
+
+// Gallery Functions
+function renderGallery() {
+    const container = document.getElementById('galleryContainer');
+    container.innerHTML = currentGalleryImages.map((img, idx) => `
+        <div class="gallery-item" style="position: relative; display: inline-block; margin: 5px;">
+            <img src="${img.url}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #e0e0e0;">
+            <button type="button" onclick="removeGalleryImage(${idx})" style="position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">×</button>
+            <input type="text" value="${img.title || ''}" onchange="updateGalleryImage(${idx}, 'title', this.value)" placeholder="Title (optional)" style="width: 100%; font-size: 12px; margin-top: 4px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+    `).join('') || '<p style="color: #666;">No gallery images yet. Add some images to decorate your homepage!</p>';
+}
+
+function addGalleryImageFromPicker(url) {
+    if (url) {
+        currentGalleryImages.push({ url: url, title: '' });
+        renderGallery();
+        document.getElementById('addGalleryImage').value = '';
+    }
+}
+
+function updateGalleryImage(idx, field, value) {
+    currentGalleryImages[idx][field] = value;
+}
+
+function removeGalleryImage(idx) {
+    currentGalleryImages.splice(idx, 1);
+    renderGallery();
+}
+
+async function saveGallery() {
+    const data = {
+        gallery_images: currentGalleryImages
+    };
+    
+    try {
+        await fetch('/api/admin/site-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('Gallery saved successfully!');
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save gallery');
+    }
+}
+
+async function uploadGalleryImage() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async function() {
+        if (this.files[0]) {
+            const formData = new FormData();
+            formData.append('file', this.files[0]);
+            
+            try {
+                const result = await fetch('/api/admin/upload?folder=gallery', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json());
+                
+                currentGalleryImages.push({ url: result.url, title: '' });
+                renderGallery();
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Failed to upload image');
+            }
+        }
+    };
+    input.click();
+}
+
+async function uploadHeroImage() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async function() {
+        if (this.files[0]) {
+            const formData = new FormData();
+            formData.append('file', this.files[0]);
+            
+            try {
+                const result = await fetch('/api/admin/site-config/hero-image', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json());
+                
+                document.getElementById('heroBgImage').value = result.url;
+                document.getElementById('heroBgPreview').innerHTML = `<img src="${result.url}" style="max-width: 200px; border-radius: 8px;">`;
+                alert('Hero image uploaded successfully!');
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Failed to upload hero image');
+            }
+        }
+    };
+    input.click();
+}
+
+function previewHomepage() {
+    window.open('/', '_blank');
 }
 
 

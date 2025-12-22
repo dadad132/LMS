@@ -44,6 +44,55 @@ class SiteConfigUpdate(BaseModel):
     social_links: Optional[dict] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+    
+    # Hero Section
+    hero_title: Optional[str] = None
+    hero_subtitle: Optional[str] = None
+    hero_button_text: Optional[str] = None
+    hero_button_link: Optional[str] = None
+    hero_button2_text: Optional[str] = None
+    hero_button2_link: Optional[str] = None
+    hero_background_image: Optional[str] = None
+    hero_background_color: Optional[str] = None
+    hero_style: Optional[str] = None
+    
+    # Features Section
+    features_title: Optional[str] = None
+    features_enabled: Optional[bool] = None
+    features_items: Optional[list] = None
+    
+    # Featured Courses Section
+    courses_section_title: Optional[str] = None
+    courses_section_enabled: Optional[bool] = None
+    courses_max_display: Optional[int] = None
+    
+    # CTA Section
+    cta_title: Optional[str] = None
+    cta_subtitle: Optional[str] = None
+    cta_button_text: Optional[str] = None
+    cta_button_link: Optional[str] = None
+    cta_enabled: Optional[bool] = None
+    cta_background_color: Optional[str] = None
+    cta_background_image: Optional[str] = None
+    
+    # Testimonials Section
+    testimonials_title: Optional[str] = None
+    testimonials_enabled: Optional[bool] = None
+    testimonials_items: Optional[list] = None
+    
+    # Stats Section
+    stats_enabled: Optional[bool] = None
+    stats_items: Optional[list] = None
+    
+    # Footer
+    footer_text: Optional[str] = None
+    footer_links: Optional[list] = None
+    
+    # Custom homepage sections (JSON array of sections)
+    homepage_sections: Optional[list] = None
+    
+    # Gallery images
+    gallery_images: Optional[list] = None
 
 
 class SiteConfigResponse(BaseModel):
@@ -153,19 +202,86 @@ class PageWidgetCreate(BaseModel):
 
 # ==================== Site Configuration ====================
 
-@router.get("/site-config", response_model=SiteConfigResponse)
+@router.get("/site-config")
 async def get_site_config(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
-    """Get current site configuration"""
+    """Get current site configuration with all homepage fields"""
     config = db.query(SiteConfig).first()
     if not config:
         raise HTTPException(status_code=404, detail="Site configuration not found")
-    return config
+    
+    # Return all fields including homepage customization
+    return {
+        "id": config.id,
+        "site_name": config.site_name,
+        "site_description": config.site_description,
+        "site_logo_url": config.site_logo_url,
+        "favicon_url": config.favicon_url,
+        "primary_color": config.primary_color,
+        "secondary_color": config.secondary_color,
+        "accent_color": config.accent_color,
+        "background_color": config.background_color,
+        "text_color": config.text_color,
+        "header_bg_color": config.header_bg_color,
+        "header_text_color": config.header_text_color,
+        "footer_bg_color": config.footer_bg_color,
+        "footer_text_color": config.footer_text_color,
+        "font_family": config.font_family,
+        "heading_font_family": config.heading_font_family,
+        "show_landing_page": config.show_landing_page,
+        "require_login": config.require_login,
+        "allow_registration": config.allow_registration,
+        "contact_email": config.contact_email,
+        "contact_phone": config.contact_phone,
+        "contact_address": config.contact_address,
+        "social_links": config.social_links or {},
+        "custom_css": config.custom_css,
+        "custom_js": config.custom_js,
+        # Hero Section
+        "hero_title": config.hero_title,
+        "hero_subtitle": config.hero_subtitle,
+        "hero_button_text": config.hero_button_text,
+        "hero_button_link": config.hero_button_link,
+        "hero_button2_text": config.hero_button2_text,
+        "hero_button2_link": config.hero_button2_link,
+        "hero_background_image": config.hero_background_image,
+        "hero_background_color": config.hero_background_color,
+        "hero_style": config.hero_style,
+        # Features Section
+        "features_title": config.features_title,
+        "features_enabled": config.features_enabled,
+        "features_items": config.features_items or [],
+        # Courses Section
+        "courses_section_title": config.courses_section_title,
+        "courses_section_enabled": config.courses_section_enabled,
+        "courses_max_display": config.courses_max_display,
+        # CTA Section
+        "cta_title": config.cta_title,
+        "cta_subtitle": config.cta_subtitle,
+        "cta_button_text": config.cta_button_text,
+        "cta_button_link": config.cta_button_link,
+        "cta_enabled": config.cta_enabled,
+        "cta_background_color": config.cta_background_color,
+        "cta_background_image": config.cta_background_image,
+        # Testimonials
+        "testimonials_title": config.testimonials_title,
+        "testimonials_enabled": config.testimonials_enabled,
+        "testimonials_items": config.testimonials_items or [],
+        # Stats
+        "stats_enabled": config.stats_enabled,
+        "stats_items": config.stats_items or [],
+        # Footer
+        "footer_text": config.footer_text,
+        "footer_links": config.footer_links or [],
+        # Custom sections
+        "homepage_sections": config.homepage_sections or [],
+        "gallery_images": config.gallery_images or []
+    }
 
 
-@router.put("/site-config", response_model=SiteConfigResponse)
+@router.put("/site-config")
 async def update_site_config(
     config_update: SiteConfigUpdate,
     admin: User = Depends(get_admin_user),
@@ -186,7 +302,65 @@ async def update_site_config(
     db.commit()
     db.refresh(config)
     
-    return config
+    return {"message": "Site configuration updated successfully"}
+
+
+@router.post("/site-config/hero-image")
+async def upload_hero_image(
+    file: UploadFile = File(...),
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Upload hero background image"""
+    ext = f".{file.filename.split('.')[-1].lower()}"
+    if ext not in ALLOWED_EXTENSIONS['images']:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {ALLOWED_EXTENSIONS['images']}"
+        )
+    
+    filename = f"hero_{uuid.uuid4().hex}{ext}"
+    file_path = UPLOAD_DIR / "site" / filename
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    config = db.query(SiteConfig).first()
+    if config:
+        config.hero_background_image = f"/uploads/site/{filename}"
+        db.commit()
+    
+    return {"url": f"/uploads/site/{filename}"}
+
+
+@router.post("/site-config/cta-image")
+async def upload_cta_image(
+    file: UploadFile = File(...),
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Upload CTA section background image"""
+    ext = f".{file.filename.split('.')[-1].lower()}"
+    if ext not in ALLOWED_EXTENSIONS['images']:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {ALLOWED_EXTENSIONS['images']}"
+        )
+    
+    filename = f"cta_{uuid.uuid4().hex}{ext}"
+    file_path = UPLOAD_DIR / "site" / filename
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    config = db.query(SiteConfig).first()
+    if config:
+        config.cta_background_image = f"/uploads/site/{filename}"
+        db.commit()
+    
+    return {"url": f"/uploads/site/{filename}"}
 
 
 @router.post("/site-config/logo")
