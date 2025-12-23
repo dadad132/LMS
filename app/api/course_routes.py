@@ -194,7 +194,8 @@ async def list_courses(
     if difficulty:
         query = query.filter(Course.difficulty_level == difficulty)
     
-    courses = query.order_by(Course.created_at.desc()).offset(skip).limit(limit).all()
+    # Order alphabetically by title so Module 1 comes before Module 2, etc.
+    courses = query.order_by(Course.title.asc()).offset(skip).limit(limit).all()
     
     return [
         CourseResponse(
