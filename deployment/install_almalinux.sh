@@ -91,26 +91,27 @@ fi
 # Create application directory if it doesn't exist
 if [ -d "$APP_DIR" ]; then
     print_info "Application directory already exists at $APP_DIR"
-    read -p "Do you want to backup and reinstall? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        print_info "Backing up existing installation..."
-        BACKUP_DIR="${APP_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
-        mv "$APP_DIR" "$BACKUP_DIR"
-        print_status "Existing installation backed up to $BACKUP_DIR"
-    else
-        print_info "Updating existing installation..."
+    
+    # Check if it's a git repo
+    if [ -d "$APP_DIR/.git" ]; then
+        print_info "Git repository detected - updating to latest version..."
         cd "$APP_DIR"
-        if [ -d ".git" ]; then
-            git fetch origin
-            git reset --hard origin/main
-            print_status "Updated from GitHub"
+        git fetch origin
+        git reset --hard origin/main
+        print_status "Updated from GitHub (no duplicates)"
+    else
+        print_info "Not a git repo - will set up fresh"
+        read -p "Do you want to backup existing and reinstall? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            print_info "Backing up existing installation..."
+            BACKUP_DIR="${APP_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
+            mv "$APP_DIR" "$BACKUP_DIR"
+            print_status "Existing installation backed up to $BACKUP_DIR"
         fi
     fi
-fi
-
-# Clone from GitHub if directory doesn't exist
-if [ ! -d "$APP_DIR" ]; then
+else
+    # Directory doesn't exist - clone fresh
     print_info "Cloning from GitHub..."
     git clone "$GITHUB_REPO" "$APP_DIR"
     
