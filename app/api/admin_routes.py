@@ -900,6 +900,36 @@ async def update_system(
                 timeout=120
             )
 
+        # Run database migrations if migrate_db.py exists
+        migrate_script = Path(project_dir) / "migrate_db.py"
+        migration_output = ""
+        if migrate_script.exists():
+            venv_python = Path(project_dir) / "venv" / "bin" / "python"
+            python_cmd = str(venv_python) if venv_python.exists() else "python"
+            migrate_result = subprocess.run(
+                [python_cmd, str(migrate_script)],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            migration_output = migrate_result.stdout + migrate_result.stderr
+
+        # Run post-update hooks if post_update.py exists
+        post_update_script = Path(project_dir) / "scripts" / "post_update.py"
+        post_update_output = ""
+        if post_update_script.exists():
+            venv_python = Path(project_dir) / "venv" / "bin" / "python"
+            python_cmd = str(venv_python) if venv_python.exists() else "python"
+            post_result = subprocess.run(
+                [python_cmd, str(post_update_script)],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            post_update_output = post_result.stdout + post_result.stderr
+
         # Schedule server restart after response is sent
         def restart_server():
             time.sleep(2)
@@ -917,6 +947,8 @@ async def update_system(
             "success": True,
             "message": f"Update successful! {len(changes)} commits applied. Server is restarting...",
             "changes": changes,
+            "migration_output": migration_output,
+            "post_update_output": post_update_output,
             "requires_restart": True,
             "auto_restarting": True
         }
