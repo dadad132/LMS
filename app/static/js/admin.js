@@ -891,8 +891,10 @@ function showUserModal(user = null) {
 
 async function saveUser(e) {
     e.preventDefault();
+    console.log('saveUser called');
     
     const id = document.getElementById('userId').value;
+    console.log('User ID:', id);
     
     if (id) {
         // Update existing user
@@ -901,6 +903,7 @@ async function saveUser(e) {
             role: document.getElementById('userRole').value,
             is_active: document.getElementById('userActive').checked
         };
+        console.log('Update data:', data);
         
         try {
             const response = await fetch(`/api/admin/users/${id}`, {
@@ -908,9 +911,11 @@ async function saveUser(e) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            console.log('Update response status:', response.status);
             
             if (!response.ok) {
                 const error = await response.json();
+                console.log('Update error response:', error);
                 throw new Error(error.detail || 'Failed to update user');
             }
             
@@ -918,20 +923,22 @@ async function saveUser(e) {
             loadUsers();
             alert('User updated successfully!');
         } catch (error) {
-            console.error('Save error:', error);
+            console.error('Update error:', error);
             alert(error.message || 'Failed to update user');
         }
     } else {
         // Create new user
-        const email = document.getElementById('userEmail').value;
-        const username = document.getElementById('userName').value;
-        const password = document.getElementById('userPassword').value;
-        const fullName = document.getElementById('userFullName').value;
-        const role = document.getElementById('userRole').value;
+        const email = document.getElementById('userEmail')?.value || '';
+        const username = document.getElementById('userName')?.value || '';
+        const password = document.getElementById('userPassword')?.value || '';
+        const fullName = document.getElementById('userFullName')?.value || '';
+        const role = document.getElementById('userRole')?.value || 'user';
+        
+        console.log('Create user - Email:', email, 'Username:', username, 'Password length:', password.length, 'Role:', role);
         
         // Validate
         if (!email || !username || !password) {
-            alert('Please fill in all required fields');
+            alert('Please fill in all required fields (email, username, password)');
             return;
         }
         
@@ -941,6 +948,7 @@ async function saveUser(e) {
         }
         
         const data = { email, username, password, full_name: fullName, role };
+        console.log('Sending create request with data:', JSON.stringify(data));
         
         try {
             const response = await fetch('/api/admin/users', {
@@ -949,9 +957,19 @@ async function saveUser(e) {
                 body: JSON.stringify(data)
             });
             
+            console.log('Create response status:', response.status);
+            const responseText = await response.text();
+            console.log('Create response body:', responseText);
+            
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Failed to create user');
+                let errorMsg = 'Failed to create user';
+                try {
+                    const error = JSON.parse(responseText);
+                    errorMsg = error.detail || error.message || error.error || errorMsg;
+                } catch (e) {
+                    errorMsg = responseText || errorMsg;
+                }
+                throw new Error(errorMsg);
             }
             
             closeModal();
@@ -959,8 +977,8 @@ async function saveUser(e) {
             loadDashboardData();
             alert('User created successfully!');
         } catch (error) {
-            console.error('Save error:', error);
-            alert(error.message || 'Failed to create user');
+            console.error('Create error:', error);
+            alert('Error: ' + (error.message || 'Failed to create user'));
         }
     }
 }
