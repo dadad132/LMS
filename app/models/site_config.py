@@ -116,6 +116,11 @@ class SiteConfig(Base):
     gallery_title = Column(String(255), default="Gallery")
     gallery_images = Column(JSON, default=list)  # [{"url": "...", "title": "...", "description": "..."}]
 
+    # Team/Staff Section
+    team_enabled = Column(Boolean, default=True)
+    team_title = Column(String(255), default="Meet Our Team")
+    team_members = Column(JSON, default=list)  # [{"name": "...", "role": "...", "bio": "...", "image": "...", "email": "...", "linkedin": "..."}]
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

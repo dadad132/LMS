@@ -46,6 +46,25 @@ try:
 except Exception as e:
     print(f'quiz_attempts table: {e}')
 
+# Add team columns to site_config table
+try:
+    cursor.execute("ALTER TABLE site_config ADD COLUMN team_enabled BOOLEAN DEFAULT 1")
+    print('Added team_enabled column')
+except Exception as e:
+    print(f'team_enabled: {e}')
+
+try:
+    cursor.execute("ALTER TABLE site_config ADD COLUMN team_title VARCHAR(255) DEFAULT 'Meet Our Team'")
+    print('Added team_title column')
+except Exception as e:
+    print(f'team_title: {e}')
+
+try:
+    cursor.execute("ALTER TABLE site_config ADD COLUMN team_members TEXT DEFAULT '[]'")
+    print('Added team_members column')
+except Exception as e:
+    print(f'team_members: {e}')
+
 conn.commit()
 conn.close()
 print('Database migration complete!')

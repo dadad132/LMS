@@ -105,6 +105,11 @@ class SiteConfigUpdate(BaseModel):
     gallery_enabled: Optional[bool] = None
     gallery_title: Optional[str] = None
     gallery_images: Optional[list] = None
+    
+    # Team Section
+    team_enabled: Optional[bool] = None
+    team_title: Optional[str] = None
+    team_members: Optional[list] = None
 
 
 class SiteConfigResponse(BaseModel):
@@ -298,7 +303,11 @@ async def get_site_config(
         # Gallery
         "gallery_enabled": config.gallery_enabled if config.gallery_enabled is not None else True,
         "gallery_title": config.gallery_title or "Gallery",
-        "gallery_images": config.gallery_images or []
+        "gallery_images": config.gallery_images or [],
+        # Team
+        "team_enabled": config.team_enabled if config.team_enabled is not None else True,
+        "team_title": config.team_title or "Meet Our Team",
+        "team_members": config.team_members or []
     }
 
 
@@ -325,7 +334,7 @@ async def update_site_config(
     
     # JSON fields that need explicit modification flagging
     json_fields = {'features_items', 'testimonials_items', 'stats_items', 
-                   'footer_links', 'homepage_sections', 'gallery_images', 'social_links'}
+                   'footer_links', 'homepage_sections', 'gallery_images', 'social_links', 'team_members'}
     
     for field, value in update_data.items():
         if hasattr(config, field):
