@@ -7,6 +7,7 @@ let currentFeatures = [];
 let currentStats = [];
 let currentTestimonials = [];
 let currentGalleryImages = [];
+let currentTeamMembers = [];
 
 // ==================== Navigation ====================
 document.addEventListener('DOMContentLoaded', function() {
@@ -791,6 +792,20 @@ function selectMedia(url, targetInputId) {
         addGalleryImageFromPicker(url);
     }
     
+    // Special handling for team images
+    if (targetInputId.startsWith('teamImage')) {
+        const idx = parseInt(targetInputId.replace('teamImage', ''));
+        currentTeamMembers[idx].image = url;
+        renderTeam();
+    }
+    
+    // Special handling for testimonial images
+    if (targetInputId.startsWith('testimonialImage')) {
+        const idx = parseInt(targetInputId.replace('testimonialImage', ''));
+        currentTestimonials[idx].image = url;
+        renderTestimonials();
+    }
+    
     document.getElementById('mediaPicker').remove();
 }
 
@@ -1283,6 +1298,12 @@ async function loadHomepageSettings() {
         currentGalleryImages = config.gallery_images || [];
         renderGallery();
         
+        // Team Members
+        document.getElementById('teamEnabled').checked = config.team_enabled !== false;
+        document.getElementById('teamTitle').value = config.team_title || 'Meet Our Team';
+        currentTeamMembers = config.team_members || [];
+        renderTeam();
+        
     } catch (error) {
         console.error('Error loading homepage settings:', error);
     }
@@ -1601,6 +1622,104 @@ async function uploadGalleryImage() {
         }
     };
     input.click();
+}
+
+// Team Functions
+function renderTeam() {
+    const container = document.getElementById('teamContainer');
+    if (!container) return;
+    
+    container.innerHTML = currentTeamMembers.map((member, idx) => `
+        <div class="admin-team-item" style="background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                <div style="flex-shrink: 0;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; background: #e5e7eb; display: flex; align-items: center; justify-content: center;">
+                        ${member.image ? `<img src="${member.image}" style="width: 100%; height: 100%; object-fit: cover;">` : '<span style="font-size: 2rem;">👤</span>'}
+                    </div>
+                    <div style="margin-top: 0.5rem; display: flex; gap: 0.25rem;">
+                        <button type="button" class="btn btn-sm btn-outline" onclick="showMediaPicker('teamImage${idx}')">📁</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="uploadTeamImage(${idx})">📤</button>
+                    </div>
+                    <input type="hidden" id="teamImage${idx}" onchange="updateTeamMember(${idx}, 'image', this.value)">
+                </div>
+                <div style="flex: 1;">
+                    <div style="display: grid; gap: 0.5rem;">
+                        <input type="text" value="${member.name || ''}" onchange="updateTeamMember(${idx}, 'name', this.value)" placeholder="Name" class="form-control" style="font-weight: bold;">
+                        <input type="text" value="${member.role || ''}" onchange="updateTeamMember(${idx}, 'role', this.value)" placeholder="Role/Position" class="form-control">
+                        <textarea onchange="updateTeamMember(${idx}, 'bio', this.value)" placeholder="Short bio (optional)" rows="2" class="form-control">${member.bio || ''}</textarea>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" value="${member.email || ''}" onchange="updateTeamMember(${idx}, 'email', this.value)" placeholder="Email (optional)" class="form-control" style="flex: 1;">
+                            <input type="text" value="${member.linkedin || ''}" onchange="updateTeamMember(${idx}, 'linkedin', this.value)" placeholder="LinkedIn URL (optional)" class="form-control" style="flex: 1;">
+                        </div>
+                    </div>
+                </div>
+                <button type="button" onclick="removeTeamMember(${idx})" class="btn btn-sm btn-danger">🗑️</button>
+            </div>
+        </div>
+    `).join('') || '<p style="color: #666;">No team members yet. Click "Add Team Member" to get started!</p>';
+}
+
+function addTeamMember() {
+    currentTeamMembers.push({ name: '', role: '', bio: '', image: '', email: '', linkedin: '' });
+    renderTeam();
+}
+
+function updateTeamMember(idx, field, value) {
+    currentTeamMembers[idx][field] = value;
+}
+
+function removeTeamMember(idx) {
+    if (confirm('Remove this team member?')) {
+        currentTeamMembers.splice(idx, 1);
+        renderTeam();
+    }
+}
+
+async function uploadTeamImage(idx) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async function() {
+        if (this.files[0]) {
+            const formData = new FormData();
+            formData.append('file', this.files[0]);
+            
+            try {
+                const result = await fetch('/api/admin/upload?folder=team', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json());
+                
+                currentTeamMembers[idx].image = result.url;
+                renderTeam();
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Failed to upload image');
+            }
+        }
+    };
+    input.click();
+}
+
+async function saveTeam() {
+    const data = {
+        team_enabled: document.getElementById('teamEnabled').checked,
+        team_title: document.getElementById('teamTitle').value || 'Meet Our Team',
+        team_members: currentTeamMembers
+    };
+    
+    try {
+        const response = await fetch('/api/admin/site-config', { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(data) 
+        }); 
+        if (!response.ok) throw new Error(await response.text());
+        alert('Team saved successfully! Changes will be visible on your homepage.');
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Failed to save team');
+    }
 }
 
 async function uploadHeroImage() {

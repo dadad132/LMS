@@ -105,6 +105,41 @@
 </section>
 {% endif %}
 
+<!-- Team Section -->
+{% if site_config and site_config.team_enabled != false and site_config.team_members and site_config.team_members|length > 0 %}
+<section class="team-section">
+    <div class="container">
+        <h2 class="section-title">{{ site_config.team_title or 'Meet Our Team' }}</h2>
+        <div class="team-grid">
+            {% for member in site_config.team_members %}
+            <div class="team-card">
+                <div class="team-avatar">
+                    {% if member.image %}
+                    <img src="{{ member.image }}" alt="{{ member.name }}">
+                    {% else %}
+                    <span class="team-avatar-placeholder">👤</span>
+                    {% endif %}
+                </div>
+                <div class="team-info">
+                    <h3 class="team-name">{{ member.name }}</h3>
+                    {% if member.role %}<p class="team-role">{{ member.role }}</p>{% endif %}
+                    {% if member.bio %}<p class="team-bio">{{ member.bio }}</p>{% endif %}
+                    <div class="team-links">
+                        {% if member.email %}
+                        <a href="mailto:{{ member.email }}" title="Email" class="team-link">📧</a>
+                        {% endif %}
+                        {% if member.linkedin %}
+                        <a href="{{ member.linkedin }}" target="_blank" rel="noopener" title="LinkedIn" class="team-link">💼</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- Featured Courses Section -->
 {% if site_config and site_config.courses_section_enabled != false %}
 <section class="courses-preview">
@@ -270,6 +305,24 @@
 .gallery-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; }
 .gallery-description { font-size: 0.8rem; opacity: 0.9; line-height: 1.3; }
 @media (max-width: 768px) { .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; } }
+
+/* Team Section */
+.team-section { padding: 4rem 0; background: var(--gray-50); }
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2rem; }
+.team-card { background: white; border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; text-align: center; transition: transform 0.2s, box-shadow 0.2s; }
+.team-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+.team-avatar { width: 120px; height: 120px; margin: 1.5rem auto 1rem; border-radius: 50%; overflow: hidden; background: var(--gray-200); display: flex; align-items: center; justify-content: center; }
+.team-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.team-avatar-placeholder { font-size: 3rem; }
+.team-info { padding: 0 1.5rem 1.5rem; }
+.team-name { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--gray-900); }
+.team-role { font-size: 0.9rem; color: var(--primary-color); font-weight: 500; margin-bottom: 0.75rem; }
+.team-bio { font-size: 0.9rem; color: var(--gray-600); line-height: 1.5; margin-bottom: 1rem; }
+.team-links { display: flex; justify-content: center; gap: 0.75rem; }
+.team-link { font-size: 1.25rem; text-decoration: none; transition: transform 0.2s; display: inline-block; }
+.team-link:hover { transform: scale(1.2); }
+@media (max-width: 768px) { .team-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; } }
+@media (max-width: 480px) { .team-grid { grid-template-columns: 1fr; } }
 
 /* Testimonials Section */
 .testimonials-section { padding: 4rem 0; background: var(--gray-50); }
