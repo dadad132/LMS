@@ -408,7 +408,7 @@ function showCourseModal(course = null) {
                 <label for="courseThumbnail">Thumbnail Image</label>
                 <div style="display: flex; gap: 0.5rem;">
                     <input type="text" id="courseThumbnail" value="${course?.thumbnail_url || ''}" placeholder="Select from media library" style="flex: 1;">
-                    <button type="button" class="btn btn-outline" onclick="showMediaPicker('courseThumbnail')">ðŸ“ Browse</button>
+                    <button type="button" class="btn btn-outline" onclick="showMediaPicker('courseThumbnail')">Browse</button>
                 </div>
                 ${course?.thumbnail_url ? `<img src="${course.thumbnail_url}" style="max-width: 200px; margin-top: 0.5rem; border-radius: 4px;">` : ''}
             </div>
@@ -416,7 +416,7 @@ function showCourseModal(course = null) {
                 <label for="coursePreviewVideo">Preview Video URL</label>
                 <div style="display: flex; gap: 0.5rem;">
                     <input type="text" id="coursePreviewVideo" value="${course?.preview_video_url || ''}" placeholder="YouTube/Vimeo URL or from media" style="flex: 1;">
-                    <button type="button" class="btn btn-outline" onclick="showMediaPicker('coursePreviewVideo')">ðŸ“ Browse</button>
+                    <button type="button" class="btn btn-outline" onclick="showMediaPicker('coursePreviewVideo')">Browse</button>
                 </div>
             </div>
             <div class="form-group">
@@ -591,7 +591,7 @@ function showLessonModal(lesson = null) {
                 <label for="lessonVideoUrl">Video URL</label>
                 <div style="display: flex; gap: 0.5rem;">
                     <input type="text" id="lessonVideoUrl" value="${lesson?.video_url || ''}" placeholder="Paste video URL or select from media" style="flex: 1;">
-                    <button type="button" class="btn btn-outline" onclick="showMediaPicker('lessonVideoUrl')">ðŸ“ Browse</button>
+                    <button type="button" class="btn btn-outline" onclick="showMediaPicker('lessonVideoUrl')">Browse</button>
                 </div>
                 <small style="color: #666;">Supports YouTube, Vimeo, or direct video URLs from your media library</small>
             </div>
