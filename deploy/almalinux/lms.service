@@ -1,0 +1,37 @@
+[Unit]
+Description=LMS Website Builder
+After=network.target
+
+[Service]
+Type=simple
+User=lmsuser
+Group=lmsuser
+WorkingDirectory=/var/www/lms
+Environment="PATH=/var/www/lms/venv/bin"
+# IMPORTANT: Change these values!
+Environment="SECRET_KEY=CHANGE-THIS-TO-A-RANDOM-32-CHARACTER-STRING"
+Environment="ADMIN_SECRET_PATH=admin-change-this-path"
+Environment="DATABASE_URL=sqlite:////var/www/lms/data.db"
+
+ExecStart=/var/www/lms/venv/bin/gunicorn app.main:app \
+    --workers 4 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind 127.0.0.1:8000 \
+    --access-logfile /var/www/lms/logs/access.log \
+    --error-logfile /var/www/lms/logs/error.log \
+    --capture-output
+
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/lms/logs/stdout.log
+StandardError=append:/var/www/lms/logs/stderr.log
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/lms
+
+[Install]
+WantedBy=multi-user.target

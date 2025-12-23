@@ -868,35 +868,56 @@ async function saveUser(e) {
         };
         
         try {
-            await fetch(`/api/admin/users/${id}`, {
+            const response = await fetch(`/api/admin/users/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update user');
+            }
             
             closeModal();
             loadUsers();
             alert('User updated successfully!');
         } catch (error) {
             console.error('Save error:', error);
-            alert('Failed to update user');
+            alert(error.message || 'Failed to update user');
         }
     } else {
         // Create new user
-        const data = {
-            email: document.getElementById('userEmail').value,
-            username: document.getElementById('userName').value,
-            password: document.getElementById('userPassword').value,
-            full_name: document.getElementById('userFullName').value,
-            role: document.getElementById('userRole').value
-        };
+        const email = document.getElementById('userEmail').value;
+        const username = document.getElementById('userName').value;
+        const password = document.getElementById('userPassword').value;
+        const fullName = document.getElementById('userFullName').value;
+        const role = document.getElementById('userRole').value;
+        
+        // Validate
+        if (!email || !username || !password) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        if (password.length < 8) {
+            alert('Password must be at least 8 characters');
+            return;
+        }
+        
+        const data = { email, username, password, full_name: fullName, role };
         
         try {
-            await fetch('/api/admin/users', {
+            const response = await fetch('/api/admin/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to create user');
+            }
             
             closeModal();
             loadUsers();
@@ -904,7 +925,7 @@ async function saveUser(e) {
             alert('User created successfully!');
         } catch (error) {
             console.error('Save error:', error);
-            alert('Failed to create user');
+            alert(error.message || 'Failed to create user');
         }
     }
 }

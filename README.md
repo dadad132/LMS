@@ -180,6 +180,23 @@ After starting the server, access:
 4. **Reverse Proxy**: Use Nginx or similar
 5. **Environment Variables**: Never commit secrets to git
 
+### AlmaLinux / RHEL Deployment
+
+Complete deployment files for AlmaLinux 10 are included in `deploy/almalinux/`:
+
+```bash
+# Quick install (as root)
+sudo bash deploy/almalinux/install.sh
+```
+
+Or follow the manual guide in `deploy/almalinux/README.md`.
+
+**Included files:**
+- `install.sh` - Automated installation script
+- `lms.service` - Systemd service file
+- `nginx-lms.conf` - Nginx configuration
+- `README.md` - Detailed deployment guide
+
 ### Docker Deployment
 
 Coming soon...
