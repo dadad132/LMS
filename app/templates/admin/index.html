@@ -36,6 +36,10 @@
                 <a href="#users" class="nav-item" data-section="users">
                     <span class="nav-icon">👥</span> Users
                 </a>
+                <a href="#inquiries" class="nav-item" data-section="inquiries">
+                    <span class="nav-icon">📬</span> Inquiries
+                    <span class="badge badge-notification" id="inquiryBadge" style="display: none; background: #ef4444; color: white; margin-left: 0.5rem; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem;">0</span>
+                </a>
                 <a href="#media" class="nav-item" data-section="media">
                     <span class="nav-icon">🖼️</span> Media Library
                 </a>
@@ -98,6 +102,13 @@
                             <div class="stat-info">
                                 <span class="stat-value" id="totalPages">0</span>
                                 <span class="stat-label">Pages</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" style="cursor: pointer;" onclick="showSection('inquiries')">
+                            <div class="stat-icon">📬</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalInquiries">0</span>
+                                <span class="stat-label">New Inquiries</span>
                             </div>
                         </div>
                     </div>
@@ -511,6 +522,37 @@
                     </div>
                 </section>
                 
+                <!-- Inquiries/Tickets Section -->
+                <section id="inquiries" class="content-section">
+                    <div class="section-header">
+                        <h3>Contact Inquiries</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-outline" onclick="loadInquiries()" title="Refresh">🔄 Refresh</button>
+                            <label class="btn btn-outline">
+                                <input type="checkbox" id="showUnreadOnly" onchange="loadInquiries()" style="margin-right: 0.5rem;">
+                                Unread Only
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Subject</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inquiriesTable">
+                                <tr><td colspan="6">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <!-- Media Section -->
                 <section id="media" class="content-section">
                     <div class="section-header">

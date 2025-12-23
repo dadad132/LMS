@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadDashboardData();
     loadSiteSettings();
     loadHomepageSettings();
+    loadUnreadInquiryCount(); // Load notification badge
 });
 
 function showSection(sectionId) {
@@ -49,6 +50,7 @@ function showSection(sectionId) {
         'pages': 'Pages',
         'courses': 'Courses',
         'users': 'Users',
+        'inquiries': 'Contact Inquiries',
         'media': 'Media Library',
         'system': 'System Update'
     };
@@ -61,6 +63,7 @@ function showSection(sectionId) {
         case 'courses': loadCourses(); break;
         case 'system': loadSystemInfo(); break;
         case 'users': loadUsers(); break;
+        case 'inquiries': loadInquiries(); break;
         case 'media': loadMedia(); break;
     }
 }
@@ -93,6 +96,14 @@ async function loadDashboardData() {
         // Load pages
         const pages = await fetch('/api/admin/pages').then(r => r.json());
         document.getElementById('totalPages').textContent = pages.length;
+        
+        // Load unread inquiries count
+        try {
+            const inquiryStats = await fetch('/api/admin/inquiries/stats/unread').then(r => r.json());
+            document.getElementById('totalInquiries').textContent = inquiryStats.unread_count || 0;
+        } catch (e) {
+            document.getElementById('totalInquiries').textContent = 0;
+        }
         
     } catch (error) {
         console.error('Dashboard error:', error);
@@ -2131,4 +2142,208 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ==================== Inquiries/Tickets ====================
+
+async function loadUnreadInquiryCount() {
+    try {
+        const response = await fetch('/api/admin/inquiries/stats/unread');
+        const data = await response.json();
+        const badge = document.getElementById('inquiryBadge');
+        if (badge) {
+            if (data.unread_count > 0) {
+                badge.textContent = data.unread_count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading unread count:', error);
+    }
+}
+
+async function loadInquiries() {
+    const tbody = document.getElementById('inquiriesTable');
+    tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+    
+    try {
+        const unreadOnly = document.getElementById('showUnreadOnly')?.checked || false;
+        const response = await fetch(`/api/admin/inquiries?unread_only=${unreadOnly}`);
+        const data = await response.json();
+        
+        if (data.inquiries && data.inquiries.length > 0) {
+            tbody.innerHTML = data.inquiries.map(inquiry => `
+                <tr class="${!inquiry.is_read ? 'unread-row' : ''}" style="${!inquiry.is_read ? 'background: #fef3c7;' : ''}">
+                    <td>
+                        ${!inquiry.is_read ? '<span class="badge" style="background: #3b82f6; color: white;">New</span>' : 
+                          inquiry.is_replied ? '<span class="badge" style="background: #10b981; color: white;">Replied</span>' : 
+                          '<span class="badge" style="background: #9ca3af; color: white;">Read</span>'}
+                    </td>
+                    <td>${formatDate(inquiry.created_at)}</td>
+                    <td><strong>${escapeHtml(inquiry.name)}</strong></td>
+                    <td><a href="mailto:${escapeHtml(inquiry.email)}">${escapeHtml(inquiry.email)}</a></td>
+                    <td>${escapeHtml(inquiry.subject)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline" onclick="viewInquiry(${inquiry.id})" title="View Details">👁️</button>
+                        <button class="btn btn-sm btn-outline" onclick="replyInquiry(${inquiry.id}, '${escapeHtml(inquiry.email)}')" title="Reply">📧</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteInquiry(${inquiry.id})" title="Delete">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No inquiries found</td></tr>';
+        }
+        
+        // Refresh the unread count
+        loadUnreadInquiryCount();
+        
+    } catch (error) {
+        console.error('Error loading inquiries:', error);
+        tbody.innerHTML = '<tr><td colspan="6" style="color: red;">Error loading inquiries</td></tr>';
+    }
+}
+
+async function viewInquiry(id) {
+    try {
+        const response = await fetch(`/api/admin/inquiries/${id}`);
+        const inquiry = await response.json();
+        
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modalContent');
+        
+        modalContent.innerHTML = `
+            <h2>📧 Inquiry Details</h2>
+            <div style="margin-top: 1.5rem;">
+                <div style="display: grid; gap: 1rem;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                        <span><strong>Status:</strong> 
+                            ${!inquiry.is_read ? '<span class="badge" style="background: #3b82f6; color: white;">New</span>' : 
+                              inquiry.is_replied ? '<span class="badge" style="background: #10b981; color: white;">Replied</span>' : 
+                              '<span class="badge" style="background: #9ca3af; color: white;">Read</span>'}
+                        </span>
+                        <span><strong>Received:</strong> ${formatDate(inquiry.created_at)}</span>
+                    </div>
+                    <hr>
+                    <div><strong>From:</strong> ${escapeHtml(inquiry.name)}</div>
+                    <div><strong>Email:</strong> <a href="mailto:${escapeHtml(inquiry.email)}">${escapeHtml(inquiry.email)}</a></div>
+                    ${inquiry.phone ? `<div><strong>Phone:</strong> <a href="tel:${escapeHtml(inquiry.phone)}">${escapeHtml(inquiry.phone)}</a></div>` : ''}
+                    <div><strong>Subject:</strong> ${escapeHtml(inquiry.subject)}</div>
+                    <hr>
+                    <div><strong>Message:</strong></div>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; white-space: pre-wrap;">${escapeHtml(inquiry.message)}</div>
+                    ${inquiry.reply_notes ? `
+                        <hr>
+                        <div><strong>Reply Notes:</strong></div>
+                        <div style="background: #e0f2fe; padding: 1rem; border-radius: 8px; white-space: pre-wrap;">${escapeHtml(inquiry.reply_notes)}</div>
+                        ${inquiry.replied_at ? `<div style="font-size: 0.875rem; color: #666;">Replied on: ${formatDate(inquiry.replied_at)}</div>` : ''}
+                    ` : ''}
+                </div>
+                
+                <div style="margin-top: 1.5rem;">
+                    <label><strong>Add Reply Notes:</strong></label>
+                    <textarea id="replyNotesInput" rows="3" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" placeholder="Add notes about this inquiry...">${inquiry.reply_notes || ''}</textarea>
+                </div>
+                
+                <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="updateInquiryNotes(${id})">💾 Save Notes</button>
+                    <button class="btn btn-outline" onclick="markAsReplied(${id})">${inquiry.is_replied ? '↩️ Mark as Unreplied' : '✅ Mark as Replied'}</button>
+                    <button class="btn btn-outline" onclick="replyInquiry(${id}, '${escapeHtml(inquiry.email)}')">📧 Send Email</button>
+                    <button class="btn btn-outline" onclick="closeModal()">Close</button>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'flex';
+        
+        // Refresh the list (which will mark as read)
+        loadInquiries();
+        
+    } catch (error) {
+        console.error('Error viewing inquiry:', error);
+        alert('Error loading inquiry details');
+    }
+}
+
+function replyInquiry(id, email) {
+    // Open default email client
+    window.location.href = `mailto:${email}`;
+}
+
+async function updateInquiryNotes(id) {
+    const notes = document.getElementById('replyNotesInput')?.value || '';
+    
+    try {
+        const response = await fetch(`/api/admin/inquiries/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reply_notes: notes })
+        });
+        
+        if (response.ok) {
+            alert('Notes saved!');
+            loadInquiries();
+        } else {
+            alert('Failed to save notes');
+        }
+    } catch (error) {
+        console.error('Error updating notes:', error);
+        alert('Error saving notes');
+    }
+}
+
+async function markAsReplied(id) {
+    try {
+        // First get current state
+        const checkResponse = await fetch(`/api/admin/inquiries/${id}`);
+        const inquiry = await checkResponse.json();
+        
+        const response = await fetch(`/api/admin/inquiries/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_replied: !inquiry.is_replied })
+        });
+        
+        if (response.ok) {
+            closeModal();
+            loadInquiries();
+        } else {
+            alert('Failed to update status');
+        }
+    } catch (error) {
+        console.error('Error updating status:', error);
+        alert('Error updating status');
+    }
+}
+
+async function deleteInquiry(id) {
+    if (!confirm('Are you sure you want to delete this inquiry?')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/inquiries/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            loadInquiries();
+        } else {
+            alert('Failed to delete inquiry');
+        }
+    } catch (error) {
+        console.error('Error deleting inquiry:', error);
+        alert('Error deleting inquiry');
+    }
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
