@@ -795,72 +795,137 @@ async def list_media(
 
 # ==================== System Update ====================
 
+def _get_ssh_env():
+    """Get environment with SSH key for git operations (private repo support)"""
+    env = os.environ.copy()
+    
+    # Check common SSH key locations
+    ssh_key_paths = [
+        BASE_DIR / ".ssh" / "deploy_key",  # App directory (installed by install script)
+        Path("/opt/lms-website/.ssh/deploy_key"),  # Absolute fallback
+        Path.home() / ".ssh" / "lms_deploy_key",
+        Path.home() / ".ssh" / "github_deploy_key",
+        Path.home() / ".ssh" / "deploy_key",
+        Path.home() / ".ssh" / "id_ed25519",
+        Path.home() / ".ssh" / "id_rsa",
+    ]
+    
+    for key_path in ssh_key_paths:
+        if key_path.exists():
+            ssh_command = f'ssh -i {key_path} -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes'
+            env['GIT_SSH_COMMAND'] = ssh_command
+            break
+    
+    return env
+
+
 @router.post("/system/update")
 async def update_system(
     admin: User = Depends(get_super_admin)
 ):
     """
     Pull latest code from GitHub and automatically restart the server.
+    Supports private repos via SSH deploy keys.
     Only super admin can perform this action.
     """
-    import sys
     import threading
     import time
-    
+
     try:
-        # Change to the project directory
         project_dir = str(BASE_DIR)
-        
-        # Run git pull
-        result = subprocess.run(
-            ["git", "pull", "origin", "main"],
+        env = _get_ssh_env()
+
+        # Fetch first to check for updates
+        fetch_result = subprocess.run(
+            ["git", "fetch", "origin"],
             cwd=project_dir,
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
+            env=env
+        )
+
+        # Check how many commits behind
+        behind_result = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD..origin/main"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True
         )
         
-        if result.returncode != 0:
-            return {
-                "success": False,
-                "message": "Git pull failed",
-                "error": result.stderr,
-                "output": result.stdout
-            }
+        commits_behind = int(behind_result.stdout.strip()) if behind_result.stdout.strip().isdigit() else 0
         
-        # Check if there were any updates
-        if "Already up to date" in result.stdout:
+        if commits_behind == 0:
             return {
                 "success": True,
                 "message": "Already up to date. No changes to pull.",
-                "output": result.stdout,
                 "requires_restart": False
             }
-        
+
+        # Get list of changes
+        changes_result = subprocess.run(
+            ["git", "log", "HEAD..origin/main", "--oneline"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True
+        )
+        changes = changes_result.stdout.strip().split('\n') if changes_result.stdout.strip() else []
+
+        # Reset to latest (handles both fast-forward and diverged states)
+        result = subprocess.run(
+            ["git", "reset", "--hard", "origin/main"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env=env
+        )
+
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "message": "Update failed",
+                "error": result.stderr,
+                "output": result.stdout
+            }
+
+        # Update pip dependencies
+        venv_pip = Path(project_dir) / "venv" / "bin" / "pip"
+        if venv_pip.exists():
+            subprocess.run(
+                [str(venv_pip), "install", "-r", "requirements.txt", "--upgrade", "-q"],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
         # Schedule server restart after response is sent
         def restart_server():
-            time.sleep(2)  # Wait for response to be sent
-            # Touch a Python file to trigger uvicorn reload (if running with --reload)
-            trigger_file = Path(BASE_DIR) / "__init__.py"
-            trigger_file.touch()
-            # Also try to restart via sys.exit if not in reload mode
-            # The run.py script or process manager should restart the server
-        
+            time.sleep(2)
+            # Try systemctl restart first (for production)
+            try:
+                subprocess.run(["systemctl", "restart", "lms-website"], timeout=10)
+            except:
+                # Fall back to touching file for uvicorn reload
+                trigger_file = Path(BASE_DIR) / "app" / "__init__.py"
+                trigger_file.touch()
+
         threading.Thread(target=restart_server, daemon=True).start()
-        
+
         return {
             "success": True,
-            "message": "Update successful! Server is restarting automatically...",
-            "output": result.stdout,
+            "message": f"Update successful! {len(changes)} commits applied. Server is restarting...",
+            "changes": changes,
             "requires_restart": True,
             "auto_restarting": True
         }
-        
+
     except subprocess.TimeoutExpired:
         return {
             "success": False,
             "message": "Update timed out. Please try again.",
-            "error": "Git pull operation timed out after 60 seconds"
+            "error": "Git operation timed out after 60 seconds"
         }
     except Exception as e:
         return {
@@ -874,10 +939,11 @@ async def update_system(
 async def get_system_version(
     admin: User = Depends(get_admin_user)
 ):
-    """Get current git commit info"""
+    """Get current git commit info and check for updates"""
     try:
         project_dir = str(BASE_DIR)
-        
+        env = _get_ssh_env()
+
         # Get current commit hash
         commit_result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
@@ -885,7 +951,15 @@ async def get_system_version(
             capture_output=True,
             text=True
         )
-        
+
+        # Get commit message
+        msg_result = subprocess.run(
+            ["git", "log", "-1", "--format=%s"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True
+        )
+
         # Get commit date
         date_result = subprocess.run(
             ["git", "log", "-1", "--format=%ci"],
@@ -893,34 +967,74 @@ async def get_system_version(
             capture_output=True,
             text=True
         )
-        
-        # Check for updates
-        subprocess.run(["git", "fetch", "origin"], cwd=project_dir, capture_output=True)
-        
+
+        # Check for updates (fetch with SSH support)
+        subprocess.run(
+            ["git", "fetch", "origin"],
+            cwd=project_dir,
+            capture_output=True,
+            env=env,
+            timeout=30
+        )
+
         behind_result = subprocess.run(
             ["git", "rev-list", "--count", "HEAD..origin/main"],
             cwd=project_dir,
             capture_output=True,
             text=True
         )
-        
-        commits_behind = int(behind_result.stdout.strip()) if behind_result.returncode == 0 else 0
-        
+
+        commits_behind = int(behind_result.stdout.strip()) if behind_result.returncode == 0 and behind_result.stdout.strip().isdigit() else 0
+
+        # Check SSH key status
+        ssh_configured = any(
+            (Path.home() / ".ssh" / key).exists() 
+            for key in ["lms_deploy_key", "github_deploy_key", "deploy_key", "id_ed25519", "id_rsa"]
+        )
+
         return {
             "commit": commit_result.stdout.strip(),
+            "message": msg_result.stdout.strip(),
             "date": date_result.stdout.strip(),
             "updates_available": commits_behind > 0,
-            "commits_behind": commits_behind
+            "commits_behind": commits_behind,
+            "ssh_configured": ssh_configured
         }
     except Exception as e:
         return {
             "commit": "unknown",
             "date": "unknown",
             "updates_available": False,
+            "ssh_configured": False,
             "error": str(e)
         }
 
 
+@router.get("/system/ssh-status")
+async def get_ssh_status(
+    admin: User = Depends(get_super_admin)
+):
+    """Check SSH deploy key configuration for private repo access"""
+    ssh_keys = {
+        "app_deploy_key": BASE_DIR / ".ssh" / "deploy_key",
+        "opt_deploy_key": Path("/opt/lms-website/.ssh/deploy_key"),
+        "lms_deploy_key": Path.home() / ".ssh" / "lms_deploy_key",
+        "github_deploy_key": Path.home() / ".ssh" / "github_deploy_key",
+        "deploy_key": Path.home() / ".ssh" / "deploy_key",
+        "id_ed25519": Path.home() / ".ssh" / "id_ed25519",
+        "id_rsa": Path.home() / ".ssh" / "id_rsa",
+    }
+    
+    found_keys = []
+    for name, path in ssh_keys.items():
+        if path.exists():
+            found_keys.append({"name": name, "path": str(path)})
+    
+    return {
+        "ssh_configured": len(found_keys) > 0,
+        "keys_found": found_keys,
+        "message": "SSH key found - updates from private repo will work" if found_keys else "No SSH key found - please set up deploy key for private repo access"
+    }
 # ==================== Backup & Restore ====================
 
 @router.post("/backup/create")
