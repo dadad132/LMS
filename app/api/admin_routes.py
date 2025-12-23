@@ -1026,15 +1026,129 @@ async def get_ssh_status(
     }
     
     found_keys = []
+    public_key_content = None
+    
     for name, path in ssh_keys.items():
         if path.exists():
             found_keys.append({"name": name, "path": str(path)})
+            # Try to read the public key
+            pub_path = Path(str(path) + ".pub")
+            if pub_path.exists() and public_key_content is None:
+                try:
+                    public_key_content = pub_path.read_text().strip()
+                except:
+                    pass
     
     return {
         "ssh_configured": len(found_keys) > 0,
         "keys_found": found_keys,
-        "message": "SSH key found - updates from private repo will work" if found_keys else "No SSH key found - please set up deploy key for private repo access"
+        "public_key": public_key_content,
+        "message": "SSH key found - updates from private repo will work" if found_keys else "No SSH key found - generate one below to enable private repo access"
     }
+
+
+@router.post("/system/ssh-generate")
+async def generate_ssh_key(
+    admin: User = Depends(get_super_admin)
+):
+    """
+    Generate a new SSH deploy key for GitHub private repo access.
+    The public key will be displayed so you can add it to GitHub.
+    """
+    try:
+        ssh_dir = BASE_DIR / ".ssh"
+        key_path = ssh_dir / "deploy_key"
+        pub_path = ssh_dir / "deploy_key.pub"
+        
+        # Check if key already exists
+        if key_path.exists():
+            # Return existing public key
+            if pub_path.exists():
+                public_key = pub_path.read_text().strip()
+                return {
+                    "success": True,
+                    "message": "SSH key already exists",
+                    "public_key": public_key,
+                    "instructions": [
+                        "1. Go to: https://github.com/dadad132/LMS/settings/keys",
+                        "2. Click 'Add deploy key'",
+                        "3. Title: LMS Server Deploy Key",
+                        "4. Paste the public key below",
+                        "5. Click 'Add key'",
+                        "6. Make the repository private",
+                        "7. Updates will now work from this admin panel!"
+                    ]
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Private key exists but public key is missing"
+                }
+        
+        # Create .ssh directory
+        ssh_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate new SSH key
+        result = subprocess.run(
+            [
+                "ssh-keygen",
+                "-t", "ed25519",
+                "-C", "lms-deploy-key",
+                "-f", str(key_path),
+                "-N", ""  # No passphrase
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "message": "Failed to generate SSH key",
+                "error": result.stderr
+            }
+        
+        # Set proper permissions
+        os.chmod(key_path, 0o600)
+        os.chmod(pub_path, 0o644)
+        
+        # Read the public key
+        public_key = pub_path.read_text().strip()
+        
+        # Create SSH config for GitHub
+        config_path = ssh_dir / "config"
+        config_content = f"""Host github.com
+    HostName github.com
+    User git
+    IdentityFile {key_path}
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+"""
+        config_path.write_text(config_content)
+        os.chmod(config_path, 0o600)
+        
+        return {
+            "success": True,
+            "message": "SSH key generated successfully!",
+            "public_key": public_key,
+            "instructions": [
+                "1. Go to: https://github.com/dadad132/LMS/settings/keys",
+                "2. Click 'Add deploy key'",
+                "3. Title: LMS Server Deploy Key",
+                "4. Paste the public key below",
+                "5. Click 'Add key'",
+                "6. Make the repository private",
+                "7. Updates will now work from this admin panel!"
+            ]
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to generate SSH key",
+            "error": str(e)
+        }
 # ==================== Backup & Restore ====================
 
 @router.post("/backup/create")
