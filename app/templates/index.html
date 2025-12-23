@@ -19,9 +19,9 @@
                 
                 {% if not current_user %}
                     {% if site_config and site_config.hero_button2_text %}
-                    <a href="{{ site_config.hero_button2_link or '/register' }}" class="btn btn-outline btn-lg">{{ site_config.hero_button2_text }}</a>
+                    <a href="{{ site_config.hero_button2_link or '/login' }}" class="btn btn-outline btn-lg">{{ site_config.hero_button2_text }}</a>
                     {% else %}
-                    <a href="/register" class="btn btn-outline btn-lg">Get Started Free</a>
+                    <a href="/login" class="btn btn-outline btn-lg">Login</a>
                     {% endif %}
                 {% else %}
                 <a href="/dashboard" class="btn btn-outline btn-lg">My Dashboard</a>
@@ -272,7 +272,7 @@
             {% if current_user %}
             <a href="/courses" class="btn btn-primary btn-lg">Browse Courses</a>
             {% else %}
-            <a href="{{ site_config.cta_button_link if site_config and site_config.cta_button_link else '/register' }}" class="btn btn-primary btn-lg">{{ site_config.cta_button_text if site_config and site_config.cta_button_text else 'Get Started Today' }}</a>
+            <a href="{{ site_config.cta_button_link if site_config and site_config.cta_button_link else '/login' }}" class="btn btn-primary btn-lg">{{ site_config.cta_button_text if site_config and site_config.cta_button_text else 'Login to Get Started' }}</a>
             {% endif %}
         </div>
     </div>

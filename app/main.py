@@ -579,19 +579,9 @@ async def register_page(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Registration page"""
-    if current_user:
-        return RedirectResponse(url="/dashboard", status_code=302)
-
-    site_config = get_site_config(db)
-    if not site_config.allow_registration:
-        return RedirectResponse(url="/login", status_code=302)
-
-    response = templates.TemplateResponse("register.html", {
-        "request": request,
-        "site_config": site_config
-    })
-    return add_no_cache_headers(response)
+    """Registration page - DISABLED, redirects to login"""
+    # Public registration is disabled - redirect to login
+    return RedirectResponse(url="/login", status_code=302)
 
 
 @app.get("/dashboard", response_class=HTMLResponse)

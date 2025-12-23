@@ -162,51 +162,11 @@ async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
-    """Register a new user (regular user role)"""
-    # Check if site allows registration
-    site_config = db.query(SiteConfig).first()
-    if site_config and not site_config.allow_registration:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Registration is currently disabled"
-        )
-    
-    # Check if email already exists
-    if db.query(User).filter(User.email == user_data.email).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
-    # Check if username already exists
-    if db.query(User).filter(User.username == user_data.username).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
-        )
-    
-    # Create user
-    hashed_password = get_password_hash(user_data.password)
-    user = User(
-        email=user_data.email,
-        username=user_data.username,
-        hashed_password=hashed_password,
-        full_name=user_data.full_name,
-        role=UserRole.USER,
-        is_active=True
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    return UserResponse(
-        id=user.id,
-        email=user.email,
-        username=user.username,
-        full_name=user.full_name,
-        role=user.role.value,
-        is_active=user.is_active,
-        avatar_url=user.avatar_url
+    """Register a new user - DISABLED for public access. Users must be created by admins."""
+    # Public registration is disabled - users must be created by admins
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Public registration is disabled. Please contact an administrator to get an account."
     )
 
 
