@@ -48,8 +48,8 @@ def upgrade_to_super_admin(identifier):
         
         old_role = user.role.value if hasattr(user.role, 'value') else str(user.role)
         
-        # Upgrade to super_admin
-        user.role = UserRole.super_admin
+        # Upgrade to SUPER_ADMIN (uppercase enum name)
+        user.role = UserRole.SUPER_ADMIN
         db.commit()
         
         print(f"\n✅ SUCCESS!")
