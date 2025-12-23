@@ -112,6 +112,8 @@ class SiteConfig(Base):
     homepage_sections = Column(JSON, default=list)
     
     # Gallery/Image Sections
+    gallery_enabled = Column(Boolean, default=True)
+    gallery_title = Column(String(255), default="Gallery")
     gallery_images = Column(JSON, default=list)  # [{"url": "...", "title": "...", "description": "..."}]
 
     # Timestamps

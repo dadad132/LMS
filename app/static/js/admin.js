@@ -1182,6 +1182,8 @@ async function loadHomepageSettings() {
         document.getElementById('coursesMaxDisplay').value = config.courses_max_display || 6;
         
         // Gallery Images
+        document.getElementById('galleryEnabled').checked = config.gallery_enabled !== false;
+        document.getElementById('galleryTitle').value = config.gallery_title || 'Gallery';
         currentGalleryImages = config.gallery_images || [];
         renderGallery();
         
@@ -1435,12 +1437,15 @@ document.getElementById('coursesSettingsForm')?.addEventListener('submit', async
 function renderGallery() {
     const container = document.getElementById('galleryContainer');
     container.innerHTML = currentGalleryImages.map((img, idx) => `
-        <div class="gallery-item" style="position: relative; display: inline-block; margin: 5px;">
-            <img src="${img.url}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #e0e0e0;">
-            <button type="button" onclick="removeGalleryImage(${idx})" style="position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">×</button>
-            <input type="text" value="${img.title || ''}" onchange="updateGalleryImage(${idx}, 'title', this.value)" placeholder="Title (optional)" style="width: 100%; font-size: 12px; margin-top: 4px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+        <div class="admin-gallery-item">
+            <div class="admin-gallery-img-wrap">
+                <img src="${img.url}" alt="">
+                <button type="button" onclick="removeGalleryImage(${idx})" class="admin-gallery-remove">×</button>
+            </div>
+            <input type="text" value="${img.title || ''}" onchange="updateGalleryImage(${idx}, 'title', this.value)" placeholder="Title" class="admin-gallery-input">
+            <input type="text" value="${img.description || ''}" onchange="updateGalleryImage(${idx}, 'description', this.value)" placeholder="Description (optional)" class="admin-gallery-input">
         </div>
-    `).join('') || '<p style="color: #666;">No gallery images yet. Add some images to decorate your homepage!</p>';
+    `).join('') || '<p style="color: #666; grid-column: 1/-1;">No gallery images yet. Add some images to decorate your homepage!</p>';
 }
 
 function addGalleryImageFromPicker(url) {
@@ -1462,6 +1467,8 @@ function removeGalleryImage(idx) {
 
 async function saveGallery() {
     const data = {
+        gallery_enabled: document.getElementById('galleryEnabled').checked,
+        gallery_title: document.getElementById('galleryTitle').value || 'Gallery',
         gallery_images: currentGalleryImages
     };
     

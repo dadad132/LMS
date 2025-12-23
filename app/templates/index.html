@@ -84,16 +84,19 @@
 {% endif %}
 
 <!-- Image Gallery Section -->
-{% if site_config and site_config.gallery_images and site_config.gallery_images|length > 0 %}
+{% if site_config and site_config.gallery_enabled != false and site_config.gallery_images and site_config.gallery_images|length > 0 %}
 <section class="gallery-section">
     <div class="container">
-        <h2 class="section-title">Gallery</h2>
+        <h2 class="section-title">{{ site_config.gallery_title or 'Gallery' }}</h2>
         <div class="gallery-grid">
             {% for img in site_config.gallery_images %}
             <div class="gallery-item">
                 <img src="{{ img.url }}" alt="{{ img.title or 'Gallery image' }}" loading="lazy">
-                {% if img.title %}
-                <div class="gallery-caption">{{ img.title }}</div>
+                {% if img.title or img.description %}
+                <div class="gallery-overlay">
+                    {% if img.title %}<div class="gallery-title">{{ img.title }}</div>{% endif %}
+                    {% if img.description %}<div class="gallery-description">{{ img.description }}</div>{% endif %}
+                </div>
                 {% endif %}
             </div>
             {% endfor %}
@@ -258,11 +261,15 @@
 
 /* Gallery Section */
 .gallery-section { padding: 4rem 0; }
-.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
-.gallery-item { position: relative; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
-.gallery-item img { width: 100%; height: 200px; object-fit: cover; transition: transform 0.3s; }
-.gallery-item:hover img { transform: scale(1.05); }
-.gallery-caption { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); color: white; padding: 1rem; font-size: 0.9rem; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+.gallery-item { position: relative; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); aspect-ratio: 4/3; }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.gallery-item:hover img { transform: scale(1.08); }
+.gallery-item:hover .gallery-overlay { opacity: 1; }
+.gallery-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85)); color: white; padding: 0.75rem; opacity: 0; transition: opacity 0.3s; }
+.gallery-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; }
+.gallery-description { font-size: 0.8rem; opacity: 0.9; line-height: 1.3; }
+@media (max-width: 768px) { .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; } }
 
 /* Testimonials Section */
 .testimonials-section { padding: 4rem 0; background: var(--gray-50); }

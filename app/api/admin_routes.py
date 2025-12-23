@@ -101,7 +101,9 @@ class SiteConfigUpdate(BaseModel):
     # Custom homepage sections (JSON array of sections)
     homepage_sections: Optional[list] = None
     
-    # Gallery images
+    # Gallery settings
+    gallery_enabled: Optional[bool] = None
+    gallery_title: Optional[str] = None
     gallery_images: Optional[list] = None
 
 
@@ -293,6 +295,9 @@ async def get_site_config(
         "footer_links": config.footer_links or [],
         # Custom sections
         "homepage_sections": config.homepage_sections or [],
+        # Gallery
+        "gallery_enabled": config.gallery_enabled if config.gallery_enabled is not None else True,
+        "gallery_title": config.gallery_title or "Gallery",
         "gallery_images": config.gallery_images or []
     }
 

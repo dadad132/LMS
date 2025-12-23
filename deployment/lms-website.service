@@ -1,0 +1,39 @@
+[Unit]
+Description=LMS Website Builder Application
+After=network.target
+Documentation=https://github.com/yourusername/lms-website-builder
+
+[Service]
+Type=simple
+User=lms
+Group=lms
+WorkingDirectory=/opt/lms-website
+Environment="PATH=/opt/lms-website/venv/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Start command
+ExecStart=/opt/lms-website/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
+
+# Graceful shutdown with 30 second timeout
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lms-website
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/lms-website/data.db /opt/lms-website/uploads /opt/lms-website/logs
+
+[Install]
+WantedBy=multi-user.target

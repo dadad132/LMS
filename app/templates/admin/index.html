@@ -295,13 +295,25 @@
                     
                     <!-- Image Gallery Section -->
                     <div class="card">
-                        <h3>🖼️ Image Gallery / Decorative Images</h3>
-                        <p style="color: #666; margin-bottom: 1rem;">Add decorative images to your homepage. These will appear in a gallery section.</p>
-                        <div id="galleryContainer" class="gallery-grid"></div>
+                        <h3>🖼️ Image Gallery</h3>
+                        <p style="color: #666; margin-bottom: 1rem;">Add images to your homepage gallery. You can customize the title, add captions and descriptions.</p>
+                        <div class="form-row" style="margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="galleryEnabled" checked>
+                                    Show Gallery Section
+                                </label>
+                            </div>
+                            <div class="form-group" style="flex: 2;">
+                                <label for="galleryTitle">Gallery Title</label>
+                                <input type="text" id="galleryTitle" placeholder="Gallery" value="Gallery">
+                            </div>
+                        </div>
+                        <div id="galleryContainer" class="admin-gallery-grid"></div>
                         <div style="margin-top: 1rem;">
                             <button type="button" class="btn btn-outline" onclick="showMediaPicker('addGalleryImage')">📁 Add from Media</button>
                             <button type="button" class="btn btn-primary" onclick="uploadGalleryImage()">📤 Upload New Image</button>
-                            <button type="button" class="btn btn-primary" onclick="saveGallery()" style="margin-left: 10px;">Save Gallery</button>
+                            <button type="button" class="btn btn-primary" onclick="saveGallery()" style="margin-left: 10px;">💾 Save Gallery</button>
                         </div>
                         <input type="hidden" id="addGalleryImage" onchange="addGalleryImageFromPicker(this.value)">
                     </div>
