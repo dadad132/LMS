@@ -89,3 +89,84 @@ async function apiRequest(url, options = {}) {
     
     return response.json();
 }
+
+// ==================== Auto-Linkify URLs ====================
+/**
+ * Convert plain text URLs into clickable links
+ * Run this on page load for content areas
+ */
+function linkifyContent() {
+    // URL regex pattern
+    const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
+    const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
+    
+    // Elements to process - content areas where URLs might be pasted
+    const contentSelectors = [
+        '.course-description',
+        '.lesson-content',
+        '.page-content',
+        '.text-content',
+        '.ql-editor',
+        '[data-linkify]'
+    ];
+    
+    contentSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(element => {
+            // Skip if already processed
+            if (element.dataset.linkified) return;
+            
+            // Process text nodes only (preserve existing HTML)
+            linkifyTextNodes(element);
+            element.dataset.linkified = 'true';
+        });
+    });
+}
+
+function linkifyTextNodes(element) {
+    const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+    );
+    
+    const textNodes = [];
+    while (walker.nextNode()) {
+        textNodes.push(walker.currentNode);
+    }
+    
+    textNodes.forEach(node => {
+        const text = node.nodeValue;
+        
+        // URL pattern
+        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
+        
+        if (urlPattern.test(text)) {
+            const span = document.createElement('span');
+            span.innerHTML = text.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+            node.parentNode.replaceChild(span, node);
+        }
+    });
+}
+
+// Run linkify on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Delay slightly to ensure content is loaded
+    setTimeout(linkifyContent, 500);
+});
+
+// Also run after AJAX content loads
+if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                setTimeout(linkifyContent, 100);
+            }
+        });
+    });
+    
+    // Start observing once DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+}

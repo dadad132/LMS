@@ -924,10 +924,63 @@ select:focus {
     color: var(--gray-500);
 }
 
-/* ==================== Responsive ==================== */
+/* ==================== Responsive Design ==================== */
+
+/* Large tablets and small desktops */
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 1rem;
+    }
+    
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.75rem; }
+    h3 { font-size: 1.25rem; }
+    
+    .hero h1 {
+        font-size: 2.25rem;
+    }
+    
+    .stats-grid,
+    .features-grid,
+    .courses-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .course-layout {
+        gap: 1.5rem;
+    }
+}
+
+/* Tablets */
 @media (max-width: 768px) {
+    html {
+        font-size: 15px;
+    }
+    
+    .container {
+        padding: 0 1rem;
+    }
+    
+    /* Header */
     .main-nav {
         display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--header-bg-color, #1f2937);
+        flex-direction: column;
+        padding: 1rem;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .main-nav.active {
+        display: flex;
+    }
+    
+    .main-nav a {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     
     .mobile-menu-toggle {
@@ -938,16 +991,55 @@ select:focus {
         display: none;
     }
     
-    .hero h1 {
-        font-size: 2rem;
+    .site-header .container {
+        flex-wrap: wrap;
     }
     
-    .course-header-section .container {
+    /* Hero */
+    .hero {
+        padding: 3rem 0;
+        min-height: auto;
+    }
+    
+    .hero h1 {
+        font-size: 1.75rem;
+    }
+    
+    .hero p {
+        font-size: 1rem;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .hero-buttons .btn {
+        width: 100%;
+    }
+    
+    /* Course Grid */
+    .stats-grid,
+    .features-grid,
+    .courses-grid,
+    .testimonials-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    /* Course Detail */
+    .course-header-section .container,
+    .course-header-grid {
         grid-template-columns: 1fr;
     }
     
-    .course-header-image {
-        display: none;
+    .course-header-content {
+        order: 2;
+    }
+    
+    .course-preview-media {
+        order: 1;
+        margin-bottom: 1.5rem;
     }
     
     .course-layout {
@@ -956,6 +1048,183 @@ select:focus {
     
     .course-sidebar {
         position: static;
+        order: -1;
+    }
+    
+    .sidebar-card.sticky {
+        position: static;
+    }
+    
+    /* Dashboard */
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Contact Section */
+    .contact-wrapper {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    /* Tables */
+    .data-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    /* Forms */
+    .form-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    /* Buttons */
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    /* Modal */
+    .modal-content {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+        width: calc(100% - 2rem);
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+    html {
+        font-size: 14px;
+    }
+    
+    .container {
+        padding: 0 0.75rem;
+    }
+    
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 1.125rem; }
+    
+    .hero h1 {
+        font-size: 1.5rem;
+    }
+    
+    .hero p {
+        font-size: 0.9rem;
+    }
+    
+    /* Course cards */
+    .course-card {
+        padding: 1rem;
+    }
+    
+    .course-card-image {
+        height: 150px;
+    }
+    
+    /* Dashboard stats */
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    /* Lesson items */
+    .lesson-item {
+        padding: 0.75rem;
+    }
+    
+    .lesson-item-title {
+        font-size: 0.9rem;
+    }
+    
+    /* Footer */
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        text-align: center;
+    }
+    
+    /* CTA */
+    .cta {
+        padding: 2rem 1rem;
+    }
+    
+    .cta h2 {
+        font-size: 1.25rem;
+    }
+    
+    /* Breadcrumb */
+    .breadcrumb {
+        font-size: 0.8rem;
+    }
+    
+    /* Tags */
+    .tags-list {
+        gap: 0.5rem;
+    }
+    
+    .tag {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets */
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .nav-item, 
+    .main-nav a {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .lesson-item {
+        min-height: 48px;
+    }
+    
+    /* Remove hover effects on touch devices */
+    .btn:hover {
+        transform: none;
+    }
+    
+    .course-card:hover {
+        transform: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .site-header,
+    .site-footer,
+    .sidebar,
+    .course-sidebar,
+    .btn,
+    .mobile-menu-toggle {
+        display: none !important;
+    }
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    .course-layout {
+        grid-template-columns: 1fr;
     }
 }
 
