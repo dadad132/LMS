@@ -35,8 +35,7 @@ print_info() {
 APP_NAME="lms-website"
 SERVICE_NAME="lms-website"
 PORT=8001
-GITHUB_REPO="git@github.com:dadad132/LMS.git"
-GITHUB_HTTPS="https://github.com/dadad132/LMS.git"
+GITHUB_REPO="https://github.com/dadad132/LMS.git"
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
@@ -50,72 +49,8 @@ SERVICE_USER="lms"
 print_info "Installation directory: $APP_DIR"
 print_info "Service will run as: $SERVICE_USER"
 print_info "Port: $PORT"
-print_info "GitHub Repo: $GITHUB_REPO (SSH) / $GITHUB_HTTPS (HTTPS)"
+print_info "GitHub Repo: $GITHUB_REPO"
 print_info "Starting installation process..."
-
-# ==================== SSH Key Setup ====================
-print_info "Checking for SSH deploy key..."
-
-SSH_KEY_PATH="/root/.ssh/lms_deploy_key"
-SSH_DIR="/root/.ssh"
-
-# Create .ssh directory if needed
-mkdir -p "$SSH_DIR"
-chmod 700 "$SSH_DIR"
-
-# Check if SSH key already exists
-if [ ! -f "$SSH_KEY_PATH" ]; then
-    print_info "No SSH deploy key found. Generating new key..."
-    ssh-keygen -t ed25519 -C "lms-deploy-key" -f "$SSH_KEY_PATH" -N ""
-    chmod 600 "$SSH_KEY_PATH"
-    chmod 644 "${SSH_KEY_PATH}.pub"
-    
-    echo ""
-    echo -e "${YELLOW}=========================================${NC}"
-    echo -e "${YELLOW}   IMPORTANT: Add this deploy key to GitHub${NC}"
-    echo -e "${YELLOW}=========================================${NC}"
-    echo ""
-    echo "1. Go to: https://github.com/dadad132/LMS/settings/keys"
-    echo "2. Click 'Add deploy key'"
-    echo "3. Title: $(hostname) LMS Server"
-    echo "4. Paste this public key:"
-    echo ""
-    echo -e "${GREEN}$(cat ${SSH_KEY_PATH}.pub)${NC}"
-    echo ""
-    echo "5. Check 'Allow write access' (optional, for future updates)"
-    echo "6. Click 'Add key'"
-    echo ""
-    read -p "Press ENTER after you've added the key to GitHub..." 
-else
-    print_status "SSH deploy key already exists at $SSH_KEY_PATH"
-fi
-
-# Configure SSH to use the deploy key for GitHub
-if [ ! -f "$SSH_DIR/config" ] || ! grep -q "github.com" "$SSH_DIR/config"; then
-    cat >> "$SSH_DIR/config" << EOF
-
-# GitHub LMS Deploy Key
-Host github.com
-    HostName github.com
-    User git
-    IdentityFile $SSH_KEY_PATH
-    IdentitiesOnly yes
-    StrictHostKeyChecking accept-new
-EOF
-    chmod 600 "$SSH_DIR/config"
-    print_status "SSH config updated for GitHub"
-fi
-
-# Test SSH connection to GitHub
-print_info "Testing SSH connection to GitHub..."
-ssh -T git@github.com -o StrictHostKeyChecking=accept-new 2>&1 | grep -q "successfully authenticated"
-if [ $? -eq 0 ]; then
-    print_status "SSH connection to GitHub successful!"
-    USE_SSH=true
-else
-    print_info "SSH connection failed, will try HTTPS instead"
-    USE_SSH=false
-fi
 
 # Update system packages
 print_info "Updating system packages..."
@@ -167,8 +102,6 @@ if [ -d "$APP_DIR" ]; then
         print_info "Updating existing installation..."
         cd "$APP_DIR"
         if [ -d ".git" ]; then
-            # Set SSH environment for git
-            export GIT_SSH_COMMAND="ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"
             git fetch origin
             git reset --hard origin/main
             print_status "Updated from GitHub"
@@ -179,16 +112,10 @@ fi
 # Clone from GitHub if directory doesn't exist
 if [ ! -d "$APP_DIR" ]; then
     print_info "Cloning from GitHub..."
-    if [ "$USE_SSH" = true ]; then
-        git clone "$GITHUB_REPO" "$APP_DIR"
-    else
-        git clone "$GITHUB_HTTPS" "$APP_DIR"
-    fi
+    git clone "$GITHUB_REPO" "$APP_DIR"
     
     if [ $? -ne 0 ]; then
         print_error "Failed to clone repository!"
-        print_info "Make sure you've added the deploy key to GitHub"
-        print_info "Public key: $(cat ${SSH_KEY_PATH}.pub)"
         exit 1
     fi
     print_status "Repository cloned successfully"
@@ -238,27 +165,6 @@ chown -R "$SERVICE_USER:$SERVICE_USER" "$APP_DIR"
 chmod -R 755 "$APP_DIR"
 chmod 664 "$APP_DIR/data.db" 2>/dev/null || true
 print_status "Ownership set"
-
-# Copy SSH key for lms user (for updates from web interface)
-print_info "Setting up SSH key for service user..."
-LMS_SSH_DIR="/opt/lms-website/.ssh"
-mkdir -p "$LMS_SSH_DIR"
-cp "$SSH_KEY_PATH" "$LMS_SSH_DIR/deploy_key"
-cp "${SSH_KEY_PATH}.pub" "$LMS_SSH_DIR/deploy_key.pub"
-cat > "$LMS_SSH_DIR/config" << EOF
-Host github.com
-    HostName github.com
-    User git
-    IdentityFile /opt/lms-website/.ssh/deploy_key
-    IdentitiesOnly yes
-    StrictHostKeyChecking accept-new
-EOF
-chown -R "$SERVICE_USER:$SERVICE_USER" "$LMS_SSH_DIR"
-chmod 700 "$LMS_SSH_DIR"
-chmod 600 "$LMS_SSH_DIR/deploy_key"
-chmod 644 "$LMS_SSH_DIR/deploy_key.pub"
-chmod 600 "$LMS_SSH_DIR/config"
-print_status "SSH key configured for service user"
 
 # Create systemd service file
 print_info "Creating systemd service..."
