@@ -779,7 +779,18 @@ async function showMediaPicker(targetInputId) {
 }
 
 function selectMedia(url, targetInputId) {
-    document.getElementById(targetInputId).value = url;
+    const input = document.getElementById(targetInputId);
+    input.value = url;
+    
+    // Trigger the onchange event for inputs that have handlers
+    const event = new Event('change', { bubbles: true });
+    input.dispatchEvent(event);
+    
+    // Special handling for gallery - call the function directly
+    if (targetInputId === 'addGalleryImage') {
+        addGalleryImageFromPicker(url);
+    }
+    
     document.getElementById('mediaPicker').remove();
 }
 
