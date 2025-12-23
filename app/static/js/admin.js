@@ -775,9 +775,18 @@ function selectMedia(url, targetInputId) {
 // ==================== Users ====================
 async function loadUsers() {
     try {
-        const users = await fetch('/api/admin/users').then(r => r.json());
+        const response = await fetch('/api/admin/users');
+        if (!response.ok) {
+            throw new Error('Failed to load users');
+        }
+        const users = await response.json();
         
         const tbody = document.getElementById('usersTable');
+        if (!users || users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">No users yet</td></tr>';
+            return;
+        }
+        
         tbody.innerHTML = users.map(user => `
             <tr>
                 <td>${user.username}</td>
@@ -791,11 +800,37 @@ async function loadUsers() {
                 <td>${new Date(user.created_at).toLocaleDateString()}</td>
                 <td>
                     <button class="btn btn-sm btn-outline" onclick="editUser(${user.id})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id}, '${user.username}')">Delete</button>
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="6">No users yet</td></tr>';
+        `).join('');
     } catch (error) {
         console.error('Users error:', error);
+        document.getElementById('usersTable').innerHTML = '<tr><td colspan="6">Error loading users</td></tr>';
+    }
+}
+
+async function deleteUser(id, username) {
+    if (!confirm(`Are you sure you want to delete user "${username}"? This cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/users/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to delete user');
+        }
+        
+        loadUsers();
+        loadDashboardData();
+        alert('User deleted successfully!');
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert(error.message || 'Failed to delete user');
     }
 }
 
