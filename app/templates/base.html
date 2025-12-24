@@ -120,6 +120,35 @@
                     <p>📞 {{ site_config.contact_phone }}</p>
                     {% endif %}
                 </div>
+                
+                {% if site_config and site_config.social_links %}
+                <div class="footer-social">
+                    <h4>Follow Us</h4>
+                    <div class="social-icons">
+                        {% if site_config.social_links.facebook %}
+                        <a href="{{ site_config.social_links.facebook if site_config.social_links.facebook.startswith('http') else 'https://' + site_config.social_links.facebook }}" target="_blank" rel="noopener" title="Facebook">📘</a>
+                        {% endif %}
+                        {% if site_config.social_links.instagram %}
+                        <a href="{{ site_config.social_links.instagram if site_config.social_links.instagram.startswith('http') else 'https://' + site_config.social_links.instagram }}" target="_blank" rel="noopener" title="Instagram">📷</a>
+                        {% endif %}
+                        {% if site_config.social_links.tiktok %}
+                        <a href="{{ site_config.social_links.tiktok if site_config.social_links.tiktok.startswith('http') else 'https://' + site_config.social_links.tiktok }}" target="_blank" rel="noopener" title="TikTok">🎵</a>
+                        {% endif %}
+                        {% if site_config.social_links.youtube %}
+                        <a href="{{ site_config.social_links.youtube if site_config.social_links.youtube.startswith('http') else 'https://' + site_config.social_links.youtube }}" target="_blank" rel="noopener" title="YouTube">▶️</a>
+                        {% endif %}
+                        {% if site_config.social_links.whatsapp %}
+                        <a href="{{ site_config.social_links.whatsapp if site_config.social_links.whatsapp.startswith('http') else 'https://' + site_config.social_links.whatsapp }}" target="_blank" rel="noopener" title="WhatsApp">💬</a>
+                        {% endif %}
+                        {% if site_config.social_links.twitter %}
+                        <a href="{{ site_config.social_links.twitter if site_config.social_links.twitter.startswith('http') else 'https://' + site_config.social_links.twitter }}" target="_blank" rel="noopener" title="Twitter/X">🐦</a>
+                        {% endif %}
+                        {% if site_config.social_links.linkedin %}
+                        <a href="{{ site_config.social_links.linkedin if site_config.social_links.linkedin.startswith('http') else 'https://' + site_config.social_links.linkedin }}" target="_blank" rel="noopener" title="LinkedIn">💼</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
             
             <div class="footer-bottom">

@@ -130,6 +130,16 @@ async function loadSiteSettings() {
         document.getElementById('contactEmail').value = config.contact_email || '';
         document.getElementById('contactPhone').value = config.contact_phone || '';
         
+        // Load social links
+        const social = config.social_links || {};
+        document.getElementById('socialFacebook').value = social.facebook || '';
+        document.getElementById('socialInstagram').value = social.instagram || '';
+        document.getElementById('socialTiktok').value = social.tiktok || '';
+        document.getElementById('socialYoutube').value = social.youtube || '';
+        document.getElementById('socialWhatsapp').value = social.whatsapp || '';
+        document.getElementById('socialTwitter').value = social.twitter || '';
+        document.getElementById('socialLinkedin').value = social.linkedin || '';
+        
         if (config.site_logo_url) {
             document.getElementById('logoPreview').innerHTML = `<img src="${config.site_logo_url}" alt="Logo">`;
         }
@@ -140,6 +150,24 @@ async function loadSiteSettings() {
 
 document.getElementById('siteSettingsForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    
+    // Build social links object (only include non-empty values)
+    const socialLinks = {};
+    const facebook = document.getElementById('socialFacebook').value.trim();
+    const instagram = document.getElementById('socialInstagram').value.trim();
+    const tiktok = document.getElementById('socialTiktok').value.trim();
+    const youtube = document.getElementById('socialYoutube').value.trim();
+    const whatsapp = document.getElementById('socialWhatsapp').value.trim();
+    const twitter = document.getElementById('socialTwitter').value.trim();
+    const linkedin = document.getElementById('socialLinkedin').value.trim();
+    
+    if (facebook) socialLinks.facebook = facebook;
+    if (instagram) socialLinks.instagram = instagram;
+    if (tiktok) socialLinks.tiktok = tiktok;
+    if (youtube) socialLinks.youtube = youtube;
+    if (whatsapp) socialLinks.whatsapp = whatsapp;
+    if (twitter) socialLinks.twitter = twitter;
+    if (linkedin) socialLinks.linkedin = linkedin;
     
     const data = {
         site_name: document.getElementById('siteName').value,
@@ -155,7 +183,8 @@ document.getElementById('siteSettingsForm').addEventListener('submit', async fun
         allow_registration: document.getElementById('allowRegistration').checked,
         contact_email: document.getElementById('contactEmail').value,
         contact_phone: document.getElementById('contactPhone').value,
-        custom_css: document.getElementById('customCss').value
+        custom_css: document.getElementById('customCss').value,
+        social_links: socialLinks
     };
     
     try {

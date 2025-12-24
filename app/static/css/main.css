@@ -354,7 +354,8 @@ select:focus {
 }
 
 .footer-links h4,
-.footer-contact h4 {
+.footer-contact h4,
+.footer-social h4 {
     color: white;
     margin-bottom: 1rem;
 }
@@ -367,6 +368,22 @@ select:focus {
 
 .footer-links a:hover {
     color: white;
+}
+
+.footer-social .social-icons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.footer-social .social-icons a {
+    font-size: 1.5rem;
+    text-decoration: none;
+    transition: transform 0.2s;
+}
+
+.footer-social .social-icons a:hover {
+    transform: scale(1.2);
 }
 
 .footer-bottom {
