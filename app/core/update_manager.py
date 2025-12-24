@@ -3,6 +3,7 @@ LMS Update Manager - handles updates from GitHub (supports private repos via SSH
 """
 import os
 import subprocess
+import shutil
 import logging
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -17,6 +18,31 @@ class UpdateManager:
         self.repo_name = repo_name
         self.app_dir = Path(__file__).parent.parent.parent  # /opt/lms-website
         self.ssh_key_path = self._find_ssh_key()
+        self.git_path = self._find_git()
+        
+    def _find_git(self) -> str:
+        """Find the full path to git executable"""
+        # Try shutil.which first (respects PATH)
+        git_path = shutil.which("git")
+        if git_path:
+            return git_path
+        
+        # Common locations on Linux
+        common_paths = [
+            "/usr/bin/git",
+            "/usr/local/bin/git",
+            "/bin/git",
+            "/opt/git/bin/git",
+        ]
+        
+        for path in common_paths:
+            if os.path.isfile(path) and os.access(path, os.X_OK):
+                logger.info(f"Found git at: {path}")
+                return path
+        
+        # Fallback to just "git" and hope it's in PATH
+        logger.warning("Could not find git executable, using 'git' and hoping for the best")
+        return "git"
         
     def _find_ssh_key(self) -> Optional[Path]:
         """Find SSH key for GitHub authentication"""
@@ -51,6 +77,9 @@ class UpdateManager:
     def _run_git_command(self, args: List[str], **kwargs) -> subprocess.CompletedProcess:
         """Run a git command with proper SSH environment"""
         env = self._get_git_env()
+        # Replace 'git' with full path
+        if args and args[0] == "git":
+            args = [self.git_path] + args[1:]
         return subprocess.run(
             args,
             cwd=kwargs.get('cwd', self.app_dir),
@@ -65,7 +94,7 @@ class UpdateManager:
         """Get current git commit info"""
         try:
             result = subprocess.run(
-                ["git", "rev-parse", "--short", "HEAD"],
+                [self.git_path, "rev-parse", "--short", "HEAD"],
                 cwd=self.app_dir,
                 capture_output=True,
                 text=True,
@@ -74,7 +103,7 @@ class UpdateManager:
             commit_hash = result.stdout.strip()
             
             result = subprocess.run(
-                ["git", "log", "-1", "--pretty=%B"],
+                [self.git_path, "log", "-1", "--pretty=%B"],
                 cwd=self.app_dir,
                 capture_output=True,
                 text=True,
@@ -83,7 +112,7 @@ class UpdateManager:
             commit_message = result.stdout.strip().split('\n')[0]
             
             result = subprocess.run(
-                ["git", "log", "-1", "--pretty=%ci"],
+                [self.git_path, "log", "-1", "--pretty=%ci"],
                 cwd=self.app_dir,
                 capture_output=True,
                 text=True,
@@ -115,7 +144,7 @@ class UpdateManager:
             
             # Check how many commits behind
             result = subprocess.run(
-                ["git", "rev-list", "HEAD..origin/main", "--count"],
+                [self.git_path, "rev-list", "HEAD..origin/main", "--count"],
                 cwd=self.app_dir,
                 capture_output=True,
                 text=True,
@@ -128,7 +157,7 @@ class UpdateManager:
             changes = []
             if commits_behind > 0:
                 result = subprocess.run(
-                    ["git", "log", "HEAD..origin/main", "--oneline"],
+                    [self.git_path, "log", "HEAD..origin/main", "--oneline"],
                     cwd=self.app_dir,
                     capture_output=True,
                     text=True,
@@ -158,7 +187,7 @@ class UpdateManager:
             
             # Check if already up to date
             result = subprocess.run(
-                ["git", "log", "HEAD..origin/main", "--oneline"],
+                [self.git_path, "log", "HEAD..origin/main", "--oneline"],
                 cwd=self.app_dir,
                 capture_output=True,
                 text=True,
