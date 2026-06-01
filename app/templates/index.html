@@ -1,396 +1,539 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- SEO Meta Tags -->
+  <title>Honeypot Global | Online Teaching Academy & TEFL Mentorship</title>
+  <meta name="description" content="Honeypot Global is South Africa's premier training and mentoring centre for online teachers. Get personal support on TEFL modules, ClassIn training, demo preparation, and job placement referrals. Join our supportive global teaching family today.">
+  <meta name="keywords" content="teach english online, tefl training, classin training, online teaching south africa, esl placement, teacher honey, honeypot global, demo lesson prep">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍯</text></svg>">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
 
-{% block title %}{{ site_config.site_name if site_config else 'Welcome' }}{% endblock %}
-
-{% block content %}
-<!-- Hero Section - Fully Customizable -->
-<section class="hero hero-{{ site_config.hero_style if site_config and site_config.hero_style else 'centered' }}" 
-    style="{% if site_config and site_config.hero_background_image %}background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('{{ site_config.hero_background_image }}'); background-size: cover; background-position: center;{% elif site_config and site_config.hero_background_color %}background-color: {{ site_config.hero_background_color }};{% endif %}">
-    <div class="container">
-        <div class="hero-content">
-            <h1>{{ site_config.hero_title if site_config and site_config.hero_title else 'Welcome to ' + (site_config.site_name if site_config else 'Our Learning Platform') }}</h1>
-            <p class="hero-subtitle">{{ site_config.hero_subtitle if site_config and site_config.hero_subtitle else 'Start your learning journey today with our expert-led courses.' }}</p>
-            <div class="hero-actions">
-                {% if site_config and site_config.hero_button_text %}
-                <a href="{{ site_config.hero_button_link or '/courses' }}" class="btn btn-primary btn-lg">{{ site_config.hero_button_text }}</a>
-                {% else %}
-                <a href="/courses" class="btn btn-primary btn-lg">Browse Courses</a>
-                {% endif %}
-                
-                {% if not current_user %}
-                    {% if site_config and site_config.hero_button2_text %}
-                    <a href="{{ site_config.hero_button2_link or '/login' }}" class="btn btn-outline btn-lg">{{ site_config.hero_button2_text }}</a>
-                    {% else %}
-                    <a href="/login" class="btn btn-outline btn-lg">Login</a>
-                    {% endif %}
-                {% else %}
-                <a href="/dashboard" class="btn btn-outline btn-lg">My Dashboard</a>
-                {% endif %}
-            </div>
-        </div>
+  <!-- --- NAVIGATION HEADER --- -->
+  <header>
+    <div class="container nav-wrapper">
+      <a href="#home" class="logo">
+        <span class="logo-pot">🍯</span>Honeypot<span>Global</span>
+      </a>
+      
+      <button class="nav-toggle" aria-label="Toggle Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      
+      <nav>
+        <ul>
+          <li><a href="#home" class="active">Home</a></li>
+          <li><a href="#about">Our Story</a></li>
+          <li><a href="#services">Training Center</a></li>
+          <li><a href="#team">Our Team</a></li>
+          <li><a href="#social">Community</a></li>
+          {% if current_user %}
+            <li><a href="/dashboard" class="btn btn-secondary" style="padding: 10px 18px; font-size: 0.9rem; border-color: rgba(245, 158, 11, 0.3); color: var(--primary-amber);"><i class="fas fa-user-circle"></i> Dashboard</a></li>
+          {% else %}
+            <li><a href="/login" class="btn btn-secondary" style="padding: 10px 18px; font-size: 0.9rem; border-color: rgba(245, 158, 11, 0.3); color: var(--primary-amber);"><i class="fas fa-sign-in-alt"></i> Student Login</a></li>
+          {% endif %}
+          <li><a href="#contact" class="btn btn-primary" style="padding: 10px 20px; box-shadow: none;">Get Started <i class="fas fa-chevron-right" style="font-size: 0.8rem;"></i></a></li>
+        </ul>
+      </nav>
     </div>
-</section>
+  </header>
 
-<!-- Statistics Section -->
-{% if site_config and site_config.stats_enabled and site_config.stats_items %}
-<section class="stats-section">
-    <div class="container">
-        <div class="stats-grid">
-            {% for stat in site_config.stats_items %}
-            <div class="stat-item">
-                <span class="stat-number">{{ stat.number }}</span>
-                <span class="stat-label">{{ stat.label }}</span>
-            </div>
-            {% endfor %}
+  <!-- --- HERO SECTION --- -->
+  <section id="home" class="hero">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    
+    <div class="container hero-grid">
+      <div class="hero-content reveal">
+        <div class="badge">
+          <i class="fas fa-star"></i> Partnered with Global TEFL UK
         </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Features Section - Fully Customizable -->
-{% if site_config and site_config.features_enabled != false %}
-<section class="features">
-    <div class="container">
-        <h2 class="section-title">{{ site_config.features_title if site_config and site_config.features_title else 'Why Choose Us' }}</h2>
-        <div class="features-grid">
-            {% if site_config and site_config.features_items and site_config.features_items|length > 0 %}
-                {% for feature in site_config.features_items %}
-                <div class="feature-card">
-                    <div class="feature-icon">{{ feature.icon if feature.icon else '✨' }}</div>
-                    <h3>{{ feature.title }}</h3>
-                    <p>{{ feature.description }}</p>
-                </div>
-                {% endfor %}
-            {% else %}
-            <div class="feature-card">
-                <div class="feature-icon">🎓</div>
-                <h3>Expert-Led Courses</h3>
-                <p>Learn from industry professionals with real-world experience.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">⏰</div>
-                <h3>Learn at Your Pace</h3>
-                <p>Access courses anytime, anywhere, on any device.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🏆</div>
-                <h3>Get Certified</h3>
-                <p>Earn certificates upon course completion.</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Image Gallery Section -->
-{% if site_config and site_config.gallery_enabled != false and site_config.gallery_images and site_config.gallery_images|length > 0 %}
-<section class="gallery-section">
-    <div class="container">
-        <h2 class="section-title">{{ site_config.gallery_title or 'Gallery' }}</h2>
-        <div class="gallery-grid">
-            {% for img in site_config.gallery_images %}
-            <div class="gallery-item">
-                <img src="{{ img.url }}" alt="{{ img.title or 'Gallery image' }}" loading="lazy">
-                {% if img.title or img.description %}
-                <div class="gallery-overlay">
-                    {% if img.title %}<div class="gallery-title">{{ img.title }}</div>{% endif %}
-                    {% if img.description %}<div class="gallery-description">{{ img.description }}</div>{% endif %}
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Team Section -->
-{% if site_config and site_config.team_enabled != false and site_config.team_members and site_config.team_members|length > 0 %}
-<section class="team-section">
-    <div class="container">
-        <h2 class="section-title">{{ site_config.team_title or 'Meet Our Team' }}</h2>
-        <div class="team-grid">
-            {% for member in site_config.team_members %}
-            <div class="team-card">
-                <div class="team-avatar">
-                    {% if member.image %}
-                    <img src="{{ member.image }}" alt="{{ member.name }}">
-                    {% else %}
-                    <span class="team-avatar-placeholder">👤</span>
-                    {% endif %}
-                </div>
-                <div class="team-info">
-                    <h3 class="team-name">{{ member.name }}</h3>
-                    {% if member.role %}<p class="team-role">{{ member.role }}</p>{% endif %}
-                    {% if member.bio %}<p class="team-bio">{{ member.bio }}</p>{% endif %}
-                    <div class="team-links">
-                        {% if member.email %}
-                        <a href="mailto:{{ member.email }}" title="Email" class="team-link">📧</a>
-                        {% endif %}
-                        {% if member.linkedin %}
-                        <a href="{{ member.linkedin }}" target="_blank" rel="noopener" title="LinkedIn" class="team-link">💼</a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Featured Courses Section -->
-{% if site_config and site_config.courses_section_enabled != false %}
-<section class="courses-preview">
-    <div class="container">
-        <h2 class="section-title">{{ site_config.courses_section_title if site_config and site_config.courses_section_title else 'Featured Courses' }}</h2>
-        <div class="courses-grid" id="featuredCourses">
-            <p class="loading">Loading courses...</p>
-        </div>
-        <div class="text-center" style="margin-top: 2rem;">
-            <a href="/courses" class="btn btn-outline">View All Courses</a>
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Testimonials Section -->
-{% if site_config and site_config.testimonials_enabled and site_config.testimonials_items %}
-<section class="testimonials-section">
-    <div class="container">
-        <h2 class="section-title">{{ site_config.testimonials_title if site_config and site_config.testimonials_title else 'What Our Students Say' }}</h2>
-        <div class="testimonials-grid">
-            {% for testimonial in site_config.testimonials_items %}
-            <div class="testimonial-card">
-                {% if testimonial.image %}
-                <img src="{{ testimonial.image }}" alt="{{ testimonial.name }}" class="testimonial-image">
-                {% else %}
-                <div class="testimonial-avatar">{{ testimonial.name[0] if testimonial.name else '?' }}</div>
-                {% endif %}
-                <p class="testimonial-text">"{{ testimonial.text }}"</p>
-                <div class="testimonial-author">
-                    <strong>{{ testimonial.name }}</strong>
-                    {% if testimonial.role %}
-                    <span>{{ testimonial.role }}</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Contact Section (for non-logged in users) -->
-{% if not current_user %}
-<section class="contact-section" id="contact">
-    <div class="container">
-        <div class="contact-wrapper">
-            <div class="contact-info">
-                <h2>Get In Touch</h2>
-                <p>Have questions about our courses? Want to learn more about what we offer? Fill out the form and we will get back to you shortly.</p>
-                <div class="contact-details">
-                    {% if site_config and site_config.contact_email %}
-                    <div class="contact-item">
-                        <span class="contact-icon">📧</span>
-                        <div>
-                            <strong>Email Us</strong>
-                            <a href="mailto:{{ site_config.contact_email }}">{{ site_config.contact_email }}</a>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if site_config and site_config.contact_phone %}
-                    <div class="contact-item">
-                        <span class="contact-icon">📞</span>
-                        <div>
-                            <strong>Call Us</strong>
-                            <a href="tel:{{ site_config.contact_phone }}">{{ site_config.contact_phone }}</a>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if site_config and site_config.contact_address %}
-                    <div class="contact-item">
-                        <span class="contact-icon">📍</span>
-                        <div>
-                            <strong>Visit Us</strong>
-                            <span>{{ site_config.contact_address }}</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="contact-form-wrapper">
-                <form id="contactForm" class="contact-form">
-                    <h3>Request Information</h3>
-                    <div class="form-group">
-                        <label for="contactName">Your Name *</label>
-                        <input type="text" id="contactName" name="name" required placeholder="Enter your full name">
-                    </div>
-                    <div class="form-group">
-                        <label for="contactEmail">Email Address *</label>
-                        <input type="email" id="contactEmail" name="email" required placeholder="Enter your email">
-                    </div>
-                    <div class="form-group">
-                        <label for="contactPhone">Phone Number</label>
-                        <input type="tel" id="contactPhone" name="phone" placeholder="Enter your phone (optional)">
-                    </div>
-                    <div class="form-group">
-                        <label for="contactSubject">Subject *</label>
-                        <select id="contactSubject" name="subject" required>
-                            <option value="">Select a topic</option>
-                            <option value="course-info">Course Information</option>
-                            <option value="pricing">Pricing and Plans</option>
-                            <option value="partnership">Partnership</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="contactMessage">Your Message *</label>
-                        <textarea id="contactMessage" name="message" rows="4" required placeholder="Tell us what you would like to know..."></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-block">Send Message</button>
-                </form>
-                <div id="contactSuccess" class="contact-success" style="display: none;">
-                    <div class="success-icon">✓</div>
-                    <h3>Thank You!</h3>
-                    <p>Your message has been sent. We will get back to you within 24 hours.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- CTA Section - Fully Customizable -->
-{% if site_config and site_config.cta_enabled != false %}
-<section class="cta" style="{% if site_config and site_config.cta_background_image %}background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('{{ site_config.cta_background_image }}'); background-size: cover; background-position: center;{% elif site_config and site_config.cta_background_color %}background-color: {{ site_config.cta_background_color }};{% endif %}">
-    <div class="container">
-        <div class="cta-content">
-            <h2>{{ site_config.cta_title if site_config and site_config.cta_title else 'Ready to Start Learning?' }}</h2>
-            <p>{{ site_config.cta_subtitle if site_config and site_config.cta_subtitle else 'Join thousands of students already learning on our platform.' }}</p>
-            {% if current_user %}
-            <a href="/courses" class="btn btn-primary btn-lg">Browse Courses</a>
-            {% else %}
-            <a href="{{ site_config.cta_button_link if site_config and site_config.cta_button_link else '/login' }}" class="btn btn-primary btn-lg">{{ site_config.cta_button_text if site_config and site_config.cta_button_text else 'Login to Get Started' }}</a>
-            {% endif %}
-        </div>
-    </div>
-</section>
-{% endif %}
-{% endblock %}
-
-{% block extra_styles %}
-<style>
-/* Hero Styles */
-.hero-left .hero-content { text-align: left; }
-.hero-right .hero-content { text-align: right; }
-.hero-split { display: flex; align-items: center; }
-
-/* Stats Section */
-.stats-section { padding: 3rem 0; background: var(--gray-100); }
-.stats-grid { display: flex; justify-content: center; gap: 4rem; flex-wrap: wrap; }
-.stat-item { text-align: center; }
-.stat-number { display: block; font-size: 2.5rem; font-weight: 700; color: var(--primary-color); }
-.stat-label { font-size: 1rem; color: var(--gray-600); }
-
-/* Contact Section */
-.contact-section { padding: 4rem 0; background: var(--gray-50); }
-.contact-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
-.contact-info h2 { font-size: 2rem; margin-bottom: 1rem; }
-.contact-info > p { color: var(--gray-600); margin-bottom: 2rem; line-height: 1.6; }
-.contact-details { display: flex; flex-direction: column; gap: 1.5rem; }
-.contact-item { display: flex; align-items: flex-start; gap: 1rem; }
-.contact-icon { font-size: 1.5rem; }
-.contact-item strong { display: block; margin-bottom: 0.25rem; }
-.contact-item a { color: var(--primary-color); text-decoration: none; }
-.contact-form-wrapper { background: white; padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
-.contact-form h3 { margin-bottom: 1.5rem; font-size: 1.25rem; }
-.contact-form .form-group { margin-bottom: 1.25rem; }
-.contact-form label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-.contact-form input, .contact-form select, .contact-form textarea { width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 1rem; }
-.contact-form input:focus, .contact-form select:focus, .contact-form textarea:focus { outline: none; border-color: var(--primary-color); }
-.contact-form textarea { resize: vertical; min-height: 100px; }
-.btn-block { display: block; width: 100%; text-align: center; }
-.contact-success { text-align: center; padding: 2rem; }
-.success-icon { width: 60px; height: 60px; background: #d4edda; color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem; }
-.contact-success h3 { color: #28a745; margin-bottom: 0.5rem; }
-
-@media (max-width: 768px) { 
-    .contact-wrapper { grid-template-columns: 1fr; }
-    .stats-grid { gap: 2rem; }
-}
-</style>
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-async function loadFeaturedCourses() {
-    try {
-        const limit = {{ site_config.courses_max_display if site_config and site_config.courses_max_display else 6 }};
-        const response = await fetch(`/api/courses?limit=${limit}`);
-        const courses = await response.json();
-        const container = document.getElementById('featuredCourses');
-        if (!container) return;
+        <h1>Where Online <br><span class="text-gradient">Teachers Grow</span></h1>
+        <p>Sweet support, real guidance, and a community that feels like home. We walk the journey with you from your very first TEFL module to your first online classroom.</p>
         
-        if (courses.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted">No courses available yet.</p>';
-            return;
-        }
-        container.innerHTML = courses.map(course => `
-            <div class="course-card">
-                <div class="course-thumbnail">
-                    ${course.thumbnail_url ? `<img src="${course.thumbnail_url}" alt="${course.title}">` : `<div class="course-placeholder">📚</div>`}
-                </div>
-                <div class="course-content">
-                    <span class="course-category">${course.category || 'General'}</span>
-                    <h3 class="course-title">${course.title}</h3>
-                    <p class="course-description">${course.short_description || ''}</p>
-                    <div class="course-meta">
-                        <span class="course-lessons">📖 ${course.total_lessons} lessons</span>
-                        <span class="course-level">${course.difficulty_level}</span>
-                    </div>
-                    <a href="/course/${course.id}" class="btn btn-primary btn-sm">View Course</a>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error:', error);
-        const container = document.getElementById('featuredCourses');
-        if (container) {
-            container.innerHTML = '<p class="text-center text-muted">Unable to load courses.</p>';
-        }
-    }
-}
-loadFeaturedCourses();
+        <div class="hero-actions">
+          <a href="#services" class="btn btn-primary">Explore Our Training <i class="fas fa-arrow-right"></i></a>
+          <a href="#contact" class="btn btn-secondary">Book a Consultation</a>
+        </div>
+        
+        <div class="hero-stats">
+          <div class="stat-item">
+            <h3>6+ Years</h3>
+            <p>Classroom Experience</p>
+          </div>
+          <div class="stat-item">
+            <h3>100%</h3>
+            <p>Personal Mentoring</p>
+          </div>
+          <div class="stat-item">
+            <h3>Hundreds</h3>
+            <p>Successful Graduates</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="hero-media reveal">
+        <div class="hero-media-wrapper">
+          <img src="/static/images/hero.png" alt="Honeypot Academy Virtual Classroom Interface" width="600" height="600">
+        </div>
+      </div>
+    </div>
+  </section>
 
-const contactForm = document.getElementById('contactForm');
-if (contactForm) {
-    contactForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const formData = {
-            name: document.getElementById('contactName').value,
-            email: document.getElementById('contactEmail').value,
-            phone: document.getElementById('contactPhone').value,
-            subject: document.getElementById('contactSubject').value,
-            message: document.getElementById('contactMessage').value
-        };
-        try {
-            const response = await fetch('/api/contact', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-            if (response.ok) {
-                contactForm.style.display = 'none';
-                document.getElementById('contactSuccess').style.display = 'block';
-            } else {
-                alert('Failed to send message. Please email us directly.');
-            }
-        } catch (error) {
-            alert('Failed to send message. Please email us directly.');
-        }
-    });
-}
-</script>
-{% endblock %}
+  <!-- --- THE PROBLEM & OUR SOLUTION --- -->
+  <section id="why-us" class="comparison section-padding">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>The Honeypot Difference</h2>
+        <p>Most programs hand you a TEFL certificate and wish you luck. We believe online teaching is far more complex, requiring real-world skills and reliable mentoring.</p>
+      </div>
+      
+      <div class="comparison-grid">
+        <!-- The Problem -->
+        <div class="comparison-card problem reveal">
+          <h3><i class="fas fa-times-circle"></i> The Overwhelming Way</h3>
+          <ul class="comparison-list">
+            <li>
+              <i class="fas fa-ban"></i>
+              <div>
+                <strong>Alone in the Dark</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Completing dry online courses without ever talking to a real, experienced trainer.</p>
+              </div>
+            </li>
+            <li>
+              <i class="fas fa-ban"></i>
+              <div>
+                <strong>Scary Demo Auditions</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Submitting self-introduction videos and teaching auditions with zero expert feedback.</p>
+              </div>
+            </li>
+            <li>
+              <i class="fas fa-ban"></i>
+              <div>
+                <strong>Tech & Platform Confusion</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Struggling with advanced features on ClassIn, interactive boards, and technical classroom settings.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- The Honeypot Solution -->
+        <div class="comparison-card solution reveal">
+          <h3><i class="fas fa-check-circle"></i> The Honeypot Way</h3>
+          <ul class="comparison-list">
+            <li>
+              <i class="fas fa-check"></i>
+              <div>
+                <strong>Tailored 1-on-1 Mentorship</strong>
+                <p style="color: var(--text-dark); font-size: 0.9rem; margin-top: 4px;">We guide you module-by-module through your assignments with actual feedback and reviews.</p>
+              </div>
+            </li>
+            <li>
+              <i class="fas fa-check"></i>
+              <div>
+                <strong>Perfect Video & Demo Auditions</strong>
+                <p style="color: var(--text-dark); font-size: 0.9rem; margin-top: 4px;">We review, refine, and polish your introduction video and demo lessons until they are flawless.</p>
+              </div>
+            </li>
+            <li>
+              <i class="fas fa-check"></i>
+              <div>
+                <strong>Interactive Platform Mastery</strong>
+                <p style="color: var(--text-dark); font-size: 0.9rem; margin-top: 4px;">Get hands-on training with platform settings like ClassIn and online tools from active coaches.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- --- TRAINING SERVICES CENTER --- -->
+  <section id="services" class="section-padding">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>Our Training Centre</h2>
+        <p>Get the direct support, hands-on training, and confidence building you need to launch a rewarding, sustainable online teaching career.</p>
+      </div>
+      
+      <div class="services-grid">
+        <!-- Service 1 -->
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-book-open"></i></div>
+          <h3>TEFL Support & Assignments</h3>
+          <p>Overcome the hurdle of complex TEFL modules. Our trainers help you draft lesson plans, review grammar rules, and pass your assignments with confidence.</p>
+          <ul class="service-features">
+            <li><i class="fas fa-check-circle"></i> Complete Module Checklists</li>
+            <li><i class="fas fa-check-circle"></i> Assignment Peer-Review</li>
+            <li><i class="fas fa-check-circle"></i> Practical Grammar Guides</li>
+          </ul>
+        </div>
+        
+        <!-- Service 2 -->
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-desktop"></i></div>
+          <h3>ClassIn & Platform Mastery</h3>
+          <p>Don't let software stand in your way. Learn to navigate online classroom settings like ClassIn, Zoom, and tools that keep students engaged.</p>
+          <ul class="service-features">
+            <li><i class="fas fa-check-circle"></i> Step-by-Step Settings Guide</li>
+            <li><i class="fas fa-check-circle"></i> Interactive Whiteboard Tools</li>
+            <li><i class="fas fa-check-circle"></i> Tech Troubleshooting Setup</li>
+          </ul>
+        </div>
+        
+        <!-- Service 3 -->
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-video"></i></div>
+          <h3>Demo Audition Prep</h3>
+          <p>First impressions are everything. We analyze your demo teaching videos, provide concrete suggestions on Total Physical Response (TPR), and align your intro profile.</p>
+          <ul class="service-features">
+            <li><i class="fas fa-check-circle"></i> Profile & Video Reviews</li>
+            <li><i class="fas fa-check-circle"></i> TPR and Prop Strategies</li>
+            <li><i class="fas fa-check-circle"></i> Mock Interview Auditions</li>
+          </ul>
+        </div>
+        
+        <!-- Service 4 -->
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-handshake"></i></div>
+          <h3>Placement Referrals</h3>
+          <p>Graduate with peace of mind. We maintain close links with leading global ESL schools and platforms, referring our qualified graduates directly to active roles.</p>
+          <ul class="service-features">
+            <li><i class="fas fa-check-circle"></i> Partner School Referrals</li>
+            <li><i class="fas fa-check-circle"></i> Resume Alignment Tips</li>
+            <li><i class="fas fa-check-circle"></i> Ongoing Career Mentoring</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- --- FOUNDER STORY SECTION --- -->
+  <section id="about" class="comparison section-padding">
+    <div class="container">
+      <div class="story-wrapper">
+        <div class="story-media reveal">
+          <div class="story-media-card">
+            <h3>Hannelie Marais</h3>
+            <p class="role">Founder & Lead Mentor</p>
+            <div class="story-quote">
+              "We built Honeypot out of real struggles, real needs, and a genuine passion to see teachers shine in their own digital classrooms."
+            </div>
+            <span class="signature">Known as "Teacher Honey"</span>
+          </div>
+        </div>
+        
+        <div class="story-content reveal">
+          <div class="badge"><i class="fas fa-heart"></i> Our Origins</div>
+          <h2>A Community Created Out of Real Struggles</h2>
+          <p>My journey started exactly like yours: with a TEFL course and big dreams. I was told a certificate was all it took. But I quickly realized that teaching online was far more complex—with platforms to navigate, skills to learn, and no one there to guide me.</p>
+          <p>In the classroom, my students called me <strong>"Teacher Honey"</strong>. As I slowly figured out the ropes, other teachers began reaching out to me for advice. What started as friendly tips soon blossomed into active mentoring, and Honeypot was born.</p>
+          <p>Today, Honeypot has grown into a global, supportive family with a dedicated team of training coaches who are absolutely passionate about guiding you step-by-step.</p>
+          
+          <div class="mission-vision">
+            <div class="mv-card">
+              <h4><i class="fas fa-bullseye"></i> Our Mission</h4>
+              <p>To empower online teachers with practical skills, classroom confidence, and honest mentoring in a community where no teacher feels alone.</p>
+            </div>
+            <div class="mv-card">
+              <h4><i class="fas fa-eye"></i> Our Vision</h4>
+              <p>To build a global family of confident, highly equipped educators enjoying sustainable and rewarding online teaching careers from anywhere.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- --- MEET THE TEAM --- -->
+  <section id="team" class="section-padding team">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>Meet Our Passionate Trainers</h2>
+        <p>Our dedicated support and sales team walks the path alongside you, offering personal advice, training feedback, and constant encouragement.</p>
+      </div>
+      
+      <div id="team-grid" class="team-grid">
+        <!-- Dynamically Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- --- SOCIAL CHANNELS BOARD --- -->
+  <section id="social" class="section-padding social-board">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>Join Our Honey-Sweet Community</h2>
+        <p>We are active on all major platforms! Connect with us to get daily tips, teaching resources, and support from fellow online teachers.</p>
+      </div>
+      
+      <div class="social-grid">
+        <!-- WhatsApp -->
+        <div class="social-card whatsapp reveal">
+          <div class="social-icon"><i class="fab fa-whatsapp"></i></div>
+          <h4>WhatsApp Channel</h4>
+          <p>Instant alerts on new ESL job listings and training webinars.</p>
+          <a href="https://whatsapp.com/channel/0029VbATAvT3AzNKOyT6aj3v" target="_blank" rel="noopener" class="social-link-btn">Join Channel <i class="fas fa-external-link-alt"></i></a>
+        </div>
+        
+        <!-- TikTok -->
+        <div class="social-card tiktok reveal">
+          <div class="social-icon"><i class="fab fa-tiktok"></i></div>
+          <h4>TikTok Board</h4>
+          <p>Quick video hacks on ClassIn, TPR props, and interview answers.</p>
+          <a href="https://tiktok.com/@infohoneypotsa.co.za?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener" class="social-link-btn">Follow Us <i class="fas fa-external-link-alt"></i></a>
+        </div>
+        
+        <!-- Facebook -->
+        <div class="social-card facebook reveal">
+          <div class="social-icon"><i class="fab fa-facebook-f"></i></div>
+          <h4>Facebook Group</h4>
+          <p>Our thriving support network of South African ESL teachers.</p>
+          <a href="https://facebook.com/share/g/16oEBWt7ts" target="_blank" rel="noopener" class="social-link-btn">Join Group <i class="fas fa-external-link-alt"></i></a>
+        </div>
+        
+        <!-- Instagram -->
+        <div class="social-card instagram reveal">
+          <div class="social-icon"><i class="fab fa-instagram"></i></div>
+          <h4>Instagram Profile</h4>
+          <p>Daily teacher highlights, motivational posts, and student updates.</p>
+          <a href="https://instagram.com/honeypottefl?igsh=MXUyMzc3N2FydDVreQ==" target="_blank" rel="noopener" class="social-link-btn">Follow Feed <i class="fas fa-external-link-alt"></i></a>
+        </div>
+        
+        <!-- YouTube -->
+        <div class="social-card youtube reveal">
+          <div class="social-icon"><i class="fab fa-youtube"></i></div>
+          <h4>YouTube Channel</h4>
+          <p>Full length demo training tutorials and technical software setup guides.</p>
+          <a href="https://www.youtube.com/@HoneypotTEFL" target="_blank" rel="noopener" class="social-link-btn">Subscribe <i class="fas fa-external-link-alt"></i></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- --- CONTACT & BOOKING --- -->
+  <section id="contact" class="section-padding">
+    <div class="container" style="max-width: 800px;">
+      <!-- Contact Info -->
+      <div class="contact-info-panel reveal" style="text-align: center; padding: 0;">
+        <div class="badge" style="margin: 0 auto 24px auto;"><i class="fas fa-envelope"></i> Contact Us</div>
+        <h2 style="font-size: 2.8rem; margin-bottom: 16px;">Let's Have a Chat</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto 48px auto;">
+          Have questions about your TEFL training, ClassIn software, or demo lessons? Speak with Hannelie directly! Call her, send her a WhatsApp, write an email, or book a free 1-on-1 mentoring slot below.
+        </p>
+        
+        <div class="contact-grid-centered">
+          <div class="contact-card-centered">
+            <div class="info-icon"><i class="fas fa-envelope"></i></div>
+            <div class="info-text">
+              <h4>Email Hannelie</h4>
+              <a href="mailto:teacherhoney.sa@gmail.com" class="contact-link">teacherhoney.sa@gmail.com</a>
+              <p>Direct email response in 24 hours</p>
+            </div>
+          </div>
+          
+          <div class="contact-card-centered">
+            <div class="info-icon"><i class="fas fa-phone-alt"></i></div>
+            <div class="info-text">
+              <h4>Call / WhatsApp</h4>
+              <a href="tel:+27645222173" class="contact-link">+27 64 522 2173</a>
+              <p>Chat with us on our WhatsApp hotline</p>
+            </div>
+          </div>
+          
+          <div class="contact-card-centered">
+            <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <div class="info-text">
+              <h4>Headquarters</h4>
+              <span class="contact-link" style="color: var(--dark-slate); pointer-events: none;">Vryheid, South Africa</span>
+              <p>KwaZulu-Natal province</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="booking-promo" style="background: var(--accent-warm); padding: 40px; border-radius: var(--border-radius-lg); border: 2px dashed var(--primary-gold); max-width: 650px; margin: 0 auto;">
+          <h3 style="font-size: 1.6rem; margin-bottom: 12px;"><i class="fas fa-calendar-alt" style="color: var(--primary-amber);"></i> Book a Designated 1-on-1 Session</h3>
+          <p style="font-size: 1rem; color: var(--text-dark); margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto;">
+            Ready to get hands-on training or check your TEFL modules? Secure your exact slot with a trainer on our Global TEFL UK booking dashboard.
+          </p>
+          <a href="https://honeypot.setmore.com/" target="_blank" rel="noopener" class="btn btn-primary" style="font-size: 1rem; padding: 14px 32px; width: auto; min-width: 250px;">Book Free on Setmore <i class="fas fa-calendar-check"></i></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- --- TOAST ALERT --- -->
+  <div id="toast" class="toast">
+    <i class="fas fa-check-circle" style="font-size: 1.3rem;"></i>
+    <div>
+      <strong>Thank you!</strong>
+      <p style="font-size: 0.85rem; font-weight: 400; margin-top: 2px;">Your message has been sent. We'll reply within 24 hours.</p>
+    </div>
+  </div>
+
+  <!-- --- FOOTER --- -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <h3>🍯 Honeypot<span>Global</span></h3>
+        <p>Welcome to Honeypotglobal where we help you do your absolute best in the online teaching world. Created by teachers, for teachers.</p>
+        <div class="footer-socials">
+          <a href="https://whatsapp.com/channel/0029VbATAvT3AzNKOyT6aj3v" target="_blank" rel="noopener" class="footer-social-icon" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+          <a href="https://tiktok.com/@infohoneypotsa.co.za?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener" class="footer-social-icon" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+          <a href="https://facebook.com/share/g/16oEBWt7ts" target="_blank" rel="noopener" class="footer-social-icon" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://instagram.com/honeypottefl?igsh=MXUyMzc3N2FydDVreQ==" target="_blank" rel="noopener" class="footer-social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.youtube.com/@HoneypotTEFL" target="_blank" rel="noopener" class="footer-social-icon" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      
+      <div class="footer-links">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#about">Our Story</a></li>
+          <li><a href="#services">Training Center</a></li>
+          <li><a href="#team">Our Passionate Team</a></li>
+          <li><a href="#social">Community Feeds</a></li>
+          <li><a href="https://honeypot.setmore.com/" target="_blank" rel="noopener">Book on Setmore</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-contact">
+        <h4>Get In Touch</h4>
+        <ul class="footer-contact-list">
+          <li>
+            <i class="fas fa-envelope"></i>
+            <div>
+              <p>Email Us</p>
+              <a href="mailto:teacherhoney.sa@gmail.com">teacherhoney.sa@gmail.com</a>
+            </div>
+          </li>
+          <li>
+            <i class="fas fa-phone-alt"></i>
+            <div>
+              <p>WhatsApp Line</p>
+              <a href="tel:+27645222173">+27 64 522 2173</a>
+            </div>
+          </li>
+          <li>
+            <i class="fas fa-map-marker-alt"></i>
+            <div>
+              <p>Location</p>
+              <span>Vryheid, South Africa</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="container footer-bottom">
+      <p>&copy; 2026 Honeypotglobal. All rights reserved. Created in partnership with Global TEFL UK.</p>
+      <p>Providing Sweet Support & Real Mentorship to ESL Educators.</p>
+    </div>
+  </footer>
+
+  <!-- --- ADMIN PORTAL MODAL --- -->
+  <div id="adminModal" class="admin-modal-overlay">
+    <div class="admin-modal-container">
+      <div class="admin-modal-header">
+        <h3><i class="fas fa-users-cog"></i> Honeypot Team Manager</h3>
+        <button id="adminCloseBtn" class="admin-close-btn">&times;</button>
+      </div>
+      
+      <div class="admin-modal-body">
+        <!-- PASSWORD LOCK SCREEN -->
+        <div id="admin-password-screen" style="max-width: 400px; margin: 40px auto; text-align: center;">
+          <div id="admin-lock-icon" style="font-size: 3rem; color: var(--primary-amber); margin-bottom: 20px;"><i class="fas fa-lock"></i></div>
+          <h4 id="admin-lock-title" style="margin-bottom: 12px; font-size: 1.4rem;">Admin Password Required</h4>
+          <p id="admin-lock-desc" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; text-align: center;">
+            Please enter your Honeypot Global administrative password to access the Team Profile Editor.
+          </p>
+          <form id="adminLoginForm" style="text-align: left;">
+            <div class="form-group" style="margin-bottom: 16px;">
+              <input type="password" id="admin-password-input" class="form-control" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.15); font-size: 1.1rem; text-align: center;" placeholder="••••••••" required>
+            </div>
+            <div id="login-error-msg" style="color: #EF4444; font-size: 0.85rem; text-align: center; margin-top: -8px; margin-bottom: 16px; display: none; font-weight: 600;">
+              <i class="fas fa-exclamation-circle"></i> Incorrect password. Please try again.
+            </div>
+            <button type="submit" id="admin-lock-btn" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">Unlock Editor <i class="fas fa-unlock-alt"></i></button>
+          </form>
+        </div>
+
+        <!-- EDITOR split panel (hidden until unlocked) -->
+        <div id="admin-editor-content" style="display: none;">
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; text-align: left;">
+            Use this editor to add new team profiles, delete inactive ones, update positions, and upload actual photos from your device. Edits display instantly on the site and persist locally.
+          </p>
+          
+          <div class="admin-editor-split">
+            <!-- Team List Pane -->
+            <div class="admin-pane-list">
+              <h4 style="margin-bottom: 12px; font-size: 1rem; text-align: left;"><i class="fas fa-list"></i> Current Members</h4>
+              <div id="admin-members-list" class="admin-members-rows">
+                <!-- Dynamically populated -->
+              </div>
+              <button id="admin-add-new-btn" class="btn btn-secondary" style="width: 100%; margin-top: 16px; padding: 12px; font-size: 0.9rem;"><i class="fas fa-plus"></i> Add New Member</button>
+              <button id="admin-change-pass-btn" class="btn btn-secondary" style="width: 100%; margin-top: 8px; padding: 12px; font-size: 0.85rem; border-style: dotted; border-color: rgba(0, 0, 0, 0.15); color: var(--text-muted);"><i class="fas fa-key"></i> Change Admin Password</button>
+            </div>
+            
+            <!-- Team Form Pane -->
+            <div class="admin-pane-form" id="admin-form-pane" style="display: none;">
+              <h4 style="margin-bottom: 16px; font-size: 1rem; text-align: left;" id="form-action-title"><i class="fas fa-user-edit"></i> Edit Profile</h4>
+              
+              <form id="teamMemberForm">
+                <input type="hidden" id="edit-member-id">
+                
+                <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                  <label for="edit-name" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Member Full Name *</label>
+                  <input type="text" id="edit-name" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;" required>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                  <label for="edit-role" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Position / Role *</label>
+                  <input type="text" id="edit-role" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;" placeholder="e.g. Lead Mentoring Coach" required>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 24px; text-align: left;">
+                  <label style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Profile Photo</label>
+                  
+                  <div class="admin-photo-upload-wrapper" style="display: flex; align-items: center; gap: 16px;">
+                    <div class="admin-photo-preview" id="edit-photo-preview" style="width: 60px; height: 60px; border-radius: 50%; background: var(--accent-warm); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: var(--primary-amber); border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                      <!-- Preview image or initials -->
+                    </div>
+                    <div style="flex-grow: 1;">
+                      <label for="edit-file" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem; box-shadow: none; cursor: pointer; border-style: dashed; width: 100%; text-align: center;">
+                        <i class="fas fa-camera"></i> Choose Local Image
+                      </label>
+                      <input type="file" id="edit-file" accept="image/*" style="display: none;">
+                      <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; text-align: left;">Recommended square format (PNG/JPG)</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                  <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px; font-size: 0.9rem;"><i class="fas fa-save"></i> Save Changes</button>
+                  <button type="button" id="adminCancelBtn" class="btn btn-secondary" style="flex: 1; padding: 12px; font-size: 0.9rem; border-color: rgba(0,0,0,0.15); color: var(--text-dark);">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/js/main.js"></script>
+</body>
+</html>
