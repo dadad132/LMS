@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍯</text></svg>">
   
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -38,11 +38,6 @@
           <li><a href="#services">Training Center</a></li>
           <li><a href="#team">Our Team</a></li>
           <li><a href="#social">Community</a></li>
-          {% if current_user %}
-            <li><a href="/dashboard" class="btn btn-secondary" style="padding: 10px 18px; font-size: 0.9rem; border-color: rgba(245, 158, 11, 0.3); color: var(--primary-amber);"><i class="fas fa-user-circle"></i> Dashboard</a></li>
-          {% else %}
-            <li><a href="/login" class="btn btn-secondary" style="padding: 10px 18px; font-size: 0.9rem; border-color: rgba(245, 158, 11, 0.3); color: var(--primary-amber);"><i class="fas fa-sign-in-alt"></i> Student Login</a></li>
-          {% endif %}
           <li><a href="#contact" class="btn btn-primary" style="padding: 10px 20px; box-shadow: none;">Get Started <i class="fas fa-chevron-right" style="font-size: 0.8rem;"></i></a></li>
         </ul>
       </nav>
@@ -85,7 +80,7 @@
       
       <div class="hero-media reveal">
         <div class="hero-media-wrapper">
-          <img src="/static/images/hero.png" alt="Honeypot Academy Virtual Classroom Interface" width="600" height="600">
+          <img src="assets/images/hero.png" alt="Honeypot Academy Virtual Classroom Interface" width="600" height="600">
         </div>
       </div>
     </div>
@@ -534,6 +529,6 @@
   </div>
 
   <!-- Scripts -->
-  <script src="/static/js/main.js"></script>
+  <script src="assets/js/main.js"></script>
 </body>
 </html>
