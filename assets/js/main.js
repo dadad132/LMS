@@ -139,6 +139,48 @@ document.addEventListener('DOMContentLoaded', () => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'TP';
   };
 
+  const compressImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 200;
+        const MAX_HEIGHT = 200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        
+        // Fill canvas with white background to handle transparent PNGs gracefully
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress as image/jpeg at 0.7 quality (typically under 15KB)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        callback(compressedBase64);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   let teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
   const teamGrid = document.getElementById('team-grid');
 
@@ -246,10 +288,15 @@ document.addEventListener('DOMContentLoaded', () => {
       row.querySelector('.admin-action-btn.delete').addEventListener('click', () => {
         if (confirm(`Are you sure you want to remove ${member.name} from the team?`)) {
           teamData = teamData.filter(m => m.id !== member.id);
-          localStorage.setItem('honeypot_team', JSON.stringify(teamData));
-          renderTeam();
-          renderAdminMembersList();
-          adminFormPane.style.display = 'none';
+          try {
+            localStorage.setItem('honeypot_team', JSON.stringify(teamData));
+            renderTeam();
+            renderAdminMembersList();
+            adminFormPane.style.display = 'none';
+          } catch (error) {
+            console.error('Storage error:', error);
+            alert('Failed to update team list in browser storage.');
+          }
         }
       });
       
@@ -413,12 +460,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const file = e.target.files[0];
       if (!file) return;
       
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        currentUploadedImageBase64 = event.target.result;
+      // Compress the image to a low footprint thumbnail to prevent QuotaExceededError
+      compressImage(file, (compressedBase64) => {
+        currentUploadedImageBase64 = compressedBase64;
         editPhotoPreview.innerHTML = `<img src="${currentUploadedImageBase64}" alt="Preview">`;
-      };
-      reader.readAsDataURL(file);
+      });
     });
   }
   
@@ -459,10 +505,15 @@ document.addEventListener('DOMContentLoaded', () => {
         teamData.push(newMember);
       }
       
-      localStorage.setItem('honeypot_team', JSON.stringify(teamData));
-      renderTeam();
-      renderAdminMembersList();
-      adminFormPane.style.display = 'none';
+      try {
+        localStorage.setItem('honeypot_team', JSON.stringify(teamData));
+        renderTeam();
+        renderAdminMembersList();
+        adminFormPane.style.display = 'none';
+      } catch (error) {
+        console.error('Storage error:', error);
+        alert('Failed to save team member. The image data might be too large for your browser\'s storage quota.');
+      }
     });
   }
   
