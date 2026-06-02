@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- DYNAMIC TEAM RENDERING & LOCAL STORAGE ADMIN ENGINE ---
+  // --- DYNAMIC TEAM RENDERING & DUAL API/LOCALSTORAGE ADMIN ENGINE ---
   const defaultTeam = [
     { id: '1', name: 'Hannelie Marais', role: 'Founder & Mentorship Director', avatar: 'HM', image: '' },
     { id: '2', name: 'Jinesse Fouché', role: 'Lead Training Advisor', avatar: 'JF', image: '' },
@@ -139,7 +139,52 @@ document.addEventListener('DOMContentLoaded', () => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'TP';
   };
 
-  let teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+  // Image compressor to prevent storage quota limits
+  const compressImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 200;
+        const MAX_HEIGHT = 200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        callback(compressedBase64);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  let teamData = defaultTeam;
+  let apiAvailable = false;
+  let serverAuthSetup = false;
+  const isServer = window.location.hostname !== '' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  const apiBase = isServer ? '/api' : '';
+
   const teamGrid = document.getElementById('team-grid');
 
   const renderTeam = () => {
@@ -164,7 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="team-bio-hint">Click card to wave hello!</span>
       `;
       
-      // Wave micro-interaction
       card.addEventListener('click', () => {
         card.style.transform = 'scale(1.03) translateY(-8px)';
         card.style.borderColor = 'var(--primary-gold)';
@@ -182,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // --- ADMIN PORTAL CONTROLS (HIDDEN VIA SEARCHBAR & PASSWORD PROTECTED) ---
-  let savedPassword = localStorage.getItem('honeypot_admin_password');
+  let savedPassword = null;
 
   const adminModal = document.getElementById('adminModal');
   const adminCloseBtn = document.getElementById('adminCloseBtn');
@@ -212,6 +256,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const formActionTitle = document.getElementById('form-action-title');
   
   let currentUploadedImageBase64 = '';
+
+  const saveTeamData = async () => {
+    if (apiAvailable) {
+      const activePassword = sessionStorage.getItem('honeypot_admin_session_password') || '';
+      try {
+        const res = await fetch(`${apiBase}/team`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Password': activePassword
+          },
+          body: JSON.stringify(teamData)
+        });
+        if (res.ok) {
+          renderTeam();
+          renderAdminMembersList();
+          return true;
+        } else {
+          const err = await res.json();
+          alert(`Error saving to server: ${err.error || 'Unauthorized'}`);
+          return false;
+        }
+      } catch (err) {
+        alert("Failed to connect to server API to save changes.");
+        return false;
+      }
+    } else {
+      localStorage.setItem('honeypot_team', JSON.stringify(teamData));
+      renderTeam();
+      renderAdminMembersList();
+      return true;
+    }
+  };
   
   const renderAdminMembersList = () => {
     if (!adminMembersList) return;
@@ -243,13 +320,13 @@ document.addEventListener('DOMContentLoaded', () => {
         openEditForm(member);
       });
       
-      row.querySelector('.admin-action-btn.delete').addEventListener('click', () => {
+      row.querySelector('.admin-action-btn.delete').addEventListener('click', async () => {
         if (confirm(`Are you sure you want to remove ${member.name} from the team?`)) {
           teamData = teamData.filter(m => m.id !== member.id);
-          localStorage.setItem('honeypot_team', JSON.stringify(teamData));
-          renderTeam();
-          renderAdminMembersList();
-          adminFormPane.style.display = 'none';
+          const success = await saveTeamData();
+          if (success) {
+            adminFormPane.style.display = 'none';
+          }
         }
       });
       
@@ -264,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.hash === '#admin') {
       adminModal.classList.add('active');
       const isUnlocked = sessionStorage.getItem('honeypot_admin_unlocked') === 'true';
-      savedPassword = localStorage.getItem('honeypot_admin_password');
       
       if (isUnlocked) {
         adminPasswordScreen.style.display = 'none';
@@ -275,19 +351,36 @@ document.addEventListener('DOMContentLoaded', () => {
         adminEditorContent.style.display = 'none';
         if (loginErrorMsg) loginErrorMsg.style.display = 'none';
         
-        // Dynamically adjust view depending on whether it's a first-launch Setup or standard Login
-        if (!savedPassword) {
-          adminLockIcon.innerHTML = '<i class="fas fa-shield-alt"></i>';
-          adminLockTitle.innerText = 'Admin Setup: Set Password';
-          adminLockDesc.innerText = 'Welcome to Honeypot! Establish your admin password to lock and secure your team configuration dashboard.';
-          adminPasswordInput.placeholder = 'Create secure password';
-          adminLockBtn.innerHTML = 'Save & Initialize Editor <i class="fas fa-shield-alt"></i>';
+        if (apiAvailable) {
+          if (!serverAuthSetup) {
+            adminLockIcon.innerHTML = '<i class="fas fa-shield-alt"></i>';
+            adminLockTitle.innerText = 'Admin Setup: Set Password';
+            adminLockDesc.innerText = 'Welcome to Honeypot! Establish your admin password to lock and secure your team configuration dashboard.';
+            adminPasswordInput.placeholder = 'Create secure password';
+            adminLockBtn.innerHTML = 'Save & Initialize Editor <i class="fas fa-shield-alt"></i>';
+          } else {
+            adminLockIcon.innerHTML = '<i class="fas fa-lock"></i>';
+            adminLockTitle.innerText = 'Admin Password Required';
+            adminLockDesc.innerText = 'Please enter your Honeypot Global administrative password to access the Team Profile Editor.';
+            adminPasswordInput.placeholder = '••••••••';
+            adminLockBtn.innerHTML = 'Unlock Editor <i class="fas fa-unlock-alt"></i>';
+          }
         } else {
-          adminLockIcon.innerHTML = '<i class="fas fa-lock"></i>';
-          adminLockTitle.innerText = 'Admin Password Required';
-          adminLockDesc.innerText = 'Please enter your Honeypot Global administrative password to access the Team Profile Editor.';
-          adminPasswordInput.placeholder = '••••••••';
-          adminLockBtn.innerHTML = 'Unlock Editor <i class="fas fa-unlock-alt"></i>';
+          // Local storage fallback setup
+          savedPassword = localStorage.getItem('honeypot_admin_password');
+          if (!savedPassword) {
+            adminLockIcon.innerHTML = '<i class="fas fa-shield-alt"></i>';
+            adminLockTitle.innerText = 'Admin Setup: Set Password';
+            adminLockDesc.innerText = 'Welcome to Honeypot! Establish your admin password to lock and secure your team configuration dashboard.';
+            adminPasswordInput.placeholder = 'Create secure password';
+            adminLockBtn.innerHTML = 'Save & Initialize Editor <i class="fas fa-shield-alt"></i>';
+          } else {
+            adminLockIcon.innerHTML = '<i class="fas fa-lock"></i>';
+            adminLockTitle.innerText = 'Admin Password Required';
+            adminLockDesc.innerText = 'Please enter your Honeypot Global administrative password to access the Team Profile Editor.';
+            adminPasswordInput.placeholder = '••••••••';
+            adminLockBtn.innerHTML = 'Unlock Editor <i class="fas fa-unlock-alt"></i>';
+          }
         }
         
         if (adminPasswordInput) {
@@ -298,6 +391,32 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       adminModal.classList.remove('active');
     }
+  };
+
+  const loadInitialData = async () => {
+    if (isServer) {
+      try {
+        const authRes = await fetch(`${apiBase}/auth-status`);
+        if (authRes.ok) {
+          const authData = await authRes.json();
+          serverAuthSetup = authData.setup;
+          apiAvailable = true;
+
+          const teamRes = await fetch(`${apiBase}/team`);
+          if (teamRes.ok) {
+            teamData = await teamRes.json();
+            renderTeam();
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("API server unavailable, using localStorage fallback:", err);
+      }
+    }
+
+    // Local fallback
+    teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+    renderTeam();
   };
 
   window.addEventListener('hashchange', handleAdminAuthShow);
@@ -313,40 +432,89 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Handle Admin Password Submit (Supports Setup or Login check)
   if (adminLoginForm) {
-    adminLoginForm.addEventListener('submit', (e) => {
+    adminLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const enteredValue = adminPasswordInput.value.trim();
-      
       if (!enteredValue) return;
-      savedPassword = localStorage.getItem('honeypot_admin_password');
       
-      if (!savedPassword) {
-        // Setup Mode: Save new password
-        if (enteredValue.length < 4) {
-          alert('Admin password must be at least 4 characters long.');
-          return;
+      if (apiAvailable) {
+        if (!serverAuthSetup) {
+          if (enteredValue.length < 4) {
+            alert('Admin password must be at least 4 characters long.');
+            return;
+          }
+          try {
+            const res = await fetch(`${apiBase}/setup-password`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password: enteredValue })
+            });
+            if (res.ok) {
+              sessionStorage.setItem('honeypot_admin_unlocked', 'true');
+              sessionStorage.setItem('honeypot_admin_session_password', enteredValue);
+              serverAuthSetup = true;
+              adminPasswordScreen.style.display = 'none';
+              adminEditorContent.style.display = 'block';
+              renderAdminMembersList();
+              alert('Server administrative password set successfully!');
+            } else {
+              const err = await res.json();
+              alert(`Error setting password: ${err.error}`);
+            }
+          } catch (err) {
+            alert('Failed to connect to server to set password.');
+          }
+        } else {
+          try {
+            const res = await fetch(`${apiBase}/verify-password`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password: enteredValue })
+            });
+            if (res.ok) {
+              sessionStorage.setItem('honeypot_admin_unlocked', 'true');
+              sessionStorage.setItem('honeypot_admin_session_password', enteredValue);
+              adminPasswordScreen.style.display = 'none';
+              adminEditorContent.style.display = 'block';
+              if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+              renderAdminMembersList();
+            } else {
+              if (loginErrorMsg) loginErrorMsg.style.display = 'block';
+              adminPasswordInput.value = '';
+              adminPasswordInput.focus();
+            }
+          } catch (err) {
+            alert('Failed to connect to server to verify password.');
+          }
         }
-        localStorage.setItem('honeypot_admin_password', enteredValue);
-        sessionStorage.setItem('honeypot_admin_unlocked', 'true');
-        savedPassword = enteredValue;
-        
-        adminPasswordScreen.style.display = 'none';
-        adminEditorContent.style.display = 'block';
-        if (loginErrorMsg) loginErrorMsg.style.display = 'none';
-        renderAdminMembersList();
-        alert('Admin password initialized successfully! Write down your password, as it will be required to edit this panel in the future.');
       } else {
-        // Login Mode: Check password
-        if (enteredValue === savedPassword) {
+        savedPassword = localStorage.getItem('honeypot_admin_password');
+        if (!savedPassword) {
+          if (enteredValue.length < 4) {
+            alert('Admin password must be at least 4 characters long.');
+            return;
+          }
+          localStorage.setItem('honeypot_admin_password', enteredValue);
           sessionStorage.setItem('honeypot_admin_unlocked', 'true');
+          sessionStorage.setItem('honeypot_admin_session_password', enteredValue);
+          savedPassword = enteredValue;
           adminPasswordScreen.style.display = 'none';
           adminEditorContent.style.display = 'block';
-          if (loginErrorMsg) loginErrorMsg.style.display = 'none';
           renderAdminMembersList();
+          alert('Local admin password initialized successfully!');
         } else {
-          if (loginErrorMsg) loginErrorMsg.style.display = 'block';
-          adminPasswordInput.value = '';
-          adminPasswordInput.focus();
+          if (enteredValue === savedPassword) {
+            sessionStorage.setItem('honeypot_admin_unlocked', 'true');
+            sessionStorage.setItem('honeypot_admin_session_password', enteredValue);
+            adminPasswordScreen.style.display = 'none';
+            adminEditorContent.style.display = 'block';
+            if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+            renderAdminMembersList();
+          } else {
+            if (loginErrorMsg) loginErrorMsg.style.display = 'block';
+            adminPasswordInput.value = '';
+            adminPasswordInput.focus();
+          }
         }
       }
     });
@@ -354,9 +522,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Handle Change Admin Password action inside the Dashboard
   if (adminChangePassBtn) {
-    adminChangePassBtn.addEventListener('click', () => {
+    adminChangePassBtn.addEventListener('click', async () => {
       const newPassword = prompt('Enter your new administrative password:');
-      if (newPassword === null) return; // Canceled
+      if (newPassword === null) return;
       
       const trimmed = newPassword.trim();
       if (trimmed.length < 4) {
@@ -364,9 +532,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      localStorage.setItem('honeypot_admin_password', trimmed);
-      savedPassword = trimmed;
-      alert('Administrative password updated successfully!');
+      if (apiAvailable) {
+        const activePassword = sessionStorage.getItem('honeypot_admin_session_password') || '';
+        try {
+          const res = await fetch(`${apiBase}/change-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ old_password: activePassword, new_password: trimmed })
+          });
+          if (res.ok) {
+            sessionStorage.setItem('honeypot_admin_session_password', trimmed);
+            alert('Server administrative password updated successfully!');
+          } else {
+            const err = await res.json();
+            alert(`Error changing password: ${err.error}`);
+          }
+        } catch (err) {
+          alert('Failed to connect to server to change password.');
+        }
+      } else {
+        localStorage.setItem('honeypot_admin_password', trimmed);
+        savedPassword = trimmed;
+        alert('Local administrative password updated successfully!');
+      }
     });
   }
   
@@ -413,17 +601,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const file = e.target.files[0];
       if (!file) return;
       
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        currentUploadedImageBase64 = event.target.result;
+      compressImage(file, (compressedBase64) => {
+        currentUploadedImageBase64 = compressedBase64;
         editPhotoPreview.innerHTML = `<img src="${currentUploadedImageBase64}" alt="Preview">`;
-      };
-      reader.readAsDataURL(file);
+      });
     });
   }
   
   if (teamMemberForm) {
-    teamMemberForm.addEventListener('submit', (e) => {
+    teamMemberForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const memberId = editMemberIdInput.value;
@@ -459,14 +645,14 @@ document.addEventListener('DOMContentLoaded', () => {
         teamData.push(newMember);
       }
       
-      localStorage.setItem('honeypot_team', JSON.stringify(teamData));
-      renderTeam();
-      renderAdminMembersList();
-      adminFormPane.style.display = 'none';
+      const success = await saveTeamData();
+      if (success) {
+        adminFormPane.style.display = 'none';
+      }
     });
   }
   
   // Run initial render on page load
-  renderTeam();
+  loadInitialData();
 
 });
