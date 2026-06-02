@@ -37,9 +37,68 @@ fi
 
 # 5. Overwrite Nginx configuration with clean static config rules
 echo "✍️ Overwriting Nginx configuration..."
-cat <<EOF > "$NGINX_CONF"
+
+DOMAIN="honeypotglobal.co.za"
+SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+
+if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ]; then
+  echo "🔒 SSL certificates detected for $DOMAIN. Writing HTTPS static configuration..."
+  cat <<EOF > "$NGINX_CONF"
 # ==============================================================================
-# Honeypot Global Static Website Configuration
+# Honeypot Global Static Website Configuration with SSL
+# ==============================================================================
+server {
+    listen 80;
+    listen [::]:80;
+    server_name honeypotglobal.co.za www.honeypotglobal.co.za;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name honeypotglobal.co.za www.honeypotglobal.co.za;
+
+    ssl_certificate $SSL_CERT;
+    ssl_certificate_key $SSL_KEY;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+
+    root $PROJECT_DIR;
+    index index.html;
+
+    # Enable gzip compression for lightning-fast loads
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+
+    # Cache static visual assets for 30 days
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js)\$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+        access_log off;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+}
+EOF
+else
+  echo "⚠️ No SSL certificates found. Writing HTTP-only static configuration..."
+  cat <<EOF > "$NGINX_CONF"
+# ==============================================================================
+# Honeypot Global Static Website Configuration (HTTP only)
 # ==============================================================================
 server {
     listen 80;
@@ -71,6 +130,7 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 }
 EOF
+fi
 
 echo "✅ Nginx config written successfully!"
 
