@@ -12,16 +12,18 @@ fi
 echo "🚀 Starting Honeypot Global Unified Server Installer..."
 echo "====================================================="
 
-# Step 1: Clean up old Flask services if they exist
-echo "🧹 Cleaning up legacy Flask services (if any)..."
-if systemctl is-active --quiet lms-website; then
-    sudo systemctl stop lms-website 2>/dev/null || true
-fi
-if systemctl is-enabled --quiet lms-website; then
-    sudo systemctl disable lms-website 2>/dev/null || true
-fi
-sudo rm -f /etc/systemd/system/lms-website.service
-sudo systemctl daemon-reload
+# Step 1: Clean up old Flask/legacy services if they exist
+echo "🧹 Cleaning up legacy services (if any)..."
+for SVC in lms-website lms-api; do
+    if systemctl is-active --quiet "$SVC" 2>/dev/null; then
+        systemctl stop "$SVC" 2>/dev/null || true
+    fi
+    if systemctl is-enabled --quiet "$SVC" 2>/dev/null; then
+        systemctl disable "$SVC" 2>/dev/null || true
+    fi
+done
+rm -f /etc/systemd/system/lms-website.service
+systemctl daemon-reload
 
 # Step 2: Install Git, Nginx & Python if they are missing
 echo "🔧 Installing system dependencies (git, nginx, python3)..."
@@ -45,15 +47,24 @@ echo "✅ Dependencies ready."
 WEB_ROOT="/var/www/html/lms"
 echo "📂 Deploying website files to $WEB_ROOT..."
 
-# If running from inside a cloned repo, copy local files, otherwise clone
 if [ -f "./index.html" ]; then
     echo "👉 Copying files from current directory..."
-    sudo mkdir -p "$WEB_ROOT"
-    sudo cp -rf * "$WEB_ROOT/"
+    mkdir -p "$WEB_ROOT"
+    cp -rf * "$WEB_ROOT/"
 else
     echo "👉 Cloning files from GitHub..."
-    sudo rm -rf "$WEB_ROOT"
-    sudo git clone https://github.com/dadad132/LMS "$WEB_ROOT"
+    rm -rf "$WEB_ROOT"
+    git clone https://github.com/dadad132/LMS "$WEB_ROOT"
+fi
+
+# Fix file ownership and permissions so Nginx can read them
+chown -R root:root "$WEB_ROOT"
+chmod -R 755 "$WEB_ROOT"
+find "$WEB_ROOT" -type f -exec chmod 644 {} \;
+
+# Restore correct SELinux file context so Nginx can serve these files
+if command -v restorecon &>/dev/null; then
+    restorecon -R "$WEB_ROOT" &>/dev/null
 fi
 echo "✅ Website files deployed."
 
@@ -81,18 +92,41 @@ systemctl daemon-reload
 systemctl stop lms-api 2>/dev/null || true
 systemctl start lms-api
 systemctl enable lms-api &>/dev/null
-echo "✅ lms-api.service daemon is active on port 8001."
 
-# Step 5: Configure Nginx Server Block with Domain name & API Routing
-echo "🌐 Configuring Nginx for domain: honeypotglobal.co.za..."
-sudo rm -f /etc/nginx/conf.d/default.conf
-sudo rm -f /etc/nginx/conf.d/lms.conf
+# Verify the API actually started
+sleep 2
+if systemctl is-active --quiet lms-api; then
+    echo "✅ lms-api.service daemon is active on port 8001."
+else
+    echo "❌ lms-api.service failed to start. Check logs: journalctl -u lms-api -n 20"
+    exit 1
+fi
 
-sudo tee /etc/nginx/conf.d/lms.conf << 'EOF'
+# Step 5: SELinux — allow Nginx to proxy to the local Python backend (AlmaLinux/RHEL)
+if command -v getenforce &>/dev/null && [ "$(getenforce)" = "Enforcing" ]; then
+    echo "🔒 SELinux is Enforcing — allowing Nginx network connections..."
+    setsebool -P httpd_can_network_connect 1
+    echo "✅ SELinux: httpd_can_network_connect enabled."
+fi
+
+# Step 6: Open HTTP port in firewalld (AlmaLinux has firewalld active by default)
+if command -v firewall-cmd &>/dev/null && systemctl is-active --quiet firewalld; then
+    echo "🔥 Opening port 80 (HTTP) in firewall..."
+    firewall-cmd --permanent --add-service=http &>/dev/null
+    firewall-cmd --reload &>/dev/null
+    echo "✅ Firewall: port 80 open."
+fi
+
+# Step 7: Configure Nginx Server Block with Domain name & API Routing
+echo "🌐 Configuring Nginx..."
+rm -f /etc/nginx/conf.d/default.conf
+rm -f /etc/nginx/conf.d/lms.conf
+
+tee /etc/nginx/conf.d/lms.conf << 'EOF'
 server {
-    listen 80;
-    listen [::]:80;
-    server_name honeypotglobal.co.za www.honeypotglobal.co.za;
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name honeypotglobal.co.za www.honeypotglobal.co.za _;
 
     # Static site files served directly by Nginx (ultra-fast)
     root /var/www/html/lms;
@@ -105,68 +139,78 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 10s;
     }
 
     location / {
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ /index.html;
     }
 }
 EOF
 echo "✅ Nginx server block and API routing configured."
 
-# Step 6: Test & Restart Nginx
+# Step 8: Test & Restart Nginx
 echo "🔄 Starting Nginx web server..."
-if sudo nginx -t &>/dev/null; then
-    sudo systemctl restart nginx
-    sudo systemctl enable nginx &>/dev/null
+if nginx -t 2>/dev/null; then
+    systemctl restart nginx
+    systemctl enable nginx &>/dev/null
     echo "✅ Nginx restarted successfully!"
 else
-    echo "❌ Nginx configuration test failed! Please check your Nginx setup manually."
+    echo "❌ Nginx configuration test failed!"
+    nginx -t
     exit 1
 fi
 
-# Step 7: Create the 12-Hour Automated Backup Cron Job
+# Step 9: Create the 12-Hour Automated Backup Cron Job
 echo "💾 Setting up automated 12-hour server backups..."
 BACKUP_DIR="/var/backups/lms"
-sudo mkdir -p "$BACKUP_DIR"
+mkdir -p "$BACKUP_DIR"
 
-# Write dedicated backup executable script
 cat > /usr/local/bin/backup-lms << 'BACKUP_SCRIPT'
 #!/bin/bash
 BACKUP_DIR="/var/backups/lms"
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
 
-# Check if team.json exists before backing up
 if [ -f "/var/www/html/lms/team.json" ] || [ -f "/var/www/html/lms/admin_password.txt" ]; then
     tar -czf "$BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz" -C /var/www/html/lms team.json admin_password.txt 2>/dev/null
-    echo "✅ Backup saved successfully: $BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz"
+    echo "✅ Backup saved: $BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz"
 else
-    echo "⚠️ Nothing to backup yet (no user uploads or custom passwords found)."
+    echo "⚠️ Nothing to backup yet."
 fi
 BACKUP_SCRIPT
 
 chmod +x /usr/local/bin/backup-lms
-
-# Configure Cron Task to run the backup every 12 hours (at 00:00 and 12:00)
 echo "0 */12 * * * root /usr/local/bin/backup-lms >/dev/null 2>&1" > /etc/cron.d/lms-backup
 echo "✅ Automated backup scheduled every 12 hours."
 
-# Step 8: Print Deployment Summary
+# Step 10: Final health check
+echo ""
+echo "🔍 Running final health check..."
+sleep 1
+API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/api/auth-status 2>/dev/null || echo "000")
+if [ "$API_STATUS" = "200" ]; then
+    echo "✅ API health check passed (HTTP $API_STATUS)"
+else
+    echo "⚠️  API health check returned HTTP $API_STATUS — check: journalctl -u lms-api -n 20"
+fi
+
+# Step 11: Print Deployment Summary
 IP=$(hostname -I | awk '{print $1}')
 echo ""
 echo "═══════════════════════════════════════════════════════"
-echo " 🎉 SECURE INSTALLATION COMPLETE WITH AUTO-BACKUPS!"
+echo " 🎉 INSTALLATION COMPLETE WITH AUTO-BACKUPS!"
 echo "═══════════════════════════════════════════════════════"
 echo ""
-echo " 🌐 Domain:  http://honeypotglobal.co.za"
+echo " 🌐 Domain:    http://honeypotglobal.co.za"
 echo " 💻 Server IP: http://$IP"
 echo ""
 echo " 💾 Backups Directory: $BACKUP_DIR/"
 echo " 💡 Runs automatically every 12 hours."
-echo "    You can run it manually at any time by typing: backup-lms"
+echo "    Run manually at any time with: backup-lms"
 echo ""
-echo " 🚀 Edits made in your secret Admin Panel will now sync"
-echo "    to your server disk and persist for all global visitors!"
+echo " 🚀 Edits made in the Admin Panel sync to disk"
+echo "    and persist for all global visitors!"
 echo ""
 echo "═══════════════════════════════════════════════════════"
