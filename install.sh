@@ -200,6 +200,17 @@ chmod +x /usr/local/bin/backup-lms
 echo "0 */12 * * * root /usr/local/bin/backup-lms >/dev/null 2>&1" > /etc/cron.d/lms-backup
 echo "✅ Automated backup scheduled every 12 hours."
 
+# Copy and register restore utility
+if [ -f "./restore.sh" ]; then
+    cp -f "./restore.sh" /usr/local/bin/restore-lms
+    chmod +x /usr/local/bin/restore-lms
+    echo "✅ Restore helper registered: restore-lms"
+elif [ -f "$WEB_ROOT/restore.sh" ]; then
+    cp -f "$WEB_ROOT/restore.sh" /usr/local/bin/restore-lms
+    chmod +x /usr/local/bin/restore-lms
+    echo "✅ Restore helper registered: restore-lms"
+fi
+
 # Step 10: Final health check
 echo ""
 echo "🔍 Running final health check..."
@@ -224,8 +235,10 @@ echo ""
 echo " 💾 Backups Directory: $BACKUP_DIR/"
 echo " 💡 Runs automatically every 12 hours."
 echo "    Run manually at any time with: backup-lms"
+echo "    Restore previous data with:    restore-lms"
 echo ""
 echo " 🚀 Edits made in the Admin Panel sync to disk"
 echo "    and persist for all global visitors!"
 echo ""
 echo "═══════════════════════════════════════════════════════"
+

@@ -334,6 +334,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
   
+  const checkAndSyncLocalData = async () => {
+    if (!apiAvailable) return;
+    
+    const localTeam = localStorage.getItem('honeypot_team');
+    if (!localTeam) return;
+    
+    try {
+      const parsedLocal = JSON.parse(localTeam);
+      const isServerDefault = JSON.stringify(teamData) === JSON.stringify(defaultTeam);
+      const isLocalDifferent = JSON.stringify(parsedLocal) !== JSON.stringify(defaultTeam);
+      
+      if (isServerDefault && isLocalDifferent) {
+        console.log("Restoring server team data from local browser cache...");
+        teamData = parsedLocal;
+        const success = await saveTeamData();
+        if (success) {
+          alert("💡 Recovered your custom team profile data from browser memory and synced it to the server successfully!");
+        }
+      }
+    } catch (e) {
+      console.error("Local data sync failed:", e);
+    }
+  };
+
   // URL Hash Monitor & Auth Setup/Login Display Handler
   const handleAdminAuthShow = () => {
     if (!adminModal) return;
@@ -342,10 +366,31 @@ document.addEventListener('DOMContentLoaded', () => {
       adminModal.classList.add('active');
       const isUnlocked = sessionStorage.getItem('honeypot_admin_unlocked') === 'true';
       
+      if (apiAvailable && !serverAuthSetup) {
+        // Auto-restore admin password on server if missing but exists locally
+        const localPass = localStorage.getItem('honeypot_admin_password');
+        if (localPass) {
+          console.log("Automatically restoring server admin password from local browser cache...");
+          fetch(`${apiBase}/setup-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: localPass })
+          }).then(res => {
+            if (res.ok) {
+              serverAuthSetup = true;
+              console.log("Server admin password restored successfully.");
+            }
+          }).catch(err => {
+            console.warn("Failed to auto-restore server password:", err);
+          });
+        }
+      }
+
       if (isUnlocked) {
         adminPasswordScreen.style.display = 'none';
         adminEditorContent.style.display = 'block';
         renderAdminMembersList();
+        checkAndSyncLocalData();
       } else {
         adminPasswordScreen.style.display = 'block';
         adminEditorContent.style.display = 'none';
