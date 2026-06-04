@@ -1553,6 +1553,16 @@ footer {
   color: white;
 }
 
+.admin-action-btn.move-up, .admin-action-btn.move-down {
+  color: var(--text-muted);
+  background: #E2E8F0;
+}
+
+.admin-action-btn.move-up:hover, .admin-action-btn.move-down:hover {
+  background: var(--primary-gold);
+  color: white;
+}
+
 .admin-photo-preview img {
   width: 100%;
   height: 100%;

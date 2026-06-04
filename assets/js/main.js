@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!adminMembersList) return;
     adminMembersList.innerHTML = '';
     
-    teamData.forEach(member => {
+    teamData.forEach((member, index) => {
       const row = document.createElement('div');
       row.className = 'admin-member-row';
       
@@ -302,6 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `<div class="admin-member-mini-avatar"><img src="${member.image}" alt=""></div>`
         : `<div class="admin-member-mini-avatar">${member.avatar || getInitials(member.name)}</div>`;
         
+      const isFirst = index === 0;
+      const isLast = index === teamData.length - 1;
+
       row.innerHTML = `
         <div class="admin-member-meta">
           ${avatarHTML}
@@ -311,11 +314,31 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <div class="admin-member-actions">
+          <button type="button" class="admin-action-btn move-up" title="Move Up" ${isFirst ? 'style="opacity: 0.3; cursor: not-allowed;" disabled' : ''}><i class="fas fa-arrow-up"></i></button>
+          <button type="button" class="admin-action-btn move-down" title="Move Down" ${isLast ? 'style="opacity: 0.3; cursor: not-allowed;" disabled' : ''}><i class="fas fa-arrow-down"></i></button>
           <button type="button" class="admin-action-btn edit" title="Edit Member"><i class="fas fa-edit"></i></button>
           <button type="button" class="admin-action-btn delete" title="Delete Member"><i class="fas fa-trash-alt"></i></button>
         </div>
       `;
       
+      if (!isFirst) {
+        row.querySelector('.admin-action-btn.move-up').addEventListener('click', async () => {
+          const temp = teamData[index];
+          teamData[index] = teamData[index - 1];
+          teamData[index - 1] = temp;
+          await saveTeamData();
+        });
+      }
+
+      if (!isLast) {
+        row.querySelector('.admin-action-btn.move-down').addEventListener('click', async () => {
+          const temp = teamData[index];
+          teamData[index] = teamData[index + 1];
+          teamData[index + 1] = temp;
+          await saveTeamData();
+        });
+      }
+
       row.querySelector('.admin-action-btn.edit').addEventListener('click', () => {
         openEditForm(member);
       });
@@ -333,6 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
       adminMembersList.appendChild(row);
     });
   };
+
   
   const checkAndSyncLocalData = async () => {
     if (!apiAvailable) return;
