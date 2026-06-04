@@ -45,6 +45,20 @@ echo "✅ Dependencies ready."
 
 # Step 3: Deploy the static site & API files to the web root
 WEB_ROOT="/var/www/html/lms"
+
+# Migrate existing database/password files to persistent secure directory before web root is wiped/updated
+echo "🔄 Migrating any existing database/password files to persistent storage..."
+sudo mkdir -p "/var/lib/lms"
+sudo chmod 700 "/var/lib/lms"
+if [ -f "$WEB_ROOT/team.json" ]; then
+    sudo mv "$WEB_ROOT/team.json" "/var/lib/lms/team.json"
+    echo "  -> Migrated team.json"
+fi
+if [ -f "$WEB_ROOT/admin_password.txt" ]; then
+    sudo mv "$WEB_ROOT/admin_password.txt" "/var/lib/lms/admin_password.txt"
+    echo "  -> Migrated admin_password.txt"
+fi
+
 echo "📂 Deploying website files to $WEB_ROOT..."
 
 if [ -f "./index.html" ]; then
@@ -173,8 +187,9 @@ BACKUP_DIR="/var/backups/lms"
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
 
-if [ -f "/var/www/html/lms/team.json" ] || [ -f "/var/www/html/lms/admin_password.txt" ]; then
-    tar -czf "$BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz" -C /var/www/html/lms team.json admin_password.txt 2>/dev/null
+# Check if team.json exists before backing up
+if [ -f "/var/lib/lms/team.json" ] || [ -f "/var/lib/lms/admin_password.txt" ]; then
+    tar -czf "$BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz" -C /var/lib/lms team.json admin_password.txt 2>/dev/null
     echo "✅ Backup saved: $BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz"
 else
     echo "⚠️ Nothing to backup yet."

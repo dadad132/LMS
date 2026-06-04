@@ -4,7 +4,7 @@ import json
 import os
 
 PORT = 8001
-DATA_DIR = "/var/www/html/lms"
+DATA_DIR = "/var/lib/lms"
 TEAM_FILE = os.path.join(DATA_DIR, "team.json")
 PASSWORD_FILE = os.path.join(DATA_DIR, "admin_password.txt")
 
