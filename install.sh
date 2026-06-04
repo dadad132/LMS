@@ -123,20 +123,71 @@ if command -v getenforce &>/dev/null && [ "$(getenforce)" = "Enforcing" ]; then
     echo "✅ SELinux: httpd_can_network_connect enabled."
 fi
 
-# Step 6: Open HTTP port in firewalld (AlmaLinux has firewalld active by default)
+# Step 6: Open HTTP and HTTPS ports in firewalld (AlmaLinux default)
 if command -v firewall-cmd &>/dev/null && systemctl is-active --quiet firewalld; then
-    echo "🔥 Opening port 80 (HTTP) in firewall..."
+    echo "🔥 Opening ports 80 (HTTP) and 443 (HTTPS) in firewall..."
     firewall-cmd --permanent --add-service=http &>/dev/null
+    firewall-cmd --permanent --add-service=https &>/dev/null
     firewall-cmd --reload &>/dev/null
-    echo "✅ Firewall: port 80 open."
+    echo "✅ Firewall: ports 80 and 443 open."
 fi
 
-# Step 7: Configure Nginx Server Block with Domain name & API Routing
+# Step 7: Configure Nginx Server Block with Domain name & API Routing (HTTP/HTTPS Auto-detect)
 echo "🌐 Configuring Nginx..."
 rm -f /etc/nginx/conf.d/default.conf
 rm -f /etc/nginx/conf.d/lms.conf
 
-tee /etc/nginx/conf.d/lms.conf << 'EOF'
+DOMAIN="honeypotglobal.co.za"
+SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+
+if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ]; then
+    echo "🔒 SSL certificates detected. Configuring HTTPS..."
+    tee /etc/nginx/conf.d/lms.conf << 'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name honeypotglobal.co.za www.honeypotglobal.co.za;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name honeypotglobal.co.za www.honeypotglobal.co.za;
+
+    ssl_certificate /etc/letsencrypt/live/honeypotglobal.co.za/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/honeypotglobal.co.za/privkey.pem;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+
+    # Static site files served directly by Nginx (ultra-fast)
+    root /var/www/html/lms;
+    index index.html;
+
+    # Forward all backend API calls to the local Python daemon
+    location /api/ {
+        proxy_pass http://127.0.0.1:8001/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 10s;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+EOF
+else
+    echo "⚠️ No SSL certificates found. Configuring HTTP-only fallback..."
+    tee /etc/nginx/conf.d/lms.conf << 'EOF'
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -162,6 +213,7 @@ server {
     }
 }
 EOF
+fi
 echo "✅ Nginx server block and API routing configured."
 
 # Step 8: Test & Restart Nginx
@@ -173,6 +225,7 @@ if nginx -t 2>/dev/null; then
 else
     echo "❌ Nginx configuration test failed!"
     nginx -t
+
     exit 1
 fi
 

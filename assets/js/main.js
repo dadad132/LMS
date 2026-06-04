@@ -602,6 +602,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Handle manual browser cache restore to server
+  const adminRestoreCacheBtn = document.getElementById('admin-restore-cache-btn');
+  if (adminRestoreCacheBtn) {
+    adminRestoreCacheBtn.addEventListener('click', async () => {
+      const localTeam = localStorage.getItem('honeypot_team');
+      if (!localTeam) {
+        alert("⚠️ No cached profile data found in this browser's storage.");
+        return;
+      }
+      if (confirm("Are you sure you want to overwrite the server data with your browser's local cache? This will restore your customized team profiles and photos.")) {
+        try {
+          const parsed = JSON.parse(localTeam);
+          teamData = parsed;
+          const success = await saveTeamData();
+          if (success) {
+            alert("✅ Successfully restored and synced all profiles and photos to the server!");
+          } else {
+            alert("❌ Failed to save the restored data to the server. Check your connection.");
+          }
+        } catch (e) {
+          alert("❌ Error parsing local database cache.");
+        }
+      }
+    });
+  }
+
   
   if (adminAddNewBtn) {
     adminAddNewBtn.addEventListener('click', () => {
