@@ -4,6 +4,7 @@ import json
 import os
 import hashlib
 import uuid
+import time
 
 PORT = 8001
 DATA_DIR = "/var/lib/lms"
@@ -124,13 +125,60 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
         return None
 
     def get_users(self):
+        users = {}
         if os.path.exists(USERS_FILE):
             try:
                 with open(USERS_FILE, "r") as f:
-                    return json.load(f)
+                    users = json.load(f)
             except Exception:
                 pass
-        return {}
+        
+        # Cleanup & migration loop
+        now = time.time()
+        one_year_seconds = 365 * 24 * 60 * 60
+        six_months_seconds = 6 * 30 * 24 * 60 * 60
+        modified = False
+        
+        cleaned_users = {}
+        for email, u in list(users.items()):
+            role = u.get("role", "user")
+            if role == "admin":
+                cleaned_users[email] = u
+            else:
+                created_at = u.get("created_at")
+                if created_at is None:
+                    created_at = now
+                    u["created_at"] = created_at
+                    modified = True
+                
+                # Permanently delete user after 1 year from creation
+                if now - created_at > one_year_seconds:
+                    modified = True
+                    continue
+                
+                expires_at = u.get("expires_at")
+                if expires_at is None:
+                    expires_at = created_at + six_months_seconds
+                    u["expires_at"] = expires_at
+                    modified = True
+                
+                cleaned_users[email] = u
+        
+        if modified:
+            try:
+                with open(USERS_FILE, "w") as f:
+                    json.dump(cleaned_users, f, indent=2)
+            except Exception:
+                pass
+        return cleaned_users
+
+    def has_admin_user(self):
+        users = self.get_users()
+        for email, u in users.items():
+            if u.get("role") == "admin":
+                return True
+        return False
+
 
     def save_users(self, users):
         with open(USERS_FILE, "w") as f:
@@ -159,7 +207,29 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/api/auth-status":
             setup_done = os.path.exists(PASSWORD_FILE)
-            self.send_json({"setup": setup_done})
+            portal_admin_exists = self.has_admin_user()
+            self.send_json({
+                "setup": setup_done,
+                "portal_admin_exists": portal_admin_exists
+            })
+            return
+
+        elif self.path == "/api/users":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            users = self.get_users()
+            user_list = []
+            for email, u in users.items():
+                user_list.append({
+                    "email": email,
+                    "role": u.get("role", "user"),
+                    "created_at": u.get("created_at"),
+                    "expires_at": u.get("expires_at")
+                })
+            self.send_json(user_list)
             return
 
         elif self.path == "/api/team":
@@ -292,19 +362,41 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
                 return
                 
             users = self.get_users()
+            has_admin = self.has_admin_user()
+            
+            if has_admin:
+                # Require admin session to create accounts
+                creator_session = self.get_session_user()
+                if not creator_session or creator_session["role"] != "admin":
+                    self.send_json({"error": "Unauthorized. Only admins can register users."}, 401)
+                    return
+                
+                # Admin can specify role
+                role = body.get("role", "user").strip().lower()
+                if role not in ["user", "admin"]:
+                    role = "user"
+            else:
+                # Setup mode: allow creating the first admin
+                role = "admin"
+                
             if email in users:
                 self.send_json({"error": "User with this email already exists"}, 400)
                 return
-                
-            # If registering the master admin email, force role 'admin'
-            role = "admin" if email == "admin@honeypotglobal.co.za" else "user"
             
-            users[email] = {
+            now = time.time()
+            user_entry = {
                 "password_hash": hash_password(password),
-                "role": role
+                "role": role,
+                "created_at": now
             }
+            
+            if role != "admin":
+                expiry_months = int(body.get("expiry_months", 6))
+                user_entry["expires_at"] = now + (expiry_months * 30 * 24 * 60 * 60)
+            
+            users[email] = user_entry
             self.save_users(users)
-            self.send_json({"success": True, "message": "Account registered successfully!"})
+            self.send_json({"success": True, "message": f"Account for {email} registered successfully!"})
             return
 
         elif self.path == "/api/login":
@@ -326,11 +418,43 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             users = self.get_users()
             user = users.get(email)
             if user and user["password_hash"] == hash_password(password):
+                if user.get("role") != "admin":
+                    expires_at = user.get("expires_at")
+                    if expires_at and time.time() > expires_at:
+                        self.send_json({"error": "Access period has expired. Please contact an admin."}, 401)
+                        return
+                
                 token = create_session(email, user["role"])
                 self.send_json({"success": True, "email": email, "role": user["role"], "token": token})
                 return
                 
             self.send_json({"error": "Invalid email or password"}, 401)
+            return
+
+        elif self.path == "/api/delete-user":
+            # Verify Admin
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            target_email = body.get("email", "").strip().lower()
+            if not target_email:
+                self.send_json({"error": "Email is required"}, 400)
+                return
+            
+            if target_email == user_session["email"]:
+                self.send_json({"error": "You cannot delete your own logged-in admin account."}, 400)
+                return
+                
+            users = self.get_users()
+            if target_email not in users:
+                self.send_json({"error": "User not found"}, 404)
+                return
+                
+            del users[target_email]
+            self.save_users(users)
+            self.send_json({"success": True, "message": f"User {target_email} deleted successfully."})
             return
 
         # --- Study Materials System ---

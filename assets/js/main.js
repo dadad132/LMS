@@ -783,12 +783,15 @@ document.addEventListener('DOMContentLoaded', () => {
   
   let materialsList = [];
   let activeFilter = 'all';
+  let portalAdminExists = true;
+  let usersList = [];
 
   // Toggle Portal Modal
   if (navPortalBtn && portalModal) {
-    navPortalBtn.addEventListener('click', (e) => {
+    navPortalBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       portalModal.classList.add('active');
+      await checkPortalAdminStatus();
       checkPortalSession();
     });
   }
@@ -848,6 +851,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Check portal status for first admin setup
+  const checkPortalAdminStatus = async () => {
+    try {
+      const res = await fetch(`${apiBase}/auth-status`);
+      if (res.ok) {
+        const data = await res.json();
+        portalAdminExists = data.portal_admin_exists;
+        adjustAuthTabs();
+      }
+    } catch (err) {
+      console.warn("Failed to check portal status:", err);
+    }
+  };
+
+  const adjustAuthTabs = () => {
+    if (!authTabLogin || !authTabRegister || !portalLoginForm || !portalRegisterForm) return;
+
+    if (!portalAdminExists) {
+      authTabLogin.style.display = 'none';
+      authTabRegister.style.display = 'inline-block';
+      authTabRegister.innerText = 'Admin Setup';
+      authTabRegister.style.color = 'var(--primary-amber)';
+      authTabRegister.style.borderBottom = '3px solid var(--primary-amber)';
+      
+      portalLoginForm.style.display = 'none';
+      portalRegisterForm.style.display = 'block';
+      
+      const descText = portalAuthScreen.querySelector('p');
+      if (descText) {
+        descText.innerText = 'First-time setup: Create the primary administrator account to manage study materials, student access, and admin details.';
+      }
+    } else {
+      authTabLogin.style.display = 'inline-block';
+      authTabRegister.style.display = 'none';
+      
+      authTabLogin.style.color = 'var(--primary-amber)';
+      authTabLogin.style.borderBottom = '3px solid var(--primary-amber)';
+      
+      portalLoginForm.style.display = 'block';
+      portalRegisterForm.style.display = 'none';
+
+      const descText = portalAuthScreen.querySelector('p');
+      if (descText) {
+        descText.innerText = 'Log in with your administrator or student credentials to access lesson plans, assignments, and study links.';
+      }
+    }
+  };
+
   // Check portal user session on modal load
   const checkPortalSession = () => {
     const token = sessionStorage.getItem('honeypot_portal_token');
@@ -860,17 +911,268 @@ document.addEventListener('DOMContentLoaded', () => {
       portalUserDisplayEmail.innerText = email;
       portalUserRoleBadge.innerText = role.toUpperCase();
 
+      const portalAdminTabs = document.getElementById('portal-admin-tabs');
+      const portalDashboardSplit = document.getElementById('portal-dashboard-split');
+      const portalAccountsSplit = document.getElementById('portal-accounts-split');
+
       if (role === 'admin') {
         portalAdminSection.style.display = 'block';
+        if (portalAdminTabs) portalAdminTabs.style.display = 'flex';
+        
+        // Reset tabs to Materials active
+        const portalTabMaterials = document.getElementById('portal-tab-materials');
+        const portalTabAccounts = document.getElementById('portal-tab-accounts');
+        if (portalTabMaterials && portalTabAccounts) {
+          portalTabMaterials.classList.add('active');
+          portalTabMaterials.style.color = 'var(--primary-amber)';
+          portalTabMaterials.style.borderBottom = '3px solid var(--primary-amber)';
+          portalTabAccounts.classList.remove('active');
+          portalTabAccounts.style.color = 'var(--text-muted)';
+          portalTabAccounts.style.borderBottom = '3px solid transparent';
+        }
+        if (portalDashboardSplit) portalDashboardSplit.style.display = 'grid';
+        if (portalAccountsSplit) portalAccountsSplit.style.display = 'none';
       } else {
         portalAdminSection.style.display = 'none';
+        if (portalAdminTabs) portalAdminTabs.style.display = 'none';
+        if (portalDashboardSplit) portalDashboardSplit.style.display = 'grid';
+        if (portalAccountsSplit) portalAccountsSplit.style.display = 'none';
       }
       fetchMaterials();
     } else {
       portalAuthScreen.style.display = 'block';
       portalDashboardScreen.style.display = 'none';
+      const portalAdminTabs = document.getElementById('portal-admin-tabs');
+      if (portalAdminTabs) portalAdminTabs.style.display = 'none';
     }
   };
+
+  // Switch between Materials and Accounts in admin console
+  const portalTabMaterials = document.getElementById('portal-tab-materials');
+  const portalTabAccounts = document.getElementById('portal-tab-accounts');
+  const portalDashboardSplit = document.getElementById('portal-dashboard-split');
+  const portalAccountsSplit = document.getElementById('portal-accounts-split');
+
+  if (portalTabMaterials && portalTabAccounts && portalDashboardSplit && portalAccountsSplit) {
+    portalTabMaterials.addEventListener('click', () => {
+      portalTabMaterials.classList.add('active');
+      portalTabMaterials.style.color = 'var(--primary-amber)';
+      portalTabMaterials.style.borderBottom = '3px solid var(--primary-amber)';
+      
+      portalTabAccounts.classList.remove('active');
+      portalTabAccounts.style.color = 'var(--text-muted)';
+      portalTabAccounts.style.borderBottom = '3px solid transparent';
+      
+      portalDashboardSplit.style.display = 'grid';
+      portalAccountsSplit.style.display = 'none';
+      fetchMaterials();
+    });
+
+    portalTabAccounts.addEventListener('click', () => {
+      portalTabAccounts.classList.add('active');
+      portalTabAccounts.style.color = 'var(--primary-amber)';
+      portalTabAccounts.style.borderBottom = '3px solid var(--primary-amber)';
+      
+      portalTabMaterials.classList.remove('active');
+      portalTabMaterials.style.color = 'var(--text-muted)';
+      portalTabMaterials.style.borderBottom = '3px solid transparent';
+      
+      portalAccountsSplit.style.display = 'grid';
+      portalDashboardSplit.style.display = 'none';
+      fetchUsers();
+    });
+  }
+
+  // Fetch registered users (Admin only)
+  const fetchUsers = async () => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${apiBase}/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        usersList = await res.json();
+        renderUsers();
+      } else {
+        console.warn("Failed to fetch registered users list.");
+      }
+    } catch (err) {
+      console.error("Network error fetching users:", err);
+    }
+  };
+
+  // Render accounts list
+  const renderUsers = () => {
+    const usersListContainer = document.getElementById('portal-users-list');
+    if (!usersListContainer) return;
+    
+    usersListContainer.innerHTML = '';
+    
+    if (usersList.length === 0) {
+      usersListContainer.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.9rem;">No other accounts registered.</p>`;
+      return;
+    }
+
+    const currentEmail = sessionStorage.getItem('honeypot_portal_email');
+
+    usersList.forEach(user => {
+      const row = document.createElement('div');
+      row.className = 'portal-material-card';
+      
+      const roleColor = user.role === 'admin' ? '#D97706' : '#3B82F6';
+      const roleBg = user.role === 'admin' ? 'var(--accent-warm)' : '#EFF6FF';
+      const roleText = user.role.toUpperCase();
+      
+      const isSelf = user.email === currentEmail;
+      
+      let lifespanHTML = '';
+      if (user.role !== 'admin') {
+        const createdDate = new Date(user.created_at * 1000).toLocaleDateString();
+        const expiresDate = new Date(user.expires_at * 1000).toLocaleDateString();
+        const isExpired = Date.now() > (user.expires_at * 1000);
+        
+        lifespanHTML = `
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+            Created: <strong>${createdDate}</strong> | Expires: <strong style="color: ${isExpired ? '#EF4444' : '#10B981'};">${expiresDate}</strong>
+            ${isExpired ? ' <span style="color: #EF4444; font-weight: 700;">(EXPIRED)</span>' : ''}
+          </div>
+        `;
+      } else {
+        lifespanHTML = `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Lifespan: <strong style="color: #D97706;">FOREVER</strong></div>`;
+      }
+
+      const deleteBtnHTML = isSelf 
+        ? `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic; padding: 6px 12px; background: rgba(0,0,0,0.04); border-radius: 4px;">Logged In</span>`
+        : `<button class="admin-action-btn delete portal-delete-user-btn" data-email="${user.email}" title="Delete Account" style="background: #FEF2F2; color: #EF4444; border: 1px solid #FCA5A5;"><i class="fas fa-trash-alt"></i></button>`;
+
+      row.innerHTML = `
+        <div class="portal-material-meta">
+          <div class="portal-type-badge ${user.role === 'admin' ? 'pdf' : 'doc'}" style="font-size: 1.1rem; width: 36px; height: 36px;">
+            <i class="fas ${user.role === 'admin' ? 'fa-user-shield' : 'fa-user-graduate'}"></i>
+          </div>
+          <div class="portal-material-info">
+            <h5 style="margin: 0; font-size: 0.9rem; font-weight: 700;">${user.email}</h5>
+            ${lifespanHTML}
+          </div>
+        </div>
+        <div class="portal-material-actions">
+          <span style="background: ${roleBg}; color: ${roleColor}; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; border: 1px solid ${user.role === 'admin' ? 'rgba(217, 119, 6, 0.2)' : 'rgba(59, 130, 246, 0.2)'};">${roleText}</span>
+          ${deleteBtnHTML}
+        </div>
+      `;
+
+      if (!isSelf) {
+        row.querySelector('.portal-delete-user-btn').addEventListener('click', async (e) => {
+          e.preventDefault();
+          const email = e.currentTarget.getAttribute('data-email');
+          if (confirm(`Are you sure you want to permanently delete the user account for ${email}? This student will lose all access.`)) {
+            const token = sessionStorage.getItem('honeypot_portal_token');
+            try {
+              const res = await fetch(`${apiBase}/delete-user`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ email: email })
+              });
+              if (res.ok) {
+                fetchUsers();
+              } else {
+                const err = await res.json();
+                alert(`Failed to delete user: ${err.error}`);
+              }
+            } catch (err) {
+              alert("Network error deleting user account.");
+            }
+          }
+        });
+      }
+
+      usersListContainer.appendChild(row);
+    });
+  };
+
+  // Create User Form elements switcher
+  const createUserRoleSelect = document.getElementById('create-user-role');
+  const createUserExpiryGroup = document.getElementById('create-user-expiry-group');
+  const portalCreateUserForm = document.getElementById('portalCreateUserForm');
+  const portalCreateUserFeedback = document.getElementById('portal-create-user-feedback');
+
+  if (createUserRoleSelect && createUserExpiryGroup) {
+    createUserRoleSelect.addEventListener('change', () => {
+      if (createUserRoleSelect.value === 'admin') {
+        createUserExpiryGroup.style.display = 'none';
+      } else {
+        createUserExpiryGroup.style.display = 'block';
+      }
+    });
+  }
+
+  // Handle Admin user creation submit
+  if (portalCreateUserForm) {
+    portalCreateUserForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('create-user-email').value.trim();
+      const password = document.getElementById('create-user-password').value;
+      const role = createUserRoleSelect.value;
+      const expiryMonths = document.getElementById('create-user-expiry').value;
+      
+      const token = sessionStorage.getItem('honeypot_portal_token');
+
+      if (portalCreateUserFeedback) {
+        portalCreateUserFeedback.innerText = "⏳ Registering user account...";
+        portalCreateUserFeedback.style.color = "var(--primary-amber)";
+        portalCreateUserFeedback.style.display = "block";
+      }
+
+      try {
+        const res = await fetch(`${apiBase}/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            role,
+            expiry_months: role === 'admin' ? 0 : parseInt(expiryMonths)
+          })
+        });
+        
+        if (res.ok) {
+          if (portalCreateUserFeedback) {
+            portalCreateUserFeedback.innerText = `✅ Account for ${email} created successfully!`;
+            portalCreateUserFeedback.style.color = "#22C55E";
+          }
+          portalCreateUserForm.reset();
+          if (createUserExpiryGroup) createUserExpiryGroup.style.display = 'block';
+          fetchUsers();
+          
+          setTimeout(() => {
+            if (portalCreateUserFeedback) portalCreateUserFeedback.style.display = "none";
+          }, 4000);
+        } else {
+          const err = await res.json();
+          if (portalCreateUserFeedback) {
+            portalCreateUserFeedback.innerText = `❌ Error: ${err.error || 'Failed to register account'}`;
+            portalCreateUserFeedback.style.color = "#EF4444";
+          }
+        }
+      } catch (err) {
+        if (portalCreateUserFeedback) {
+          portalCreateUserFeedback.innerText = "❌ Network error creating user account.";
+          portalCreateUserFeedback.style.color = "#EF4444";
+        }
+      }
+    });
+  }
 
   // Fetch study materials from API
   const fetchMaterials = async () => {
@@ -919,9 +1221,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (item.type === 'pdf') typeIcon = '<i class="fas fa-file-pdf"></i>';
       if (item.type === 'doc') typeIcon = '<i class="fas fa-file-word"></i>';
 
-      const downloadUrl = apiAvailable ? `${apiBase.replace('/api', '')}${item.url}` : '#';
-
-      // Renders delete button only for admin logins
       const deleteBtnHTML = currentRole === 'admin' 
         ? `<button class="admin-action-btn delete portal-delete-btn" data-id="${item.id}" title="Remove Material"><i class="fas fa-trash-alt"></i></button>`
         : '';
@@ -942,7 +1241,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Wire up deletion trigger for admins
       if (currentRole === 'admin') {
         card.querySelector('.portal-delete-btn').addEventListener('click', async (e) => {
           e.preventDefault();
@@ -992,7 +1290,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
 
-      if (portalLoginError) portalLoginError.style.display = 'none';
+      if (portalLoginError) {
+        portalLoginError.style.display = 'none';
+        portalLoginError.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid credentials.';
+      }
 
       try {
         const res = await fetch(`${apiBase}/login`, {
@@ -1009,7 +1310,11 @@ document.addEventListener('DOMContentLoaded', () => {
           portalLoginForm.reset();
           checkPortalSession();
         } else {
-          if (portalLoginError) portalLoginError.style.display = 'block';
+          const err = await res.json();
+          if (portalLoginError) {
+            portalLoginError.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${err.error || 'Invalid credentials.'}`;
+            portalLoginError.style.display = 'block';
+          }
         }
       } catch (err) {
         alert("Failed to connect to authentication server API.");
@@ -1017,7 +1322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Handle Registration Form Submit
+  // Handle Registration Form Submit (Used only for setup mode)
   if (portalRegisterForm) {
     portalRegisterForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1046,8 +1351,9 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ email, password })
         });
         if (res.ok) {
-          showRegisterFeedback("✅ Account created successfully! Switch to Login tab to sign in.", "#22C55E");
+          showRegisterFeedback("✅ Primary administrator created successfully! Switch to Login tab to sign in.", "#22C55E");
           portalRegisterForm.reset();
+          await checkPortalAdminStatus();
         } else {
           const err = await res.json();
           showRegisterFeedback(`❌ Error: ${err.error || 'Registration failed'}`, "#EF4444");
