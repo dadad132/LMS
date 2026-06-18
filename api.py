@@ -173,6 +173,10 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
         return cleaned_users
 
     def has_admin_user(self):
+        # 1. If master admin password exists, we have an admin
+        if os.path.exists(PASSWORD_FILE):
+            return True
+        # 2. Check general users database
         users = self.get_users()
         for email, u in users.items():
             if u.get("role") == "admin":
