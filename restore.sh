@@ -68,10 +68,16 @@ tar -xzf "$selected_backup" -C "$temp_extract" 2>/dev/null
 # Newer backups have it at root (from -C /var/lib/lms)
 found_team=""
 found_password=""
+found_users=""
+found_materials=""
+found_uploads=""
 
 # Search recursively in the temp folder
 team_paths=$(find "$temp_extract" -name "team.json")
 password_paths=$(find "$temp_extract" -name "admin_password.txt")
+users_paths=$(find "$temp_extract" -name "users.json")
+materials_paths=$(find "$temp_extract" -name "materials.json")
+uploads_paths=$(find "$temp_extract" -type d -name "uploads")
 
 for p in $team_paths; do
     found_team="$p"
@@ -81,6 +87,24 @@ done
 for p in $password_paths; do
     found_password="$p"
     break
+done
+
+for p in $users_paths; do
+    found_users="$p"
+    break
+done
+
+for p in $materials_paths; do
+    found_materials="$p"
+    break
+done
+
+for p in $uploads_paths; do
+    # Ensure it's not the temp_extract root directory itself if it's named uploads somehow
+    if [ "$(basename "$p")" = "uploads" ]; then
+        found_uploads="$p"
+        break
+    fi
 done
 
 if [ -n "$found_team" ]; then
@@ -97,18 +121,50 @@ else
     echo "⚠️  admin_password.txt not found in this backup archive."
 fi
 
+if [ -n "$found_users" ]; then
+    cp -f "$found_users" "$DATA_DIR/users.json"
+    echo "✅ Restored users.json student/admin accounts."
+else
+    echo "⚠️  users.json not found in this backup archive."
+fi
+
+if [ -n "$found_materials" ]; then
+    cp -f "$found_materials" "$DATA_DIR/materials.json"
+    echo "✅ Restored materials.json study resources metadata."
+else
+    echo "⚠️  materials.json not found in this backup archive."
+fi
+
+if [ -n "$found_uploads" ]; then
+    mkdir -p "$DATA_DIR/uploads"
+    cp -rf "$found_uploads"/. "$DATA_DIR/uploads/"
+    echo "✅ Restored uploads/ study documents and files."
+else
+    echo "⚠️  uploads/ directory not found in this backup archive."
+fi
+
 # Clean up temp
 rm -rf "$temp_extract"
 
-# Fix permissions
-chmod 700 "$DATA_DIR"
-if [ -f "$DATA_DIR/team.json" ]; then
-    chmod 600 "$DATA_DIR/team.json"
+# Fix permissions to ensure secure access while allowing Nginx to serve uploads
+chmod 755 "$DATA_DIR"
+if [ -d "$DATA_DIR/uploads" ]; then
+    chmod 755 "$DATA_DIR/uploads"
+    find "$DATA_DIR/uploads" -type f -exec chmod 644 {} \; 2>/dev/null || true
 fi
-if [ -f "$DATA_DIR/admin_password.txt" ]; then
-    chmod 600 "$DATA_DIR/admin_password.txt"
-fi
+
+for f in team.json admin_password.txt users.json materials.json; do
+    if [ -f "$DATA_DIR/$f" ]; then
+        chmod 600 "$DATA_DIR/$f"
+    fi
+done
+
 chown -R root:root "$DATA_DIR"
+
+# Restore correct SELinux context for uploads
+if command -v restorecon &>/dev/null; then
+    restorecon -R "$DATA_DIR/uploads" &>/dev/null || true
+fi
 
 # Restart API to load new files
 echo "🔄 Restarting API service..."

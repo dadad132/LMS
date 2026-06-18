@@ -748,7 +748,404 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Run initial render on page load
+  // --- CLIENT STUDY PORTAL CONTROLLER LOGIC ---
+  const portalModal = document.getElementById('portalModal');
+  const navPortalBtn = document.getElementById('nav-portal-btn');
+  const portalCloseBtn = document.getElementById('portalCloseBtn');
+  
+  const portalAuthScreen = document.getElementById('portal-auth-screen');
+  const portalDashboardScreen = document.getElementById('portal-dashboard-screen');
+  const portalLogoutBtn = document.getElementById('portal-logout-btn');
+  
+  // Auth Tab Toggles
+  const authTabLogin = document.getElementById('auth-tab-login');
+  const authTabRegister = document.getElementById('auth-tab-register');
+  const portalLoginForm = document.getElementById('portalLoginForm');
+  const portalRegisterForm = document.getElementById('portalRegisterForm');
+  
+  const portalLoginError = document.getElementById('portal-login-error');
+  const portalRegisterFeedback = document.getElementById('portal-register-feedback');
+  
+  // Dashboard Elements
+  const portalUserDisplayEmail = document.getElementById('portal-user-display-email');
+  const portalUserRoleBadge = document.getElementById('portal-user-role-badge');
+  const portalMaterialsGrid = document.getElementById('portal-materials-grid');
+  
+  // Admin Uploader Elements
+  const portalAdminSection = document.getElementById('portal-admin-section');
+  const portalUploadForm = document.getElementById('portalUploadForm');
+  const materialTypeSelect = document.getElementById('material-type');
+  const materialUrlGroup = document.getElementById('material-url-group');
+  const materialFileGroup = document.getElementById('material-file-group');
+  const materialFileInput = document.getElementById('material-file');
+  const selectedFileLabel = document.getElementById('selected-file-label');
+  const portalUploadFeedback = document.getElementById('portal-upload-feedback');
+  
+  let materialsList = [];
+  let activeFilter = 'all';
+
+  // Toggle Portal Modal
+  if (navPortalBtn && portalModal) {
+    navPortalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      portalModal.classList.add('active');
+      checkPortalSession();
+    });
+  }
+
+  if (portalCloseBtn && portalModal) {
+    portalCloseBtn.addEventListener('click', () => {
+      portalModal.classList.remove('active');
+    });
+  }
+
+  // Switch between Login and Register tabs
+  if (authTabLogin && authTabRegister && portalLoginForm && portalRegisterForm) {
+    authTabLogin.addEventListener('click', () => {
+      authTabLogin.style.color = 'var(--primary-amber)';
+      authTabLogin.style.borderBottom = '3px solid var(--primary-amber)';
+      authTabRegister.style.color = 'var(--text-muted)';
+      authTabRegister.style.borderBottom = '3px solid transparent';
+      portalLoginForm.style.display = 'block';
+      portalRegisterForm.style.display = 'none';
+      if (portalLoginError) portalLoginError.style.display = 'none';
+    });
+
+    authTabRegister.addEventListener('click', () => {
+      authTabRegister.style.color = 'var(--primary-amber)';
+      authTabRegister.style.borderBottom = '3px solid var(--primary-amber)';
+      authTabLogin.style.color = 'var(--text-muted)';
+      authTabLogin.style.borderBottom = '3px solid transparent';
+      portalRegisterForm.style.display = 'block';
+      portalLoginForm.style.display = 'none';
+      if (portalRegisterFeedback) portalRegisterFeedback.style.display = 'none';
+    });
+  }
+
+  // Material Type Select Toggle: Links vs Files
+  if (materialTypeSelect && materialUrlGroup && materialFileGroup) {
+    materialTypeSelect.addEventListener('change', () => {
+      const val = materialTypeSelect.value;
+      if (val === 'link') {
+        materialUrlGroup.style.display = 'block';
+        materialFileGroup.style.display = 'none';
+      } else {
+        materialUrlGroup.style.display = 'none';
+        materialFileGroup.style.display = 'block';
+      }
+    });
+  }
+
+  // File picker selection feedback
+  if (materialFileInput && selectedFileLabel) {
+    materialFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        selectedFileLabel.innerText = `📎 Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+      } else {
+        selectedFileLabel.innerText = '';
+      }
+    });
+  }
+
+  // Check portal user session on modal load
+  const checkPortalSession = () => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    const email = sessionStorage.getItem('honeypot_portal_email');
+    const role = sessionStorage.getItem('honeypot_portal_role');
+
+    if (token && email && role) {
+      portalAuthScreen.style.display = 'none';
+      portalDashboardScreen.style.display = 'block';
+      portalUserDisplayEmail.innerText = email;
+      portalUserRoleBadge.innerText = role.toUpperCase();
+
+      if (role === 'admin') {
+        portalAdminSection.style.display = 'block';
+      } else {
+        portalAdminSection.style.display = 'none';
+      }
+      fetchMaterials();
+    } else {
+      portalAuthScreen.style.display = 'block';
+      portalDashboardScreen.style.display = 'none';
+    }
+  };
+
+  // Fetch study materials from API
+  const fetchMaterials = async () => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${apiBase}/materials`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        materialsList = await res.json();
+        renderMaterials();
+      } else {
+        console.warn("Failed to fetch materials list from server.");
+      }
+    } catch (err) {
+      console.error("Network error fetching materials:", err);
+    }
+  };
+
+  // Render Materials in the dashboard grid
+  const renderMaterials = () => {
+    if (!portalMaterialsGrid) return;
+    portalMaterialsGrid.innerHTML = '';
+
+    const filtered = materialsList.filter(item => {
+      if (activeFilter === 'all') return true;
+      return item.type === activeFilter;
+    });
+
+    if (filtered.length === 0) {
+      portalMaterialsGrid.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.9rem;">No ${activeFilter !== 'all' ? activeFilter.toUpperCase() + 's' : 'resources'} uploaded yet.</p>`;
+      return;
+    }
+
+    const currentRole = sessionStorage.getItem('honeypot_portal_role');
+
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'portal-material-card';
+
+      let typeIcon = '<i class="fas fa-link"></i>';
+      if (item.type === 'pdf') typeIcon = '<i class="fas fa-file-pdf"></i>';
+      if (item.type === 'doc') typeIcon = '<i class="fas fa-file-word"></i>';
+
+      const downloadUrl = apiAvailable ? `${apiBase.replace('/api', '')}${item.url}` : '#';
+
+      // Renders delete button only for admin logins
+      const deleteBtnHTML = currentRole === 'admin' 
+        ? `<button class="admin-action-btn delete portal-delete-btn" data-id="${item.id}" title="Remove Material"><i class="fas fa-trash-alt"></i></button>`
+        : '';
+
+      card.innerHTML = `
+        <div class="portal-material-meta">
+          <div class="portal-type-badge ${item.type}">${typeIcon}</div>
+          <div class="portal-material-info">
+            <h5>${item.title}</h5>
+            <p>${item.description || 'No description provided.'}</p>
+          </div>
+        </div>
+        <div class="portal-material-actions">
+          <a href="${item.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem; box-shadow: none; display: flex; align-items: center; gap: 6px;">
+            <i class="fas fa-external-link-alt"></i> Open
+          </a>
+          ${deleteBtnHTML}
+        </div>
+      `;
+
+      // Wire up deletion trigger for admins
+      if (currentRole === 'admin') {
+        card.querySelector('.portal-delete-btn').addEventListener('click', async (e) => {
+          e.preventDefault();
+          const id = e.currentTarget.getAttribute('data-id');
+          if (confirm("Are you sure you want to delete this study resource from the server?")) {
+            const token = sessionStorage.getItem('honeypot_portal_token');
+            try {
+              const res = await fetch(`${apiBase}/delete-material`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ id: id })
+              });
+              if (res.ok) {
+                fetchMaterials();
+              } else {
+                alert("Failed to delete study material.");
+              }
+            } catch (err) {
+              alert("Network error deleting material.");
+            }
+          }
+        });
+      }
+
+      portalMaterialsGrid.appendChild(card);
+    });
+  };
+
+  // Filter Tabs Event Listeners
+  const filterTabs = document.querySelectorAll('#portal-filter-tabs button');
+  filterTabs.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      filterTabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.getAttribute('data-filter');
+      renderMaterials();
+    });
+  });
+
+  // Handle Login Form Submit
+  if (portalLoginForm) {
+    portalLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (portalLoginError) portalLoginError.style.display = 'none';
+
+      try {
+        const res = await fetch(`${apiBase}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          sessionStorage.setItem('honeypot_portal_token', data.token);
+          sessionStorage.setItem('honeypot_portal_email', data.email);
+          sessionStorage.setItem('honeypot_portal_role', data.role);
+          
+          portalLoginForm.reset();
+          checkPortalSession();
+        } else {
+          if (portalLoginError) portalLoginError.style.display = 'block';
+        }
+      } catch (err) {
+        alert("Failed to connect to authentication server API.");
+      }
+    });
+  }
+
+  // Handle Registration Form Submit
+  if (portalRegisterForm) {
+    portalRegisterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('register-email').value.trim();
+      const password = document.getElementById('register-password').value;
+      const confirmPass = document.getElementById('register-confirm').value;
+
+      if (portalRegisterFeedback) {
+        portalRegisterFeedback.style.display = 'none';
+      }
+
+      if (password.length < 4) {
+        showRegisterFeedback("❌ Password must be at least 4 characters long.", "#EF4444");
+        return;
+      }
+
+      if (password !== confirmPass) {
+        showRegisterFeedback("❌ Passwords do not match.", "#EF4444");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${apiBase}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (res.ok) {
+          showRegisterFeedback("✅ Account created successfully! Switch to Login tab to sign in.", "#22C55E");
+          portalRegisterForm.reset();
+        } else {
+          const err = await res.json();
+          showRegisterFeedback(`❌ Error: ${err.error || 'Registration failed'}`, "#EF4444");
+        }
+      } catch (err) {
+        showRegisterFeedback("❌ Failed to connect to registration server API.", "#EF4444");
+      }
+    });
+  }
+
+  const showRegisterFeedback = (text, color) => {
+    if (portalRegisterFeedback) {
+      portalRegisterFeedback.innerText = text;
+      portalRegisterFeedback.style.color = color;
+      portalRegisterFeedback.style.display = 'block';
+    }
+  };
+
+  // Handle Logout Event
+  if (portalLogoutBtn) {
+    portalLogoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('honeypot_portal_token');
+      sessionStorage.removeItem('honeypot_portal_email');
+      sessionStorage.removeItem('honeypot_portal_role');
+      checkPortalSession();
+    });
+  }
+
+  // Handle Study Material File Upload (Admin Form Submit)
+  if (portalUploadForm) {
+    portalUploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('material-title').value.trim();
+      const description = document.getElementById('material-desc').value.trim();
+      const type = materialTypeSelect.value;
+      const url = document.getElementById('material-url').value.trim();
+      const file = materialFileInput.files[0];
+      const token = sessionStorage.getItem('honeypot_portal_token');
+
+      if (portalUploadFeedback) {
+        portalUploadFeedback.innerText = "⏳ Saving resource details...";
+        portalUploadFeedback.style.color = "var(--primary-amber)";
+        portalUploadFeedback.style.display = "block";
+      }
+
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('type', type);
+
+      if (type === 'link') {
+        formData.append('url', url);
+      } else {
+        if (!file) {
+          alert("Please select a file to upload.");
+          return;
+        }
+        formData.append('file', file);
+      }
+
+      try {
+        const res = await fetch(`${apiBase}/upload-material`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        if (res.ok) {
+          if (portalUploadFeedback) {
+            portalUploadFeedback.innerText = "✅ Resource uploaded and saved successfully!";
+            portalUploadFeedback.style.color = "#22C55E";
+          }
+          portalUploadForm.reset();
+          if (selectedFileLabel) selectedFileLabel.innerText = '';
+          fetchMaterials();
+          
+          setTimeout(() => {
+            if (portalUploadFeedback) portalUploadFeedback.style.display = "none";
+          }, 3000);
+        } else {
+          const err = await res.json();
+          if (portalUploadFeedback) {
+            portalUploadFeedback.innerText = `❌ Error: ${err.error || 'Failed to upload resource'}`;
+            portalUploadFeedback.style.color = "#EF4444";
+          }
+        }
+      } catch (err) {
+        if (portalUploadFeedback) {
+          portalUploadFeedback.innerText = "❌ Network error during resource upload.";
+          portalUploadFeedback.style.color = "#EF4444";
+        }
+      }
+    });
+  }
+
+  // Run initial renders on page load
   loadInitialData();
 
 });
+

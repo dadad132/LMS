@@ -38,7 +38,8 @@
           <li><a href="#services">Training Center</a></li>
           <li><a href="#team">Our Team</a></li>
           <li><a href="#social">Community</a></li>
-          <li><a href="#contact" class="btn btn-primary" style="padding: 10px 20px; box-shadow: none;">Get Started <i class="fas fa-chevron-right" style="font-size: 0.8rem;"></i></a></li>
+          <li><a href="#contact" class="btn btn-primary" style="padding: 10px 15px; box-shadow: none;">Get Started <i class="fas fa-chevron-right" style="font-size: 0.8rem;"></i></a></li>
+          <li><a href="#portal" class="btn btn-secondary" id="nav-portal-btn" style="padding: 10px 15px; box-shadow: none; margin-left: 8px;"><i class="fas fa-user-graduate"></i> Client Portal</a></li>
         </ul>
       </nav>
     </div>
@@ -525,6 +526,158 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --- CLIENT PORTAL MODAL --- -->
+  <div id="portalModal" class="admin-modal-overlay">
+    <div class="admin-modal-container" style="max-width: 950px;">
+      <div class="admin-modal-header" style="background: linear-gradient(135deg, var(--dark-slate), var(--dark-charcoal)); color: white; border: none;">
+        <h3><i class="fas fa-graduation-cap" style="color: var(--primary-gold);"></i> Student & Study Materials Portal</h3>
+        <button id="portalCloseBtn" class="admin-close-btn" style="color: white; opacity: 0.8;">&times;</button>
+      </div>
+      
+      <div class="admin-modal-body">
+        
+        <!-- PORTAL AUTHENTICATION SCREEN -->
+        <div id="portal-auth-screen" style="max-width: 450px; margin: 20px auto; background: white; padding: 32px; border-radius: var(--border-radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid rgba(245, 158, 11, 0.1);">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 2.8rem; color: var(--primary-amber); margin-bottom: 8px;"><i class="fas fa-user-circle"></i></div>
+            <h4 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 8px;">Access Your Study Materials</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Log in or create a student account to view custom TEFL assignment guides, documents, and class links.</p>
+          </div>
+          
+          <!-- Auth Tabs -->
+          <div style="display: flex; border-bottom: 2px solid var(--accent-warm); margin-bottom: 24px; gap: 16px;">
+            <button id="auth-tab-login" class="btn" style="background: none; border: none; font-weight: 700; color: var(--primary-amber); border-bottom: 3px solid var(--primary-amber); border-radius: 0; padding: 8px 16px; font-size: 0.95rem; cursor: pointer; box-shadow: none;">Login</button>
+            <button id="auth-tab-register" class="btn" style="background: none; border: none; font-weight: 600; color: var(--text-muted); border-bottom: 3px solid transparent; border-radius: 0; padding: 8px 16px; font-size: 0.95rem; cursor: pointer; box-shadow: none;">Register</button>
+          </div>
+          
+          <!-- Login Form -->
+          <form id="portalLoginForm">
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="login-email" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); margin-bottom: 6px; display: block;">Email Address *</label>
+              <input type="email" id="login-email" class="form-control" style="padding: 12px;" required placeholder="student@example.com">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px; text-align: left;">
+              <label for="login-password" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); margin-bottom: 6px; display: block;">Password *</label>
+              <input type="password" id="login-password" class="form-control" style="padding: 12px;" required placeholder="••••••••">
+            </div>
+            <div id="portal-login-error" style="color: #EF4444; font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; display: none; text-align: center;">
+              <i class="fas fa-exclamation-circle"></i> Invalid credentials.
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">Sign In <i class="fas fa-sign-in-alt"></i></button>
+          </form>
+          
+          <!-- Registration Form (Hidden Initially) -->
+          <form id="portalRegisterForm" style="display: none;">
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="register-email" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); margin-bottom: 6px; display: block;">Email Address *</label>
+              <input type="email" id="register-email" class="form-control" style="padding: 12px;" required placeholder="student@example.com">
+            </div>
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="register-password" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); margin-bottom: 6px; display: block;">Create Password *</label>
+              <input type="password" id="register-password" class="form-control" style="padding: 12px;" required placeholder="Minimum 4 characters">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px; text-align: left;">
+              <label for="register-confirm" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); margin-bottom: 6px; display: block;">Confirm Password *</label>
+              <input type="password" id="register-confirm" class="form-control" style="padding: 12px;" required placeholder="••••••••">
+            </div>
+            <div id="portal-register-feedback" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; display: none; text-align: center;">
+              <!-- Filled dynamically by JS -->
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">Create Account <i class="fas fa-user-plus"></i></button>
+          </form>
+        </div>
+
+        <!-- PORTAL DASHBOARD SCREEN (HIDDEN UNTIL AUTHENTICATED) -->
+        <div id="portal-dashboard-screen" style="display: none;">
+          <!-- Dashboard Top Bar -->
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 16px; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+            <div style="text-align: left;">
+              <h4 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--dark-slate);">Study dashboard</h4>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 0 0;">Welcome back, <strong id="portal-user-display-email" style="color: var(--primary-amber);">student@example.com</strong> <span id="portal-user-role-badge" style="background: var(--accent-warm); color: var(--primary-amber); padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-left: 6px;">Student</span></p>
+            </div>
+            <button id="portal-logout-btn" class="btn btn-secondary" style="padding: 10px 20px; font-size: 0.85rem; border-color: rgba(0,0,0,0.15); color: var(--text-dark);"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+          </div>
+
+          <!-- Main Dashboard Split panel -->
+          <div class="admin-editor-split" id="portal-dashboard-split">
+            
+            <!-- Materials Resources Pane -->
+            <div class="admin-pane-list" style="padding: 0; border: none; box-shadow: none; background: none;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--dark-charcoal);"><i class="fas fa-book"></i> Study Materials & Links</h4>
+                
+                <!-- Filter Tabs -->
+                <div style="display: flex; gap: 6px;" id="portal-filter-tabs">
+                  <button class="btn active" data-filter="all" style="padding: 4px 10px; font-size: 0.75rem; box-shadow: none;">All</button>
+                  <button class="btn" data-filter="pdf" style="padding: 4px 10px; font-size: 0.75rem; box-shadow: none; background: #FEF2F2; color: #EF4444; border: 1px solid #FCA5A5;">PDFs</button>
+                  <button class="btn" data-filter="doc" style="padding: 4px 10px; font-size: 0.75rem; box-shadow: none; background: #EFF6FF; color: #3B82F6; border: 1px solid #93C5FD;">Docs</button>
+                  <button class="btn" data-filter="link" style="padding: 4px 10px; font-size: 0.75rem; box-shadow: none; background: #F0FDF4; color: #22C55E; border: 1px solid #86EFAC;">Links</button>
+                </div>
+              </div>
+              
+              <!-- Materials grid listing -->
+              <div id="portal-materials-grid" class="admin-members-rows" style="max-height: 500px; display: grid; grid-template-columns: 1fr; gap: 12px; padding-right: 4px;">
+                <!-- Filled dynamically by JS -->
+                <p style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.9rem;">No resources uploaded yet.</p>
+              </div>
+            </div>
+
+            <!-- Admin Material Uploader Section (Visible only to admins) -->
+            <div class="admin-pane-form" id="portal-admin-section" style="display: none; border: 1px solid rgba(245, 158, 11, 0.15); background: #FAF9F6;">
+              <h4 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 16px 0; color: var(--dark-charcoal); text-align: left;"><i class="fas fa-plus-circle"></i> Upload New Resource</h4>
+              
+              <form id="portalUploadForm">
+                <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+                  <label for="material-title" style="font-size: 0.8rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 4px;">Resource Title *</label>
+                  <input type="text" id="material-title" class="form-control" style="padding: 10px; font-size: 0.85rem;" placeholder="e.g. TEFL Lesson Plan Template" required>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+                  <label for="material-desc" style="font-size: 0.8rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 4px;">Short Description</label>
+                  <input type="text" id="material-desc" class="form-control" style="padding: 10px; font-size: 0.85rem;" placeholder="e.g. Mandatory structure guidelines for Module 3 assignment">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+                  <label for="material-type" style="font-size: 0.8rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 4px;">Resource Type *</label>
+                  <select id="material-type" class="form-control" style="padding: 10px; font-size: 0.85rem;">
+                    <option value="link">Clickable Web Link / URL</option>
+                    <option value="pdf">PDF Document</option>
+                    <option value="doc">Word Document (DOCX/DOC)</option>
+                  </select>
+                </div>
+
+                <!-- Type specific field: Link URL -->
+                <div class="form-group" id="material-url-group" style="margin-bottom: 16px; text-align: left;">
+                  <label for="material-url" style="font-size: 0.8rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 4px;">Web URL Link *</label>
+                  <input type="url" id="material-url" class="form-control" style="padding: 10px; font-size: 0.85rem;" placeholder="https://example.com/class-link">
+                </div>
+
+                <!-- Type specific field: File Upload -->
+                <div class="form-group" id="material-file-group" style="margin-bottom: 16px; text-align: left; display: none;">
+                  <label style="font-size: 0.8rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 4px;">Upload Document File *</label>
+                  <div style="position: relative;">
+                    <label for="material-file" class="btn btn-secondary" style="padding: 12px; font-size: 0.8rem; border-style: dashed; width: 100%; text-align: center; cursor: pointer; display: block; box-shadow: none;">
+                      <i class="fas fa-cloud-upload-alt"></i> Choose Document File
+                    </label>
+                    <input type="file" id="material-file" style="display: none;" accept=".pdf,.doc,.docx">
+                    <p id="selected-file-label" style="font-size: 0.75rem; color: var(--primary-amber); margin-top: 6px; font-weight: 600; text-align: left;"></p>
+                  </div>
+                </div>
+
+                <div id="portal-upload-feedback" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; display: none; text-align: center;">
+                  <!-- Dynamically populated -->
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.9rem;"><i class="fas fa-cloud-upload-alt"></i> Save Resource</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

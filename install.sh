@@ -48,8 +48,9 @@ WEB_ROOT="/var/www/html/lms"
 
 # Migrate existing database/password files to persistent secure directory before web root is wiped/updated
 echo "🔄 Migrating any existing database/password files to persistent storage..."
-sudo mkdir -p "/var/lib/lms"
-sudo chmod 700 "/var/lib/lms"
+sudo mkdir -p "/var/lib/lms/uploads"
+sudo chmod 755 "/var/lib/lms"
+sudo chmod 755 "/var/lib/lms/uploads"
 if [ -f "$WEB_ROOT/team.json" ]; then
     sudo mv "$WEB_ROOT/team.json" "/var/lib/lms/team.json"
     echo "  -> Migrated team.json"
@@ -116,11 +117,17 @@ else
     exit 1
 fi
 
-# Step 5: SELinux — allow Nginx to proxy to the local Python backend (AlmaLinux/RHEL)
+# Step 5: SELinux — allow Nginx to proxy to the local Python backend (AlmaLinux/RHEL) & serve uploads
 if command -v getenforce &>/dev/null && [ "$(getenforce)" = "Enforcing" ]; then
-    echo "🔒 SELinux is Enforcing — allowing Nginx network connections..."
+    echo "🔒 SELinux is Enforcing — allowing Nginx network connections & folder access..."
     setsebool -P httpd_can_network_connect 1
-    echo "✅ SELinux: httpd_can_network_connect enabled."
+    if command -v semanage &>/dev/null; then
+        semanage fcontext -a -t httpd_sys_content_t "/var/lib/lms/uploads(/.*)?" 2>/dev/null || true
+    fi
+    if command -v restorecon &>/dev/null; then
+        restorecon -R "/var/lib/lms/uploads" 2>/dev/null || true
+    fi
+    echo "✅ SELinux permissions configured."
 fi
 
 # Step 6: Open HTTP and HTTPS ports in firewalld (AlmaLinux default)
@@ -169,6 +176,13 @@ server {
     root /var/www/html/lms;
     index index.html;
 
+    # Serve uploaded study materials directly
+    location /uploads/ {
+        alias /var/lib/lms/uploads/;
+        add_header Content-Disposition "attachment";
+        access_log off;
+    }
+
     # Forward all backend API calls to the local Python daemon
     location /api/ {
         proxy_pass http://127.0.0.1:8001/api/;
@@ -196,6 +210,13 @@ server {
     # Static site files served directly by Nginx (ultra-fast)
     root /var/www/html/lms;
     index index.html;
+
+    # Serve uploaded study materials directly
+    location /uploads/ {
+        alias /var/lib/lms/uploads/;
+        add_header Content-Disposition "attachment";
+        access_log off;
+    }
 
     # Forward all backend API calls to the local Python daemon
     location /api/ {
@@ -240,9 +261,9 @@ BACKUP_DIR="/var/backups/lms"
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
 
-# Check if team.json exists before backing up
-if [ -f "/var/lib/lms/team.json" ] || [ -f "/var/lib/lms/admin_password.txt" ]; then
-    tar -czf "$BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz" -C /var/lib/lms team.json admin_password.txt 2>/dev/null
+# Check if dynamic data exists before backing up
+if [ -d "/var/lib/lms" ]; then
+    tar -czf "$BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz" -C /var/lib/lms . 2>/dev/null
     echo "✅ Backup saved: $BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz"
 else
     echo "⚠️ Nothing to backup yet."
