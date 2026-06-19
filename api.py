@@ -15,6 +15,7 @@ USERS_FILE = os.path.join(DATA_DIR, "users.json")
 MATERIALS_FILE = os.path.join(DATA_DIR, "materials.json")
 SUBJECTS_FILE = os.path.join(DATA_DIR, "subjects.json")
 MODULES_FILE = os.path.join(DATA_DIR, "modules.json")
+TESTIMONIALS_FILE = os.path.join(DATA_DIR, "testimonials.json")
 
 # Create directories if they don't exist
 os.makedirs(UPLOADS_DIR, exist_ok=True)
@@ -29,6 +30,13 @@ DEFAULT_TEAM = [
     { "id": "6", "name": "Leandi Visser", "role": "Curriculum Mentor", "avatar": "LV", "image": "" },
     { "id": "7", "name": "Melanie Van Der Watt", "role": "Classroom Coach", "avatar": "MW", "image": "" },
     { "id": "8", "name": "Brian Van Der Watt", "role": "Placement Coordinator", "avatar": "BW", "image": "" }
+]
+
+# Default testimonial data
+DEFAULT_TESTIMONIALS = [
+    { "id": "t1", "name": "Lerato M.", "company": "Native Camp ESL Teacher", "text": "Honeypot Global transformed my online teaching! Hannelie guided me through the entire ClassIn setup and native English teaching methodology. Hired in just two weeks!", "rating": 5, "image": "" },
+    { "id": "t2", "name": "Johan v.d. Merwe", "company": "120-hour TEFL Student", "text": "Passing my 120-hour TEFL certificate was so much easier with Honeypot. The feedback on my lesson plans was incredibly detailed and helpful.", "rating": 5, "image": "" },
+    { "id": "t3", "name": "Chantal K.", "company": "ESL Online Coach", "text": "I highly recommend Honeypot Global. The mentorship program is top-notch and Hannelie gives constant encouragement.", "rating": 5, "image": "" }
 ]
 
 # In-memory sessions dictionary: token -> {"email": email, "role": role}
@@ -349,6 +357,18 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             })
             return
 
+        elif self.path == "/api/testimonials":
+            if os.path.exists(TESTIMONIALS_FILE):
+                try:
+                    with open(TESTIMONIALS_FILE, "r") as f:
+                        data = json.load(f)
+                    self.send_json(data)
+                    return
+                except Exception:
+                    pass
+            self.send_json(DEFAULT_TESTIMONIALS)
+            return
+
         else:
             self.send_json({"error": "Not Found"}, 404)
 
@@ -569,6 +589,22 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
                 with open(TEAM_FILE, "w") as f:
                     json.dump(body, f, indent=2)
                 self.send_json({"success": True, "message": "Team settings saved successfully"})
+            except Exception as e:
+                self.send_json({"error": f"Failed to save: {str(e)}"}, 500)
+            return
+
+        elif self.path == "/api/testimonials":
+            auth_header = self.headers.get("X-Admin-Password")
+            saved_password = self.get_admin_password()
+            
+            if not saved_password or auth_header != saved_password:
+                self.send_json({"error": "Unauthorized"}, 401)
+                return
+
+            try:
+                with open(TESTIMONIALS_FILE, "w") as f:
+                    json.dump(body, f, indent=2)
+                self.send_json({"success": True, "message": "Testimonials saved successfully"})
             except Exception as e:
                 self.send_json({"error": f"Failed to save: {str(e)}"}, 500)
             return

@@ -382,6 +382,316 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // --- DYNAMIC TESTIMONIALS RENDERING & MANAGEMENT ---
+  const defaultTestimonials = [
+    { id: "t1", name: "Lerato M.", company: "Native Camp ESL Teacher", text: "Honeypot Global transformed my online teaching! Hannelie guided me through the entire ClassIn setup and native English teaching methodology. Hired in just two weeks!", rating: 5, image: "" },
+    { id: "t2", name: "Johan v.d. Merwe", company: "120-hour TEFL Student", text: "Passing my 120-hour TEFL certificate was so much easier with Honeypot. The feedback on my lesson plans was incredibly detailed and helpful.", rating: 5, image: "" },
+    { id: "t3", name: "Chantal K.", company: "ESL Online Coach", text: "I highly recommend Honeypot Global. The mentorship program is top-notch and Hannelie gives constant encouragement.", rating: 5, image: "" }
+  ];
+
+  let testimonialsData = defaultTestimonials;
+
+  const testimonialsGrid = document.getElementById('testimonials-grid');
+  const adminTestimonialsList = document.getElementById('admin-testimonials-list');
+  const adminTestimonialFormPane = document.getElementById('admin-testimonial-form-pane');
+
+  const editTestimonialIdInput = document.getElementById('edit-testimonial-id');
+  const editTestimonialNameInput = document.getElementById('edit-testimonial-name');
+  const editTestimonialCompanyInput = document.getElementById('edit-testimonial-company');
+  const editTestimonialRatingSelect = document.getElementById('edit-testimonial-rating');
+  const editTestimonialTextInput = document.getElementById('edit-testimonial-text');
+  const editTestimonialFileInput = document.getElementById('edit-testimonial-file');
+  const editTestimonialPhotoPreview = document.getElementById('edit-testimonial-photo-preview');
+  const testimonialFormActionTitle = document.getElementById('testimonial-form-action-title');
+  const adminAddTestimonialBtn = document.getElementById('admin-add-testimonial-btn');
+  const adminTestimonialCancelBtn = document.getElementById('admin-testimonial-cancel-btn');
+  const testimonialForm = document.getElementById('testimonialForm');
+
+  let currentUploadedTestimonialImageBase64 = '';
+
+  const renderTestimonials = () => {
+    if (!testimonialsGrid) return;
+    testimonialsGrid.innerHTML = '';
+    
+    testimonialsData.forEach(test => {
+      const card = document.createElement('div');
+      card.className = 'testimonial-card reveal active';
+      
+      let starsHTML = '';
+      const rating = parseInt(test.rating) || 5;
+      for (let i = 0; i < rating; i++) {
+        starsHTML += '<i class="fas fa-star"></i>';
+      }
+      
+      const initials = getInitials(test.name);
+      const avatarHTML = test.image
+        ? `<div class="testimonial-avatar"><img src="${test.image}" alt="${test.name}"></div>`
+        : `<div class="testimonial-avatar">${initials}</div>`;
+        
+      card.innerHTML = `
+        <div>
+          <div class="testimonial-stars">
+            ${starsHTML}
+          </div>
+          <p class="testimonial-quote">${test.text}</p>
+        </div>
+        <div class="testimonial-profile">
+          ${avatarHTML}
+          <div class="testimonial-info">
+            <h5>${test.name}</h5>
+            <p>${test.company}</p>
+          </div>
+        </div>
+      `;
+      
+      testimonialsGrid.appendChild(card);
+    });
+  };
+
+  const saveTestimonialsData = async () => {
+    if (apiAvailable) {
+      const activePassword = sessionStorage.getItem('honeypot_admin_session_password') || '';
+      try {
+        const res = await fetch(`${apiBase}/testimonials`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Password': activePassword
+          },
+          body: JSON.stringify(testimonialsData)
+        });
+        if (res.ok) {
+          renderTestimonials();
+          renderAdminTestimonialsList();
+          return true;
+        } else {
+          const err = await res.json();
+          alert(`Error saving testimonials to server: ${err.error || 'Unauthorized'}`);
+          return false;
+        }
+      } catch (err) {
+        alert("Failed to connect to server API to save changes.");
+        return false;
+      }
+    } else {
+      localStorage.setItem('honeypot_testimonials', JSON.stringify(testimonialsData));
+      renderTestimonials();
+      renderAdminTestimonialsList();
+      return true;
+    }
+  };
+
+  const renderAdminTestimonialsList = () => {
+    if (!adminTestimonialsList) return;
+    adminTestimonialsList.innerHTML = '';
+    
+    testimonialsData.forEach((test, index) => {
+      const row = document.createElement('div');
+      row.className = 'admin-member-row';
+      
+      const initials = getInitials(test.name);
+      const avatarHTML = test.image
+        ? `<div class="admin-member-mini-avatar"><img src="${test.image}" alt=""></div>`
+        : `<div class="admin-member-mini-avatar">${initials}</div>`;
+        
+      const isFirst = index === 0;
+      const isLast = index === testimonialsData.length - 1;
+      
+      row.innerHTML = `
+        <div class="admin-member-meta">
+          ${avatarHTML}
+          <div class="admin-member-info">
+            <h5>${test.name}</h5>
+            <p>${test.company} (${test.rating} Stars)</p>
+          </div>
+        </div>
+        <div class="admin-member-actions">
+          <button type="button" class="admin-action-btn move-up" title="Move Up" ${isFirst ? 'style="opacity: 0.3; cursor: not-allowed;" disabled' : ''}><i class="fas fa-arrow-up"></i></button>
+          <button type="button" class="admin-action-btn move-down" title="Move Down" ${isLast ? 'style="opacity: 0.3; cursor: not-allowed;" disabled' : ''}><i class="fas fa-arrow-down"></i></button>
+          <button type="button" class="admin-action-btn edit" title="Edit Testimonial"><i class="fas fa-edit"></i></button>
+          <button type="button" class="admin-action-btn delete" title="Delete Testimonial"><i class="fas fa-trash-alt"></i></button>
+        </div>
+      `;
+      
+      if (!isFirst) {
+        row.querySelector('.admin-action-btn.move-up').addEventListener('click', async () => {
+          const temp = testimonialsData[index];
+          testimonialsData[index] = testimonialsData[index - 1];
+          testimonialsData[index - 1] = temp;
+          await saveTestimonialsData();
+        });
+      }
+      
+      if (!isLast) {
+        row.querySelector('.admin-action-btn.move-down').addEventListener('click', async () => {
+          const temp = testimonialsData[index];
+          testimonialsData[index] = testimonialsData[index + 1];
+          testimonialsData[index + 1] = temp;
+          await saveTestimonialsData();
+        });
+      }
+      
+      row.querySelector('.admin-action-btn.edit').addEventListener('click', () => {
+        openEditTestimonialForm(test);
+      });
+      
+      row.querySelector('.admin-action-btn.delete').addEventListener('click', async () => {
+        if (confirm(`Are you sure you want to remove the testimonial from ${test.name}?`)) {
+          testimonialsData = testimonialsData.filter(t => t.id !== test.id);
+          const success = await saveTestimonialsData();
+          if (success) {
+            adminTestimonialFormPane.style.display = 'none';
+          }
+        }
+      });
+      
+      adminTestimonialsList.appendChild(row);
+    });
+  };
+
+  const openEditTestimonialForm = (test) => {
+    testimonialFormActionTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Testimonial';
+    editTestimonialIdInput.value = test.id;
+    editTestimonialNameInput.value = test.name;
+    editTestimonialCompanyInput.value = test.company;
+    editTestimonialRatingSelect.value = test.rating.toString();
+    editTestimonialTextInput.value = test.text;
+    editTestimonialFileInput.value = '';
+    currentUploadedTestimonialImageBase64 = test.image || '';
+    
+    if (test.image) {
+      editTestimonialPhotoPreview.innerHTML = `<img src="${test.image}" alt="">`;
+    } else {
+      editTestimonialPhotoPreview.innerHTML = getInitials(test.name);
+    }
+    
+    adminTestimonialFormPane.style.display = 'block';
+    editTestimonialNameInput.focus();
+  };
+
+  if (adminAddTestimonialBtn) {
+    adminAddTestimonialBtn.addEventListener('click', () => {
+      testimonialFormActionTitle.innerHTML = '<i class="fas fa-plus"></i> Add New Testimonial';
+      editTestimonialIdInput.value = '';
+      editTestimonialNameInput.value = '';
+      editTestimonialCompanyInput.value = '';
+      editTestimonialRatingSelect.value = '5';
+      editTestimonialTextInput.value = '';
+      editTestimonialFileInput.value = '';
+      currentUploadedTestimonialImageBase64 = '';
+      editTestimonialPhotoPreview.innerHTML = '?';
+      adminTestimonialFormPane.style.display = 'block';
+      editTestimonialNameInput.focus();
+    });
+  }
+
+  if (adminTestimonialCancelBtn) {
+    adminTestimonialCancelBtn.addEventListener('click', () => {
+      adminTestimonialFormPane.style.display = 'none';
+    });
+  }
+
+  if (editTestimonialFileInput) {
+    editTestimonialFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      compressImage(file, (compressedBase64) => {
+        currentUploadedTestimonialImageBase64 = compressedBase64;
+        editTestimonialPhotoPreview.innerHTML = `<img src="${currentUploadedTestimonialImageBase64}" alt="Preview">`;
+      });
+    });
+  }
+
+  if (testimonialForm) {
+    testimonialForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const testimonialId = editTestimonialIdInput.value;
+      const name = editTestimonialNameInput.value.trim();
+      const company = editTestimonialCompanyInput.value.trim();
+      const rating = parseInt(editTestimonialRatingSelect.value) || 5;
+      const text = editTestimonialTextInput.value.trim();
+      
+      if (!name || !company || !text) {
+        alert('All fields are required.');
+        return;
+      }
+      
+      if (testimonialId) {
+        testimonialsData = testimonialsData.map(test => {
+          if (test.id === testimonialId) {
+            return {
+              ...test,
+              name: name,
+              company: company,
+              rating: rating,
+              text: text,
+              image: currentUploadedTestimonialImageBase64
+            };
+          }
+          return test;
+        });
+      } else {
+        const newTest = {
+          id: 't_' + Date.now().toString(),
+          name: name,
+          company: company,
+          rating: rating,
+          text: text,
+          image: currentUploadedTestimonialImageBase64
+        };
+        testimonialsData.push(newTest);
+      }
+      
+      const success = await saveTestimonialsData();
+      if (success) {
+        adminTestimonialFormPane.style.display = 'none';
+      }
+    });
+  }
+
+  // Subtab switcher logic
+  const tabTeamBtn = document.getElementById('admin-tab-team');
+  const tabTestimonialsBtn = document.getElementById('admin-tab-testimonials');
+  const sectionTeamEditor = document.getElementById('admin-team-editor-section');
+  const sectionTestimonialsEditor = document.getElementById('admin-testimonials-editor-section');
+
+  if (tabTeamBtn && tabTestimonialsBtn && sectionTeamEditor && sectionTestimonialsEditor) {
+    tabTeamBtn.addEventListener('click', () => {
+      sectionTeamEditor.style.display = 'block';
+      sectionTestimonialsEditor.style.display = 'none';
+      
+      tabTeamBtn.style.color = 'var(--primary-amber)';
+      tabTeamBtn.style.borderBottom = '3px solid var(--primary-amber)';
+      
+      tabTestimonialsBtn.style.color = 'var(--text-muted)';
+      tabTestimonialsBtn.style.borderBottom = '3px solid transparent';
+      
+      // Close forms
+      if (adminFormPane) adminFormPane.style.display = 'none';
+      if (adminTestimonialFormPane) adminTestimonialFormPane.style.display = 'none';
+    });
+
+    tabTestimonialsBtn.addEventListener('click', () => {
+      sectionTeamEditor.style.display = 'none';
+      sectionTestimonialsEditor.style.display = 'block';
+      
+      tabTestimonialsBtn.style.color = 'var(--primary-amber)';
+      tabTestimonialsBtn.style.borderBottom = '3px solid var(--primary-amber)';
+      
+      tabTeamBtn.style.color = 'var(--text-muted)';
+      tabTeamBtn.style.borderBottom = '3px solid transparent';
+      
+      // Close forms
+      if (adminFormPane) adminFormPane.style.display = 'none';
+      if (adminTestimonialFormPane) adminTestimonialFormPane.style.display = 'none';
+      
+      renderAdminTestimonialsList();
+    });
+  }
+
+
   // URL Hash Monitor & Auth Setup/Login Display Handler
   const handleAdminAuthShow = () => {
     if (!adminModal) return;
@@ -413,6 +723,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isUnlocked) {
         adminPasswordScreen.style.display = 'none';
         adminEditorContent.style.display = 'block';
+        if (tabTeamBtn) {
+          tabTeamBtn.style.color = 'var(--primary-amber)';
+          tabTeamBtn.style.borderBottom = '3px solid var(--primary-amber)';
+        }
+        if (tabTestimonialsBtn) {
+          tabTestimonialsBtn.style.color = 'var(--text-muted)';
+          tabTestimonialsBtn.style.borderBottom = '3px solid transparent';
+        }
+        if (sectionTeamEditor) sectionTeamEditor.style.display = 'block';
+        if (sectionTestimonialsEditor) sectionTestimonialsEditor.style.display = 'none';
         renderAdminMembersList();
         checkAndSyncLocalData();
       } else {
@@ -470,22 +790,45 @@ document.addEventListener('DOMContentLoaded', () => {
           const authData = await authRes.json();
           serverAuthSetup = authData.setup;
           apiAvailable = true;
-
-          const teamRes = await fetch(`${apiBase}/team`);
-          if (teamRes.ok) {
-            teamData = await teamRes.json();
-            renderTeam();
-            return;
-          }
         }
       } catch (err) {
         console.warn("API server unavailable, using localStorage fallback:", err);
       }
     }
 
-    // Local fallback
-    teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+    // Load Team
+    if (apiAvailable) {
+      try {
+        const teamRes = await fetch(`${apiBase}/team`);
+        if (teamRes.ok) {
+          teamData = await teamRes.json();
+        } else {
+          teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+        }
+      } catch (err) {
+        teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+      }
+    } else {
+      teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+    }
     renderTeam();
+
+    // Load Testimonials
+    if (apiAvailable) {
+      try {
+        const testRes = await fetch(`${apiBase}/testimonials`);
+        if (testRes.ok) {
+          testimonialsData = await testRes.json();
+        } else {
+          testimonialsData = JSON.parse(localStorage.getItem('honeypot_testimonials')) || defaultTestimonials;
+        }
+      } catch (err) {
+        testimonialsData = JSON.parse(localStorage.getItem('honeypot_testimonials')) || defaultTestimonials;
+      }
+    } else {
+      testimonialsData = JSON.parse(localStorage.getItem('honeypot_testimonials')) || defaultTestimonials;
+    }
+    renderTestimonials();
   };
 
   window.addEventListener('hashchange', handleAdminAuthShow);

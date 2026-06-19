@@ -55,6 +55,10 @@ if [ -f "$WEB_ROOT/team.json" ]; then
     sudo mv "$WEB_ROOT/team.json" "/var/lib/lms/team.json"
     echo "  -> Migrated team.json"
 fi
+if [ -f "$WEB_ROOT/testimonials.json" ]; then
+    sudo mv "$WEB_ROOT/testimonials.json" "/var/lib/lms/testimonials.json"
+    echo "  -> Migrated testimonials.json"
+fi
 if [ -f "$WEB_ROOT/admin_password.txt" ]; then
     sudo mv "$WEB_ROOT/admin_password.txt" "/var/lib/lms/admin_password.txt"
     echo "  -> Migrated admin_password.txt"

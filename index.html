@@ -37,6 +37,7 @@
           <li><a href="#about">Our Story</a></li>
           <li><a href="#services">Training Center</a></li>
           <li><a href="#team">Our Team</a></li>
+          <li><a href="#testimonials">Reviews</a></li>
           <li><a href="#social">Community</a></li>
           <li><a href="#contact" class="btn btn-primary" style="padding: 10px 15px; box-shadow: none;">Get Started <i class="fas fa-chevron-right" style="font-size: 0.8rem;"></i></a></li>
           <li><a href="portal.html" class="btn btn-secondary" id="nav-portal-btn" style="padding: 10px 15px; box-shadow: none; margin-left: 8px;"><i class="fas fa-user-graduate"></i> Client Portal</a></li>
@@ -266,6 +267,21 @@
     </div>
   </section>
 
+  <!-- --- TESTIMONIALS --- -->
+  <section id="testimonials" class="section-padding testimonials" style="background: var(--bg-light); border-top: 1px solid rgba(0,0,0,0.02); border-bottom: 1px solid rgba(0,0,0,0.02);">
+    <div class="container">
+      <div class="section-header reveal" style="text-align: center; margin-bottom: 48px;">
+        <div class="badge" style="margin: 0 auto 16px auto;"><i class="fas fa-comment-dots"></i> Testimonials</div>
+        <h2 style="font-size: 2.8rem; margin-bottom: 16px;">What Our Teachers Say</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Real stories and success reviews from online English teachers mentored by Honeypot Global.</p>
+      </div>
+      
+      <div id="testimonials-grid" class="testimonials-grid">
+        <!-- Dynamically Populated by JS -->
+      </div>
+    </div>
+  </section>
+
   <!-- --- SOCIAL CHANNELS BOARD --- -->
   <section id="social" class="section-padding social-board">
     <div class="container">
@@ -400,6 +416,7 @@
           <li><a href="#about">Our Story</a></li>
           <li><a href="#services">Training Center</a></li>
           <li><a href="#team">Our Passionate Team</a></li>
+          <li><a href="#testimonials">Student Reviews</a></li>
           <li><a href="#social">Community Feeds</a></li>
           <li><a href="https://honeypot.setmore.com/" target="_blank" rel="noopener">Book on Setmore</a></li>
         </ul>
@@ -468,61 +485,147 @@
 
         <!-- EDITOR split panel (hidden until unlocked) -->
         <div id="admin-editor-content" style="display: none;">
-          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; text-align: left;">
-            Use this editor to add new team profiles, delete inactive ones, update positions, and upload actual photos from your device. Edits display instantly on the site and persist locally.
-          </p>
-          
-          <div class="admin-editor-split">
-            <!-- Team List Pane -->
-            <div class="admin-pane-list">
-              <h4 style="margin-bottom: 12px; font-size: 1rem; text-align: left;"><i class="fas fa-list"></i> Current Members</h4>
-              <div id="admin-members-list" class="admin-members-rows">
-                <!-- Dynamically populated -->
-              </div>
-              <button id="admin-add-new-btn" class="btn btn-secondary" style="width: 100%; margin-top: 16px; padding: 12px; font-size: 0.9rem;"><i class="fas fa-plus"></i> Add New Member</button>
-              <button id="admin-change-pass-btn" class="btn btn-secondary" style="width: 100%; margin-top: 8px; padding: 12px; font-size: 0.85rem; border-style: dotted; border-color: rgba(0, 0, 0, 0.15); color: var(--text-muted);"><i class="fas fa-key"></i> Change Admin Password</button>
-              <button id="admin-restore-cache-btn" class="btn btn-secondary" style="width: 100%; margin-top: 8px; padding: 12px; font-size: 0.85rem; border-style: dotted; border-color: rgba(0,0,0,0.15); color: var(--text-muted);"><i class="fas fa-sync-alt"></i> Restore Browser Cache to Server</button>
-            </div>
+          <!-- Subtab Selection Switcher -->
+          <div style="display: flex; border-bottom: 2px solid rgba(0,0,0,0.06); margin-bottom: 20px; gap: 12px;">
+            <button id="admin-tab-team" class="admin-tab-btn active-tab" style="background: none; border: none; font-family: inherit; font-size: 0.95rem; font-weight: 600; color: var(--primary-amber); padding: 8px 16px; cursor: pointer; border-bottom: 3px solid var(--primary-amber); transition: all 0.3s ease;">
+              <i class="fas fa-users"></i> Team Members
+            </button>
+            <button id="admin-tab-testimonials" class="admin-tab-btn" style="background: none; border: none; font-family: inherit; font-size: 0.95rem; font-weight: 600; color: var(--text-muted); padding: 8px 16px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s ease;">
+              <i class="fas fa-comments"></i> Testimonials
+            </button>
+          </div>
+
+          <!-- 1. TEAM EDITOR PANEL -->
+          <div id="admin-team-editor-section">
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; text-align: left;">
+              Use this editor to add new team profiles, delete inactive ones, update positions, and upload actual photos from your device. Edits display instantly on the site and persist locally.
+            </p>
             
-            <!-- Team Form Pane -->
-            <div class="admin-pane-form" id="admin-form-pane" style="display: none;">
-              <h4 style="margin-bottom: 16px; font-size: 1rem; text-align: left;" id="form-action-title"><i class="fas fa-user-edit"></i> Edit Profile</h4>
+            <div class="admin-editor-split">
+              <!-- Team List Pane -->
+              <div class="admin-pane-list">
+                <h4 style="margin-bottom: 12px; font-size: 1rem; text-align: left;"><i class="fas fa-list"></i> Current Members</h4>
+                <div id="admin-members-list" class="admin-members-rows">
+                  <!-- Dynamically populated -->
+                </div>
+                <button id="admin-add-new-btn" class="btn btn-secondary" style="width: 100%; margin-top: 16px; padding: 12px; font-size: 0.9rem;"><i class="fas fa-plus"></i> Add New Member</button>
+                <button id="admin-change-pass-btn" class="btn btn-secondary" style="width: 100%; margin-top: 8px; padding: 12px; font-size: 0.85rem; border-style: dotted; border-color: rgba(0, 0, 0, 0.15); color: var(--text-muted);"><i class="fas fa-key"></i> Change Admin Password</button>
+                <button id="admin-restore-cache-btn" class="btn btn-secondary" style="width: 100%; margin-top: 8px; padding: 12px; font-size: 0.85rem; border-style: dotted; border-color: rgba(0,0,0,0.15); color: var(--text-muted);"><i class="fas fa-sync-alt"></i> Restore Browser Cache to Server</button>
+              </div>
               
-              <form id="teamMemberForm">
-                <input type="hidden" id="edit-member-id">
+              <!-- Team Form Pane -->
+              <div class="admin-pane-form" id="admin-form-pane" style="display: none;">
+                <h4 style="margin-bottom: 16px; font-size: 1rem; text-align: left;" id="form-action-title"><i class="fas fa-user-edit"></i> Edit Profile</h4>
                 
-                <div class="form-group" style="margin-bottom: 16px; text-align: left;">
-                  <label for="edit-name" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Member Full Name *</label>
-                  <input type="text" id="edit-name" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;" required>
-                </div>
-                
-                <div class="form-group" style="margin-bottom: 16px; text-align: left;">
-                  <label for="edit-role" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Position / Role *</label>
-                  <input type="text" id="edit-role" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;" placeholder="e.g. Lead Mentoring Coach" required>
-                </div>
-                
-                <div class="form-group" style="margin-bottom: 24px; text-align: left;">
-                  <label style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Profile Photo</label>
+                <form id="teamMemberForm">
+                  <input type="hidden" id="edit-member-id">
                   
-                  <div class="admin-photo-upload-wrapper" style="display: flex; align-items: center; gap: 16px;">
-                    <div class="admin-photo-preview" id="edit-photo-preview" style="width: 60px; height: 60px; border-radius: 50%; background: var(--accent-warm); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: var(--primary-amber); border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.08); overflow: hidden;">
-                      <!-- Preview image or initials -->
-                    </div>
-                    <div style="flex-grow: 1;">
-                      <label for="edit-file" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem; box-shadow: none; cursor: pointer; border-style: dashed; width: 100%; text-align: center;">
-                        <i class="fas fa-camera"></i> Choose Local Image
-                      </label>
-                      <input type="file" id="edit-file" accept="image/*" style="display: none;">
-                      <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; text-align: left;">Recommended square format (PNG/JPG)</p>
+                  <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                    <label for="edit-name" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Member Full Name *</label>
+                    <input type="text" id="edit-name" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;" required>
+                  </div>
+                  
+                  <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                    <label for="edit-role" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Position / Role *</label>
+                    <input type="text" id="edit-role" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;" placeholder="e.g. Lead Mentoring Coach" required>
+                  </div>
+                  
+                  <div class="form-group" style="margin-bottom: 24px; text-align: left;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Profile Photo</label>
+                    
+                    <div class="admin-photo-upload-wrapper" style="display: flex; align-items: center; gap: 16px;">
+                      <div class="admin-photo-preview" id="edit-photo-preview" style="width: 60px; height: 60px; border-radius: 50%; background: var(--accent-warm); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: var(--primary-amber); border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                        <!-- Preview image or initials -->
+                      </div>
+                      <div style="flex-grow: 1;">
+                        <label for="edit-file" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem; box-shadow: none; cursor: pointer; border-style: dashed; width: 100%; text-align: center;">
+                          <i class="fas fa-camera"></i> Choose Local Image
+                        </label>
+                        <input type="file" id="edit-file" accept="image/*" style="display: none;">
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; text-align: left;">Recommended square format (PNG/JPG)</p>
+                      </div>
                     </div>
                   </div>
+                  
+                  <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px; font-size: 0.9rem;"><i class="fas fa-save"></i> Save Changes</button>
+                    <button type="button" id="adminCancelBtn" class="btn btn-secondary" style="flex: 1; padding: 12px; font-size: 0.9rem; border-color: rgba(0,0,0,0.15); color: var(--text-dark);">Cancel</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. TESTIMONIALS EDITOR PANEL -->
+          <div id="admin-testimonials-editor-section" style="display: none;">
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; text-align: left;">
+              Manage reviews and success stories from your students. Add new testimonials, edit review text, choose star ratings, and upload student profile photos.
+            </p>
+            
+            <div class="admin-editor-split">
+              <!-- Testimonial List Pane -->
+              <div class="admin-pane-list">
+                <h4 style="margin-bottom: 12px; font-size: 1rem; text-align: left;"><i class="fas fa-list"></i> Current Testimonials</h4>
+                <div id="admin-testimonials-list" class="admin-members-rows">
+                  <!-- Dynamically populated -->
                 </div>
+                <button id="admin-add-testimonial-btn" class="btn btn-secondary" style="width: 100%; margin-top: 16px; padding: 12px; font-size: 0.9rem;"><i class="fas fa-plus"></i> Add New Testimonial</button>
+              </div>
+              
+              <!-- Testimonial Form Pane -->
+              <div class="admin-pane-form" id="admin-testimonial-form-pane" style="display: none;">
+                <h4 style="margin-bottom: 16px; font-size: 1rem; text-align: left;" id="testimonial-form-action-title"><i class="fas fa-comment-edit"></i> Edit Testimonial</h4>
                 
-                <div style="display: flex; gap: 12px; margin-top: 24px;">
-                  <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px; font-size: 0.9rem;"><i class="fas fa-save"></i> Save Changes</button>
-                  <button type="button" id="adminCancelBtn" class="btn btn-secondary" style="flex: 1; padding: 12px; font-size: 0.9rem; border-color: rgba(0,0,0,0.15); color: var(--text-dark);">Cancel</button>
-                </div>
-              </form>
+                <form id="testimonialForm">
+                  <input type="hidden" id="edit-testimonial-id">
+                  
+                  <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                    <label for="edit-testimonial-name" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Student Name *</label>
+                    <input type="text" id="edit-testimonial-name" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;" required>
+                  </div>
+                  
+                  <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                    <label for="edit-testimonial-company" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Success Details / Hiring Company *</label>
+                    <input type="text" id="edit-testimonial-company" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;" placeholder="e.g. Hired by Native Camp / 120h TEFL Student" required>
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                    <label for="edit-testimonial-rating" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Rating Stars *</label>
+                    <select id="edit-testimonial-rating" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem;">
+                      <option value="5">⭐⭐⭐⭐⭐ (5 Stars)</option>
+                      <option value="4">⭐⭐⭐⭐ (4 Stars)</option>
+                      <option value="3">⭐⭐⭐ (3 Stars)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                    <label for="edit-testimonial-text" style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Review Quote *</label>
+                    <textarea id="edit-testimonial-text" class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); font-size: 0.9rem; height: 100px; resize: none;" placeholder="What the student said..." required></textarea>
+                  </div>
+                  
+                  <div class="form-group" style="margin-bottom: 24px; text-align: left;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--dark-slate); display: block; margin-bottom: 6px;">Student Photo</label>
+                    
+                    <div class="admin-photo-upload-wrapper" style="display: flex; align-items: center; gap: 16px;">
+                      <div class="admin-photo-preview" id="edit-testimonial-photo-preview" style="width: 60px; height: 60px; border-radius: 50%; background: var(--accent-warm); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: var(--primary-amber); border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                        <!-- Preview -->
+                      </div>
+                      <div style="flex-grow: 1;">
+                        <label for="edit-testimonial-file" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem; box-shadow: none; cursor: pointer; border-style: dashed; width: 100%; text-align: center;">
+                          <i class="fas fa-camera"></i> Choose Local Image
+                        </label>
+                        <input type="file" id="edit-testimonial-file" accept="image/*" style="display: none;">
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; text-align: left;">Recommended square format (PNG/JPG)</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style="display: flex; gap: 12px;">
+                    <button type="submit" class="btn btn-primary" style="flex-grow: 1; padding: 12px; font-size: 0.9rem;">Save Testimonial <i class="fas fa-save"></i></button>
+                    <button type="button" id="admin-testimonial-cancel-btn" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem; border-color: rgba(0,0,0,0.15); color: var(--text-dark);">Cancel</button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
