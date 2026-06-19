@@ -246,6 +246,161 @@
       background: rgba(255,255,255,0.1);
       border-radius: 4px;
     }
+    
+    /* Subject sidebar items */
+    .subject-sidebar-btn {
+      width: 100%;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #94A3B8;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .subject-sidebar-btn:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: white;
+      transform: translateX(4px);
+    }
+
+    .subject-sidebar-btn.active {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: white;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.05);
+    }
+
+    /* Modules Accordion Timeline */
+    .module-timeline-card {
+      background: rgba(30, 41, 59, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .module-timeline-card:hover {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(30, 41, 59, 0.28);
+    }
+
+    .module-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(15, 23, 42, 0.15);
+      transition: background 0.3s ease;
+    }
+
+    .module-header:hover {
+      background: rgba(15, 23, 42, 0.3);
+    }
+
+    .module-body {
+      padding: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      display: none;
+    }
+
+    .module-timeline-card.open .module-body {
+      display: block;
+    }
+
+    /* Grouping resources and tasks */
+    .curriculum-group-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94A3B8;
+      margin: 0 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .curriculum-item-card {
+      background: rgba(15, 23, 42, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .curriculum-item-card:hover {
+      background: rgba(30, 41, 59, 0.45);
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    /* Task completion check-off wrapper */
+    .task-completion-check {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 6px;
+      color: transparent;
+      transition: all 0.2s ease;
+      background: none;
+      font-size: 0.7rem;
+    }
+
+    .task-completion-check.checked {
+      background: #10B981;
+      border-color: #10B981;
+      color: white;
+    }
+
+    .task-completion-check:hover {
+      border-color: #10B981;
+    }
+
+    /* Admin Curriculum tab controls inside right uploader */
+    .admin-subtab-bar {
+      display: flex;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      margin-bottom: 18px;
+      gap: 4px;
+    }
+
+    .admin-subtab-btn {
+      background: none;
+      border: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #94A3B8;
+      padding: 6px 10px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .admin-subtab-btn.active {
+      color: var(--primary-amber);
+      border-bottom-color: var(--primary-amber);
+    }
   </style>
 </head>
 <body>
@@ -339,48 +494,90 @@
         <button id="portal-tab-accounts" class="admin-tab-btn"><i class="fas fa-users-cog"></i> Manage Accounts</button>
       </div>
 
-      <!-- SPLIT PANEL 1: Study Materials -->
-      <div class="admin-editor-split" id="portal-dashboard-split">
+      <!-- SPLIT PANEL 1: Study Materials & Curriculum -->
+      <div class="admin-editor-split" id="portal-dashboard-split" style="grid-template-columns: 260px 1fr; gap: 24px;">
         
-        <!-- Left Pane: Materials List -->
-        <div class="admin-pane-list" style="padding: 0; border: none; box-shadow: none; background: none;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-            <h4 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: white;"><i class="fas fa-folder-open" style="color: var(--primary-amber); margin-right: 6px;"></i> Study Materials & Links</h4>
-            
-            <!-- Filters -->
-            <div style="display: flex; gap: 6px;" id="portal-filter-tabs">
-              <button class="btn active" data-filter="all" style="padding: 4px 12px; font-size: 0.75rem; box-shadow: none;">All</button>
-              <button class="btn" data-filter="pdf" style="padding: 4px 12px; font-size: 0.75rem; box-shadow: none; background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.3);">PDFs</button>
-              <button class="btn" data-filter="doc" style="padding: 4px 12px; font-size: 0.75rem; box-shadow: none; background: rgba(59, 130, 246, 0.15); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.3);">Docs</button>
-              <button class="btn" data-filter="link" style="padding: 4px 12px; font-size: 0.75rem; box-shadow: none; background: rgba(34, 197, 94, 0.15); color: #86EFAC; border: 1px solid rgba(34, 197, 94, 0.3);">Links</button>
-            </div>
-          </div>
-          
-          <!-- Materials List Container -->
-          <div id="portal-materials-grid" class="admin-members-rows" style="max-height: 520px; display: grid; grid-template-columns: 1fr; gap: 12px; padding-right: 6px; overflow-y: auto;">
-            <!-- Rendered dynamically -->
-            <p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">Loading resources...</p>
+        <!-- Left Column: Course / Subject Hub Sidebar -->
+        <div class="admin-pane-form" style="border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(15, 23, 42, 0.3); padding: 20px; border-radius: 12px; display: flex; flex-direction: column;">
+          <h5 style="font-size: 0.85rem; font-weight: 800; margin: 0 0 16px 0; color: white; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="fas fa-cubes" style="color: var(--primary-amber);"></i> Subjects / Courses
+          </h5>
+          <div id="portal-subjects-sidebar" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 500px; padding-right: 2px;">
+            <!-- Dynamically populated subjects list -->
+            <p style="color: #94A3B8; font-size: 0.8rem; text-align: center; padding: 20px;">Loading subjects...</p>
           </div>
         </div>
 
-        <!-- Right Pane: Admin Uploader Form -->
-        <div class="admin-pane-form" id="portal-admin-section" style="display: none; border: 1px solid rgba(245, 158, 11, 0.15); background: rgba(15, 23, 42, 0.35);">
-          <h4 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 18px 0; color: white; text-align: left;"><i class="fas fa-cloud-upload-alt" style="color: var(--primary-amber); margin-right: 6px;"></i> Upload New Resource</h4>
-          
-          <form id="portalUploadForm">
-            <div class="form-group" style="margin-bottom: 14px; text-align: left;">
-              <label for="material-title" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Resource Title *</label>
-              <input type="text" id="material-title" class="form-control" style="padding: 11px; font-size: 0.85rem;" placeholder="e.g. TEFL Lesson Plan Template" required>
+        <!-- Center Column: Modules & Materials Overview -->
+        <div class="admin-pane-list" style="padding: 0; border: none; box-shadow: none; background: none; display: flex; flex-direction: column; gap: 20px;">
+          <!-- Active Subject Header Banner -->
+          <div id="portal-subject-header-banner" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.45), rgba(15, 23, 42, 0.65)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 24px; position: relative; overflow: hidden; display: none;">
+            <div id="portal-subject-glow" style="position: absolute; width: 140px; height: 140px; border-radius: 50%; filter: blur(50px); opacity: 0.15; top: -50px; right: -50px; background: var(--primary-amber);"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2;">
+              <div>
+                <h3 id="portal-subject-title" style="margin: 0 0 6px 0; font-size: 1.3rem; font-weight: 800; color: white;">Course Title</h3>
+                <p id="portal-subject-desc" style="margin: 0; color: #94A3B8; font-size: 0.85rem; line-height: 1.5; max-width: 600px;">Course description goes here.</p>
+              </div>
+              <!-- Delete subject button for admins only -->
+              <button id="portal-delete-subject-btn" class="btn" style="display: none; padding: 8px 12px; font-size: 0.75rem; background: rgba(239,68,68,0.15); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.3);"><i class="fas fa-trash-alt"></i> Delete Subject</button>
             </div>
+          </div>
+
+          <!-- Modules Vertical Timeline -->
+          <div id="portal-modules-timeline" class="admin-members-rows" style="max-height: 520px; display: flex; flex-direction: column; gap: 16px; padding-right: 6px; overflow-y: auto;">
+            <!-- Dynamically populated modules accordion cards -->
+            <p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">Select a subject to view modules...</p>
+          </div>
+        </div>
+
+        <!-- Right Column: Admin Curriculum Panel (Tabbed Form Switcher) -->
+        <div class="admin-pane-form" id="portal-admin-section" style="display: none; border: 1px solid rgba(245, 158, 11, 0.15); background: rgba(15, 23, 42, 0.35); border-radius: 12px; padding: 24px;">
+          <!-- Subtab selection switcher -->
+          <div class="admin-subtab-bar">
+            <button id="subtab-btn-material" class="admin-subtab-btn active"><i class="fas fa-cloud-upload-alt"></i> Upload Material</button>
+            <button id="subtab-btn-subject" class="admin-subtab-btn"><i class="fas fa-folder-plus"></i> Add Subject</button>
+            <button id="subtab-btn-module" class="admin-subtab-btn"><i class="fas fa-folder-plus"></i> Add Module</button>
+          </div>
+
+          <!-- 1. Form: Upload Material -->
+          <form id="portalUploadForm">
+            <h5 style="font-size: 0.9rem; font-weight: 700; color: white; margin: 0 0 14px 0;">Upload Resource or Task</h5>
             
-            <div class="form-group" style="margin-bottom: 14px; text-align: left;">
-              <label for="material-desc" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Short Description</label>
-              <input type="text" id="material-desc" class="form-control" style="padding: 11px; font-size: 0.85rem;" placeholder="e.g. Mandatory structure guidelines">
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="material-subject-select" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Subject *</label>
+              <select id="material-subject-select" class="form-control" style="padding: 10px; font-size: 0.8rem;" required>
+                <!-- Dynamically populated -->
+              </select>
             </div>
 
-            <div class="form-group" style="margin-bottom: 14px; text-align: left;">
-              <label for="material-type" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Resource Type *</label>
-              <select id="material-type" class="form-control" style="padding: 11px; font-size: 0.85rem;">
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="material-module-select" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Module *</label>
+              <select id="material-module-select" class="form-control" style="padding: 10px; font-size: 0.8rem;" required>
+                <!-- Dynamically populated based on subject selection -->
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="material-item-type" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Item Category *</label>
+              <select id="material-item-type" class="form-control" style="padding: 10px; font-size: 0.8rem;">
+                <option value="resource">📚 Lesson Plan / Resource / Link</option>
+                <option value="task">📝 Task / Assignment / Activity</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="material-title" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Title *</label>
+              <input type="text" id="material-title" class="form-control" style="padding: 10px; font-size: 0.8rem;" placeholder="e.g. TEFL Lesson Plan Template" required>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="material-desc" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Short Description</label>
+              <input type="text" id="material-desc" class="form-control" style="padding: 10px; font-size: 0.8rem;" placeholder="e.g. Mandatory structure guidelines">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="material-type" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Format Type *</label>
+              <select id="material-type" class="form-control" style="padding: 10px; font-size: 0.8rem;">
                 <option value="link">Clickable Web Link / URL</option>
                 <option value="pdf">PDF Document</option>
                 <option value="doc">Word Document (DOCX/DOC)</option>
@@ -388,26 +585,95 @@
             </div>
 
             <!-- Type Link -->
-            <div class="form-group" id="material-url-group" style="margin-bottom: 16px; text-align: left;">
-              <label for="material-url" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Web URL Link *</label>
-              <input type="url" id="material-url" class="form-control" style="padding: 11px; font-size: 0.85rem;" placeholder="https://example.com/class-link">
+            <div class="form-group" id="material-url-group" style="margin-bottom: 14px; text-align: left;">
+              <label for="material-url" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Web URL Link *</label>
+              <input type="url" id="material-url" class="form-control" style="padding: 10px; font-size: 0.8rem;" placeholder="https://example.com/class-link">
             </div>
 
             <!-- Type Upload -->
-            <div class="form-group" id="material-file-group" style="margin-bottom: 16px; text-align: left; display: none;">
-              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Upload Document File *</label>
+            <div class="form-group" id="material-file-group" style="margin-bottom: 14px; text-align: left; display: none;">
+              <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Upload Document *</label>
               <div style="position: relative;">
-                <label for="material-file" class="btn btn-secondary" style="padding: 12px; font-size: 0.85rem; border-style: dashed; width: 100%; text-align: center; cursor: pointer; display: block; box-shadow: none; border-color: rgba(255,255,255,0.15); color: #E2E8F0;">
+                <label for="material-file" class="btn btn-secondary" style="padding: 10px; font-size: 0.8rem; border-style: dashed; width: 100%; text-align: center; cursor: pointer; display: block; box-shadow: none; border-color: rgba(255,255,255,0.15); color: #E2E8F0;">
                   <i class="fas fa-cloud-upload-alt"></i> Choose Document File
                 </label>
                 <input type="file" id="material-file" style="display: none;" accept=".pdf,.doc,.docx">
-                <p id="selected-file-label" style="font-size: 0.75rem; color: var(--primary-amber); margin-top: 6px; font-weight: 600; text-align: left;"></p>
+                <p id="selected-file-label" style="font-size: 0.7rem; color: var(--primary-amber); margin-top: 4px; font-weight: 600; text-align: left;"></p>
               </div>
             </div>
 
-            <div id="portal-upload-feedback" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; display: none; text-align: center;"></div>
+            <div id="portal-upload-feedback" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: none; text-align: center;"></div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.9rem;"><i class="fas fa-cloud-upload-alt"></i> Save Resource</button>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.85rem;"><i class="fas fa-cloud-upload-alt"></i> Save Resource</button>
+          </form>
+
+          <!-- 2. Form: Add Subject -->
+          <form id="portalCreateSubjectForm" style="display: none;">
+            <h5 style="font-size: 0.9rem; font-weight: 700; color: white; margin: 0 0 14px 0;">Create New Subject Course</h5>
+
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="subject-title" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Subject Title *</label>
+              <input type="text" id="subject-title" class="form-control" style="padding: 10px; font-size: 0.8rem;" placeholder="e.g. Advanced TEFL Certificate" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="subject-desc" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Description</label>
+              <textarea id="subject-desc" class="form-control" style="padding: 10px; font-size: 0.8rem; height: 60px; resize: none;" placeholder="e.g. Module materials for the advanced courses"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="subject-icon" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Sidebar Icon *</label>
+              <select id="subject-icon" class="form-control" style="padding: 10px; font-size: 0.8rem;">
+                <option value="fa-graduation-cap">🎓 Graduation Cap</option>
+                <option value="fa-book-open">📖 Open Book</option>
+                <option value="fa-language">🌐 Language Globe</option>
+                <option value="fa-comments">💬 Comments Bubble</option>
+                <option value="fa-briefcase">💼 Briefcase</option>
+                <option value="fa-laptop">💻 Laptop Screen</option>
+                <option value="fa-lightbulb">💡 Light Bulb</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="subject-color" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Theme Color Glow *</label>
+              <select id="subject-color" class="form-control" style="padding: 10px; font-size: 0.8rem;">
+                <option value="#F59E0B">Amber Gold (Default)</option>
+                <option value="#10B981">Emerald Green</option>
+                <option value="#3B82F6">Royal Blue</option>
+                <option value="#8B5CF6">Violet Purple</option>
+                <option value="#F43F5E">Rose Pink</option>
+              </select>
+            </div>
+
+            <div id="portal-subject-feedback" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: none; text-align: center;"></div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.85rem;"><i class="fas fa-folder-plus"></i> Create Subject</button>
+          </form>
+
+          <!-- 3. Form: Add Module -->
+          <form id="portalCreateModuleForm" style="display: none;">
+            <h5 style="font-size: 0.9rem; font-weight: 700; color: white; margin: 0 0 14px 0;">Create New Module</h5>
+
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="module-subject-select" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Subject *</label>
+              <select id="module-subject-select" class="form-control" style="padding: 10px; font-size: 0.8rem;" required>
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+              <label for="module-title" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Module Title *</label>
+              <input type="text" id="module-title" class="form-control" style="padding: 10px; font-size: 0.8rem;" placeholder="e.g. Module 2: Classroom Management" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label for="module-desc" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Description</label>
+              <input type="text" id="module-desc" class="form-control" style="padding: 10px; font-size: 0.8rem;" placeholder="e.g. Essential classroom techniques and behavior guidelines">
+            </div>
+
+            <div id="portal-module-feedback" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: none; text-align: center;"></div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.85rem;"><i class="fas fa-plus"></i> Create Module</button>
           </form>
         </div>
       </div>

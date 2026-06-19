@@ -13,6 +13,8 @@ TEAM_FILE = os.path.join(DATA_DIR, "team.json")
 PASSWORD_FILE = os.path.join(DATA_DIR, "admin_password.txt")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 MATERIALS_FILE = os.path.join(DATA_DIR, "materials.json")
+SUBJECTS_FILE = os.path.join(DATA_DIR, "subjects.json")
+MODULES_FILE = os.path.join(DATA_DIR, "modules.json")
 
 # Create directories if they don't exist
 os.makedirs(UPLOADS_DIR, exist_ok=True)
@@ -188,14 +190,91 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
         with open(USERS_FILE, "w") as f:
             json.dump(users, f, indent=2)
 
+    def get_subjects(self):
+        subjects = []
+        if os.path.exists(SUBJECTS_FILE):
+            try:
+                with open(SUBJECTS_FILE, "r") as f:
+                    subjects = json.load(f)
+            except Exception:
+                pass
+        
+        # Ensure default subject exists
+        has_default = any(s.get("id") == "subj-default" for s in subjects)
+        if not has_default:
+            default_subj = {
+                "id": "subj-default",
+                "title": "General Resources",
+                "description": "General course materials",
+                "icon": "fa-folder",
+                "color": "#F59E0B"
+            }
+            subjects.insert(0, default_subj)
+            self.save_subjects(subjects)
+        return subjects
+
+    def save_subjects(self, subjects):
+        try:
+            with open(SUBJECTS_FILE, "w") as f:
+                json.dump(subjects, f, indent=2)
+        except Exception:
+            pass
+
+    def get_modules(self):
+        modules = []
+        if os.path.exists(MODULES_FILE):
+            try:
+                with open(MODULES_FILE, "r") as f:
+                    modules = json.load(f)
+            except Exception:
+                pass
+        
+        # Ensure default module exists
+        has_default = any(m.get("id") == "mod-default" for m in modules)
+        if not has_default:
+            default_mod = {
+                "id": "mod-default",
+                "subject_id": "subj-default",
+                "title": "General Materials",
+                "description": "General reading resources"
+            }
+            modules.insert(0, default_mod)
+            self.save_modules(modules)
+        return modules
+
+    def save_modules(self, modules):
+        try:
+            with open(MODULES_FILE, "w") as f:
+                json.dump(modules, f, indent=2)
+        except Exception:
+            pass
+
     def get_materials(self):
+        materials = []
         if os.path.exists(MATERIALS_FILE):
             try:
                 with open(MATERIALS_FILE, "r") as f:
-                    return json.load(f)
+                    materials = json.load(f)
             except Exception:
                 pass
-        return []
+        
+        # Backward compatibility migration loop
+        modified = False
+        for m in materials:
+            if "subject_id" not in m:
+                m["subject_id"] = "subj-default"
+                modified = True
+            if "module_id" not in m:
+                m["module_id"] = "mod-default"
+                modified = True
+            if "item_type" not in m:
+                m["item_type"] = "resource"
+                modified = True
+        
+        if modified:
+            self.save_materials(materials)
+            
+        return materials
 
     def save_materials(self, materials):
         with open(MATERIALS_FILE, "w") as f:
@@ -258,6 +337,18 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             self.send_json(self.get_materials())
             return
 
+        elif self.path == "/api/curriculum-meta":
+            user_session = self.get_session_user()
+            if not user_session:
+                self.send_json({"error": "Unauthorized"}, 401)
+                return
+            
+            self.send_json({
+                "subjects": self.get_subjects(),
+                "modules": self.get_modules()
+            })
+            return
+
         else:
             self.send_json({"error": "Not Found"}, 404)
 
@@ -287,6 +378,150 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             except Exception:
                 self.send_json({"error": "Invalid JSON"}, 400)
                 return
+
+        # --- Curriculum Management ---
+        if self.path == "/api/add-subject":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            title = body.get("title", "").strip()
+            description = body.get("description", "").strip()
+            icon = body.get("icon", "fa-book").strip()
+            color = body.get("color", "#F59E0B").strip()
+            
+            if not title:
+                self.send_json({"error": "Subject title is required"}, 400)
+                return
+                
+            subjects = self.get_subjects()
+            new_subject = {
+                "id": "subj-" + str(uuid.uuid4()),
+                "title": title,
+                "description": description,
+                "icon": icon,
+                "color": color
+            }
+            subjects.append(new_subject)
+            self.save_subjects(subjects)
+            self.send_json({"success": True, "subject": new_subject})
+            return
+
+        elif self.path == "/api/delete-subject":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            target_id = body.get("id", "").strip()
+            if not target_id:
+                self.send_json({"error": "Subject ID is required"}, 400)
+                return
+                
+            if target_id == "subj-default":
+                self.send_json({"error": "Cannot delete default subject"}, 400)
+                return
+                
+            subjects = self.get_subjects()
+            subjects = [s for s in subjects if s.get("id") != target_id]
+            self.save_subjects(subjects)
+            
+            # Cascade delete modules
+            modules = self.get_modules()
+            modules_to_keep = []
+            deleted_module_ids = set()
+            for m in modules:
+                if m.get("subject_id") == target_id:
+                    deleted_module_ids.add(m.get("id"))
+                else:
+                    modules_to_keep.append(m)
+            self.save_modules(modules_to_keep)
+            
+            # Cascade delete materials
+            materials = self.get_materials()
+            materials_to_keep = []
+            for item in materials:
+                if item.get("subject_id") == target_id or item.get("module_id") in deleted_module_ids:
+                    if item.get("url", "").startswith("/uploads/"):
+                        filename = os.path.basename(item["url"])
+                        file_to_remove = os.path.join(UPLOADS_DIR, filename)
+                        if os.path.exists(file_to_remove):
+                            try:
+                                os.remove(file_to_remove)
+                            except Exception:
+                                pass
+                else:
+                    materials_to_keep.append(item)
+            self.save_materials(materials_to_keep)
+            
+            self.send_json({"success": True, "message": "Subject and its curriculum hierarchy deleted successfully."})
+            return
+
+        elif self.path == "/api/add-module":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            subject_id = body.get("subject_id", "").strip()
+            title = body.get("title", "").strip()
+            description = body.get("description", "").strip()
+            
+            if not subject_id or not title:
+                self.send_json({"error": "Subject ID and Module title are required"}, 400)
+                return
+                
+            modules = self.get_modules()
+            new_module = {
+                "id": "mod-" + str(uuid.uuid4()),
+                "subject_id": subject_id,
+                "title": title,
+                "description": description
+            }
+            modules.append(new_module)
+            self.save_modules(modules)
+            self.send_json({"success": True, "module": new_module})
+            return
+
+        elif self.path == "/api/delete-module":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            target_id = body.get("id", "").strip()
+            if not target_id:
+                self.send_json({"error": "Module ID is required"}, 400)
+                return
+                
+            if target_id == "mod-default":
+                self.send_json({"error": "Cannot delete default module"}, 400)
+                return
+                
+            modules = self.get_modules()
+            modules = [m for m in modules if m.get("id") != target_id]
+            self.save_modules(modules)
+            
+            # Cascade delete materials
+            materials = self.get_materials()
+            materials_to_keep = []
+            for item in materials:
+                if item.get("module_id") == target_id:
+                    if item.get("url", "").startswith("/uploads/"):
+                        filename = os.path.basename(item["url"])
+                        file_to_remove = os.path.join(UPLOADS_DIR, filename)
+                        if os.path.exists(file_to_remove):
+                            try:
+                                os.remove(file_to_remove)
+                            except Exception:
+                                pass
+                else:
+                    materials_to_keep.append(item)
+            self.save_materials(materials_to_keep)
+            
+            self.send_json({"success": True, "message": "Module and its materials deleted successfully."})
+            return
 
         # --- Password & Initial Setup ---
         if self.path == "/api/setup-password":
@@ -475,6 +710,12 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             url = body.get("url", "").strip()
             file_obj = body.get("file")
             
+            subject_id = body.get("subject_id", "subj-default").strip()
+            module_id = body.get("module_id", "mod-default").strip()
+            item_type = body.get("item_type", "resource").strip().lower()
+            if item_type not in ["resource", "task"]:
+                item_type = "resource"
+            
             if not title:
                 self.send_json({"error": "Title is required"}, 400)
                 return
@@ -511,6 +752,9 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             materials = self.get_materials()
             new_item = {
                 "id": str(uuid.uuid4()),
+                "subject_id": subject_id,
+                "module_id": module_id,
+                "item_type": item_type,
                 "title": title,
                 "description": description,
                 "type": material_type,

@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const portalUploadFeedback = document.getElementById('portal-upload-feedback');
 
   let materialsList = [];
+  let subjectsList = [];
+  let modulesList = [];
+  let activeSubjectId = 'subj-default';
   let activeFilter = 'all';
   let portalAdminExists = true;
   let usersList = [];
@@ -166,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (portalDashboardSplit) portalDashboardSplit.style.display = 'grid';
         if (portalAccountsSplit) portalAccountsSplit.style.display = 'none';
       }
-      fetchMaterials();
+      fetchCurriculumAndMaterials();
     } else {
       portalAuthScreen.style.display = 'flex';
       portalDashboardScreen.style.display = 'none';
@@ -394,7 +397,74 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Fetch study materials from API
+  // Fetch curriculum structure (subjects and modules) from API
+  const fetchCurriculumMeta = async () => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${apiBase}/curriculum-meta`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        subjectsList = data.subjects || [];
+        modulesList = data.modules || [];
+        
+        // Render subjects sidebar
+        renderSubjects();
+        
+        // Populate select dropdown options in admin panel
+        populateAdminSelects();
+      } else {
+        console.warn("Failed to fetch curriculum metadata.");
+      }
+    } catch (err) {
+      console.error("Error fetching curriculum metadata:", err);
+    }
+  };
+
+  // Populate Subject selects in admin forms and trigger initial module filter
+  const populateAdminSelects = () => {
+    const matSubjSelect = document.getElementById('material-subject-select');
+    const modSubjSelect = document.getElementById('module-subject-select');
+    
+    if (matSubjSelect) {
+      matSubjSelect.innerHTML = subjectsList.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+      // Trigger update of module select
+      updateUploadModuleOptions();
+    }
+    
+    if (modSubjSelect) {
+      modSubjSelect.innerHTML = subjectsList.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+    }
+  };
+
+  // Filter modules dropdown in uploader based on selected subject
+  const updateUploadModuleOptions = () => {
+    const matSubjSelect = document.getElementById('material-subject-select');
+    const matModSelect = document.getElementById('material-module-select');
+    if (!matSubjSelect || !matModSelect) return;
+    
+    const selectedSubjId = matSubjSelect.value;
+    const filteredMods = modulesList.filter(m => m.subject_id === selectedSubjId);
+    
+    if (filteredMods.length === 0) {
+      matModSelect.innerHTML = '<option value="mod-default">General Materials</option>';
+    } else {
+      matModSelect.innerHTML = filteredMods.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
+    }
+  };
+
+  // Set up subject dropdown change listener in uploader
+  const matSubjSelect = document.getElementById('material-subject-select');
+  if (matSubjSelect) {
+    matSubjSelect.addEventListener('change', updateUploadModuleOptions);
+  }
+
+  // Fetch materials and update modules timeline
   const fetchMaterials = async () => {
     const token = sessionStorage.getItem('honeypot_portal_token');
     if (!token) return;
@@ -407,7 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (res.ok) {
         materialsList = await res.json();
-        renderMaterials();
+        // Render modules list for active subject
+        renderModules();
       } else {
         console.warn("Failed to fetch materials list from server.");
       }
@@ -416,92 +487,368 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Render Materials in the dashboard grid
-  const renderMaterials = () => {
-    if (!portalMaterialsGrid) return;
-    portalMaterialsGrid.innerHTML = '';
+  // Master fetch that loads everything in sequence
+  const fetchCurriculumAndMaterials = async () => {
+    await fetchCurriculumMeta();
+    await fetchMaterials();
+  };
 
-    const filtered = materialsList.filter(item => {
-      if (activeFilter === 'all') return true;
-      return item.type === activeFilter;
-    });
-
-    if (filtered.length === 0) {
-      portalMaterialsGrid.innerHTML = `<p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">No ${activeFilter !== 'all' ? activeFilter.toUpperCase() + 's' : 'resources'} uploaded yet.</p>`;
+  // Render Subjects Sidebar List
+  const renderSubjects = () => {
+    const sidebar = document.getElementById('portal-subjects-sidebar');
+    if (!sidebar) return;
+    
+    sidebar.innerHTML = '';
+    
+    if (subjectsList.length === 0) {
+      sidebar.innerHTML = '<p style="color: #94A3B8; font-size: 0.8rem; text-align: center; padding: 20px;">No subjects available.</p>';
       return;
     }
-
-    const currentRole = sessionStorage.getItem('honeypot_portal_role');
-
-    filtered.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'portal-material-card';
-
-      let typeIcon = '<i class="fas fa-link"></i>';
-      if (item.type === 'pdf') typeIcon = '<i class="fas fa-file-pdf"></i>';
-      if (item.type === 'doc') typeIcon = '<i class="fas fa-file-word"></i>';
-
-      const deleteBtnHTML = currentRole === 'admin' 
-        ? `<button class="admin-action-btn delete portal-delete-btn" data-id="${item.id}" title="Remove Material"><i class="fas fa-trash-alt"></i></button>`
-        : '';
-
-      card.innerHTML = `
-        <div class="portal-material-meta">
-          <div class="portal-type-badge ${item.type}">${typeIcon}</div>
-          <div class="portal-material-info">
-            <h5 style="margin: 0 0 4px 0; font-weight: 700; color: white;">${item.title}</h5>
-            <p style="margin: 0; color: #94A3B8;">${item.description || 'No description provided.'}</p>
-          </div>
+    
+    // Ensure activeSubjectId is valid or default to first
+    const activeExists = subjectsList.some(s => s.id === activeSubjectId);
+    if (!activeExists && subjectsList.length > 0) {
+      activeSubjectId = subjectsList[0].id;
+    }
+    
+    subjectsList.forEach(subj => {
+      const btn = document.createElement('button');
+      btn.className = `subject-sidebar-btn ${subj.id === activeSubjectId ? 'active' : ''}`;
+      btn.setAttribute('data-id', subj.id);
+      
+      const count = modulesList.filter(m => m.subject_id === subj.id).length;
+      
+      btn.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fas ${subj.icon || 'fa-folder'}" style="color: ${subj.color || '#F59E0B'}; font-size: 0.95rem; width: 16px; text-align: center;"></i>
+          <span style="font-size: 0.8rem; font-weight: 700; color: white;">${subj.title}</span>
         </div>
-        <div class="portal-material-actions">
-          <a href="${item.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem; box-shadow: none; display: flex; align-items: center; gap: 6px; border-color: rgba(255,255,255,0.15); color: #E2E8F0;">
-            <i class="fas fa-external-link-alt"></i> Open
-          </a>
-          ${deleteBtnHTML}
-        </div>
+        <span style="font-size: 0.7rem; background: rgba(255,255,255,0.06); color: #94A3B8; padding: 2px 6px; border-radius: 20px;">${count}</span>
       `;
-
-      if (currentRole === 'admin') {
-        card.querySelector('.portal-delete-btn').addEventListener('click', async (e) => {
-          e.preventDefault();
-          const id = e.currentTarget.getAttribute('data-id');
-          if (confirm("Are you sure you want to delete this study resource from the server?")) {
-            const token = sessionStorage.getItem('honeypot_portal_token');
-            try {
-              const res = await fetch(`${apiBase}/delete-material`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ id: id })
-              });
-              if (res.ok) {
-                fetchMaterials();
-              } else {
-                alert("Failed to delete study material.");
-              }
-            } catch (err) {
-              alert("Network error deleting material.");
-            }
-          }
-        });
-      }
-
-      portalMaterialsGrid.appendChild(card);
+      
+      btn.addEventListener('click', () => {
+        activeSubjectId = subj.id;
+        document.querySelectorAll('.subject-sidebar-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderModules();
+      });
+      
+      sidebar.appendChild(btn);
     });
   };
 
-  // Filter Tabs Event Listeners
-  const filterTabs = document.querySelectorAll('#portal-filter-tabs button');
-  filterTabs.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      filterTabs.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeFilter = btn.getAttribute('data-filter');
-      renderMaterials();
+  // Render Modules timeline list for active subject
+  const renderModules = () => {
+    const timeline = document.getElementById('portal-modules-timeline');
+    const headerBanner = document.getElementById('portal-subject-header-banner');
+    const subjectTitleEl = document.getElementById('portal-subject-title');
+    const subjectDescEl = document.getElementById('portal-subject-desc');
+    const deleteSubjectBtn = document.getElementById('portal-delete-subject-btn');
+    
+    if (!timeline) return;
+    
+    const activeSubj = subjectsList.find(s => s.id === activeSubjectId);
+    if (!activeSubj) {
+      timeline.innerHTML = '<p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">Select a subject to view modules...</p>';
+      if (headerBanner) headerBanner.style.display = 'none';
+      return;
+    }
+    
+    // Display subject banner header
+    if (headerBanner && subjectTitleEl && subjectDescEl) {
+      subjectTitleEl.innerText = activeSubj.title;
+      subjectDescEl.innerText = activeSubj.description || 'No description provided.';
+      headerBanner.style.display = 'block';
+      
+      const glowEl = document.getElementById('portal-subject-glow');
+      if (glowEl) {
+        glowEl.style.background = activeSubj.color || 'var(--primary-amber)';
+      }
+      
+      // Admin delete subject button
+      const role = sessionStorage.getItem('honeypot_portal_role');
+      if (deleteSubjectBtn) {
+        if (role === 'admin' && activeSubj.id !== 'subj-default') {
+          deleteSubjectBtn.style.display = 'block';
+          const newBtn = deleteSubjectBtn.cloneNode(true);
+          deleteSubjectBtn.parentNode.replaceChild(newBtn, deleteSubjectBtn);
+          newBtn.addEventListener('click', () => handleDeleteSubject(activeSubj.id, activeSubj.title));
+        } else {
+          deleteSubjectBtn.style.display = 'none';
+        }
+      }
+    }
+    
+    const subjectModules = modulesList.filter(m => m.subject_id === activeSubjectId);
+    timeline.innerHTML = '';
+    
+    if (subjectModules.length === 0) {
+      timeline.innerHTML = `
+        <div style="text-align: center; padding: 60px 20px; border: 1px dashed rgba(255,255,255,0.06); border-radius: 12px; background: rgba(15, 23, 42, 0.15);">
+          <i class="fas fa-folder-open" style="font-size: 2.5rem; color: #94A3B8; margin-bottom: 12px; opacity: 0.4;"></i>
+          <p style="color: #94A3B8; font-size: 0.9rem; margin: 0 0 10px 0;">No modules registered under this subject.</p>
+          ${sessionStorage.getItem('honeypot_portal_role') === 'admin' ? '<p style="color: var(--primary-amber); font-size: 0.75rem; font-weight: 600;">Use the Curriculum Panel on the right to add a module!</p>' : ''}
+        </div>
+      `;
+      return;
+    }
+    
+    const role = sessionStorage.getItem('honeypot_portal_role');
+    
+    subjectModules.forEach((mod, idx) => {
+      const card = document.createElement('div');
+      card.className = `module-timeline-card ${idx === 0 ? 'open' : ''}`;
+      card.setAttribute('data-id', mod.id);
+      
+      const filteredMaterials = materialsList.filter(item => item.module_id === mod.id);
+      const resources = filteredMaterials.filter(item => item.item_type !== 'task');
+      const tasks = filteredMaterials.filter(item => item.item_type === 'task');
+      
+      let completionHTML = '';
+      if (tasks.length > 0) {
+        const completedCount = tasks.filter(t => isTaskCompleted(t.id)).length;
+        const percent = Math.round((completedCount / tasks.length) * 100);
+        completionHTML = `
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #94A3B8;">
+            <span>Tasks: <strong>${completedCount}/${tasks.length}</strong></span>
+            <div style="width: 55px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; display: inline-block;">
+              <div style="width: ${percent}%; height: 100%; background: #10B981;"></div>
+            </div>
+          </div>
+        `;
+      }
+      
+      const deleteModBtnHTML = (role === 'admin' && mod.id !== 'mod-default')
+        ? `<button class="admin-action-btn delete portal-delete-mod-btn" data-id="${mod.id}" title="Remove Module" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i> Delete Module</button>`
+        : '';
+        
+      card.innerHTML = `
+        <div class="module-header">
+          <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
+            <div style="font-size: 1.1rem; color: var(--primary-amber);"><i class="fas fa-cubes"></i></div>
+            <div>
+              <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: white;">${mod.title}</h5>
+              <p style="margin: 3px 0 0 0; color: #94A3B8; font-size: 0.75rem;">${mod.description || 'No description provided.'}</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            ${completionHTML}
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${deleteModBtnHTML}
+              <i class="fas fa-chevron-down" style="color: #94A3B8; font-size: 0.8rem; transition: transform 0.3s ease;"></i>
+            </div>
+          </div>
+        </div>
+        <div class="module-body">
+          <div style="margin-bottom: 20px;">
+            <h6 class="curriculum-group-title"><i class="fas fa-book" style="color: #60A5FA;"></i> Lessons & Resources</h6>
+            <div class="resources-container">
+              ${renderItemsList(resources, 'resource')}
+            </div>
+          </div>
+          
+          <div>
+            <h6 class="curriculum-group-title"><i class="fas fa-tasks" style="color: #34D399;"></i> Exercises & Tasks</h6>
+            <div class="tasks-container">
+              ${renderItemsList(tasks, 'task')}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      card.querySelector('.module-header').addEventListener('click', (e) => {
+        if (e.target.closest('.portal-delete-mod-btn')) return;
+        
+        const isOpen = card.classList.contains('open');
+        if (isOpen) {
+          card.classList.remove('open');
+        } else {
+          // Keep only current open
+          document.querySelectorAll('.module-timeline-card').forEach(c => c.classList.remove('open'));
+          card.classList.add('open');
+        }
+      });
+      
+      card.querySelectorAll('.task-completion-check').forEach(chk => {
+        chk.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const taskId = chk.getAttribute('data-id');
+          toggleTaskCompletion(taskId);
+          renderModules();
+        });
+      });
+      
+      card.querySelectorAll('.portal-delete-item-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          const title = btn.getAttribute('data-title');
+          if (confirm(`Are you sure you want to delete "${title}"?`)) {
+            await handleDeleteMaterial(id);
+          }
+        });
+      });
+      
+      if (role === 'admin' && mod.id !== 'mod-default') {
+        card.querySelector('.portal-delete-mod-btn').addEventListener('click', async (e) => {
+          e.preventDefault();
+          const id = e.currentTarget.getAttribute('data-id');
+          if (confirm(`Are you sure you want to permanently delete the module "${mod.title}" and ALL its files/resources? This cannot be undone.`)) {
+            await handleDeleteModule(id);
+          }
+        });
+      }
+      
+      timeline.appendChild(card);
     });
-  });
+  };
+
+  // Render items within a module (Resources or Tasks)
+  const renderItemsList = (items, type) => {
+    if (items.length === 0) {
+      return `<p style="font-size: 0.8rem; color: #64748B; font-style: italic; margin: 4px 0 0 12px; text-align: left;">No ${type === 'task' ? 'tasks' : 'resources'} listed in this module.</p>`;
+    }
+    
+    const role = sessionStorage.getItem('honeypot_portal_role');
+    
+    return items.map(item => {
+      let icon = '<i class="fas fa-link"></i>';
+      if (item.type === 'pdf') icon = '<i class="fas fa-file-pdf"></i>';
+      if (item.type === 'doc') icon = '<i class="fas fa-file-word"></i>';
+      
+      const isTask = item.item_type === 'task';
+      const isChecked = isTask && isTaskCompleted(item.id);
+      
+      const checkoffHTML = isTask 
+        ? `<button class="task-completion-check ${isChecked ? 'checked' : ''}" data-id="${item.id}" title="${isChecked ? 'Mark Incomplete' : 'Mark Completed'}"><i class="fas fa-check"></i></button>`
+        : '';
+        
+      const deleteBtnHTML = role === 'admin'
+        ? `<button class="admin-action-btn delete portal-delete-item-btn" data-id="${item.id}" data-title="${item.title}" title="Delete Resource" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i></button>`
+        : '';
+        
+      const cardStyle = isChecked ? 'opacity: 0.65; border-color: rgba(16, 185, 129, 0.15);' : '';
+      const textStyle = isChecked ? 'text-decoration: line-through; color: #64748B;' : '';
+      
+      return `
+        <div class="curriculum-item-card" style="${cardStyle}">
+          <div style="display: flex; align-items: center; gap: 12px; text-align: left; flex-grow: 1;">
+            ${checkoffHTML}
+            <div class="portal-type-badge ${item.type}" style="width: 32px; height: 32px; font-size: 0.9rem;">
+              ${icon}
+            </div>
+            <div>
+              <h6 style="margin: 0; font-size: 0.85rem; font-weight: 700; color: white; ${textStyle}">${item.title}</h6>
+              <p style="margin: 2px 0 0 0; color: #94A3B8; font-size: 0.75rem;">${item.description || 'No description'}</p>
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="${item.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; box-shadow: none; display: flex; align-items: center; gap: 6px; border-color: rgba(255,255,255,0.12); color: #E2E8F0;">
+              <i class="fas fa-external-link-alt"></i> Open
+            </a>
+            ${deleteBtnHTML}
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  // Student Task local storage check-offs
+  const isTaskCompleted = (taskId) => {
+    const completedTasks = JSON.parse(localStorage.getItem('completed_tasks') || '{}');
+    const studentEmail = sessionStorage.getItem('honeypot_portal_email') || 'anonymous';
+    return completedTasks[studentEmail] && completedTasks[studentEmail].includes(taskId);
+  };
+
+  const toggleTaskCompletion = (taskId) => {
+    const completedTasks = JSON.parse(localStorage.getItem('completed_tasks') || '{}');
+    const studentEmail = sessionStorage.getItem('honeypot_portal_email') || 'anonymous';
+    
+    if (!completedTasks[studentEmail]) {
+      completedTasks[studentEmail] = [];
+    }
+    
+    const index = completedTasks[studentEmail].indexOf(taskId);
+    if (index === -1) {
+      completedTasks[studentEmail].push(taskId);
+    } else {
+      completedTasks[studentEmail].splice(index, 1);
+    }
+    
+    localStorage.setItem('completed_tasks', JSON.stringify(completedTasks));
+  };
+
+  // Delete handlers
+  const handleDeleteMaterial = async (id) => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    try {
+      const res = await fetch(`${apiBase}/delete-material`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        fetchMaterials();
+      } else {
+        alert("Failed to delete curriculum resource.");
+      }
+    } catch (err) {
+      alert("Network error deleting curriculum resource.");
+    }
+  };
+
+  const handleDeleteSubject = async (id, title) => {
+    if (!confirm(`⚠️ DANGER: Are you sure you want to delete the subject "${title}"?\nThis will permanently wipe ALL modules and materials under this subject course from the server!`)) return;
+    
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    try {
+      const res = await fetch(`${apiBase}/delete-subject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        activeSubjectId = 'subj-default';
+        fetchCurriculumAndMaterials();
+      } else {
+        const err = await res.json();
+        alert(`Failed to delete subject: ${err.error}`);
+      }
+    } catch (err) {
+      alert("Network error deleting subject.");
+    }
+  };
+
+  const handleDeleteModule = async (id) => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    try {
+      const res = await fetch(`${apiBase}/delete-module`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        fetchCurriculumAndMaterials();
+      } else {
+        const err = await res.json();
+        alert(`Failed to delete module: ${err.error}`);
+      }
+    } catch (err) {
+      alert("Network error deleting module.");
+    }
+  };
 
   // Handle Login Form Submit
   if (portalLoginForm) {
@@ -602,10 +949,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Set up Admin Curriculum Form Subtab Switchers
+  const subtabMaterial = document.getElementById('subtab-btn-material');
+  const subtabSubject = document.getElementById('subtab-btn-subject');
+  const subtabModule = document.getElementById('subtab-btn-module');
+
+  const formMaterial = document.getElementById('portalUploadForm');
+  const formSubject = document.getElementById('portalCreateSubjectForm');
+  const formModule = document.getElementById('portalCreateModuleForm');
+
+  const setupSubtabSwitches = () => {
+    if (!subtabMaterial || !subtabSubject || !subtabModule) return;
+
+    const switchSubtab = (activeBtn, activeForm) => {
+      [subtabMaterial, subtabSubject, subtabModule].forEach(btn => btn.classList.remove('active'));
+      [formMaterial, formSubject, formModule].forEach(frm => { if (frm) frm.style.display = 'none'; });
+
+      activeBtn.classList.add('active');
+      if (activeForm) activeForm.style.display = 'block';
+    };
+
+    subtabMaterial.addEventListener('click', () => switchSubtab(subtabMaterial, formMaterial));
+    subtabSubject.addEventListener('click', () => switchSubtab(subtabSubject, formSubject));
+    subtabModule.addEventListener('click', () => switchSubtab(subtabModule, formModule));
+  };
+  setupSubtabSwitches();
+
   // Handle Study Material File Upload (Admin Form Submit)
   if (portalUploadForm) {
     portalUploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const subjectId = document.getElementById('material-subject-select').value;
+      const moduleId = document.getElementById('material-module-select').value;
+      const itemType = document.getElementById('material-item-type').value;
       const title = document.getElementById('material-title').value.trim();
       const description = document.getElementById('material-desc').value.trim();
       const type = materialTypeSelect.value;
@@ -620,6 +996,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const formData = new FormData();
+      formData.append('subject_id', subjectId);
+      formData.append('module_id', moduleId);
+      formData.append('item_type', itemType);
       formData.append('title', title);
       formData.append('description', description);
       formData.append('type', type);
@@ -649,7 +1028,8 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           portalUploadForm.reset();
           if (selectedFileLabel) selectedFileLabel.innerText = '';
-          fetchMaterials();
+          
+          await fetchCurriculumAndMaterials();
           
           setTimeout(() => {
             if (portalUploadFeedback) portalUploadFeedback.style.display = "none";
@@ -665,6 +1045,115 @@ document.addEventListener('DOMContentLoaded', () => {
         if (portalUploadFeedback) {
           portalUploadFeedback.innerText = "❌ Network error during resource upload.";
           portalUploadFeedback.style.color = "#F87171";
+        }
+      }
+    });
+  }
+
+  // Handle Subject Creation (Admin Form Submit)
+  if (formSubject) {
+    const subjectFeedback = document.getElementById('portal-subject-feedback');
+    formSubject.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('subject-title').value.trim();
+      const description = document.getElementById('subject-desc').value.trim();
+      const icon = document.getElementById('subject-icon').value;
+      const color = document.getElementById('subject-color').value;
+      const token = sessionStorage.getItem('honeypot_portal_token');
+
+      if (subjectFeedback) {
+        subjectFeedback.innerText = "⏳ Creating subject course...";
+        subjectFeedback.style.color = "var(--primary-amber)";
+        subjectFeedback.style.display = "block";
+      }
+
+      try {
+        const res = await fetch(`${apiBase}/add-subject`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ title, description, icon, color })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (subjectFeedback) {
+            subjectFeedback.innerText = "✅ Subject course created successfully!";
+            subjectFeedback.style.color = "#34D399";
+          }
+          formSubject.reset();
+          activeSubjectId = data.subject.id; // Auto select new subject
+          
+          await fetchCurriculumAndMaterials();
+          
+          setTimeout(() => {
+            if (subjectFeedback) subjectFeedback.style.display = "none";
+          }, 3000);
+        } else {
+          const err = await res.json();
+          if (subjectFeedback) {
+            subjectFeedback.innerText = `❌ Error: ${err.error || 'Failed to create subject'}`;
+            subjectFeedback.style.color = "#F87171";
+          }
+        }
+      } catch (err) {
+        if (subjectFeedback) {
+          subjectFeedback.innerText = "❌ Network error during subject creation.";
+          subjectFeedback.style.color = "#F87171";
+        }
+      }
+    });
+  }
+
+  // Handle Module Creation (Admin Form Submit)
+  if (formModule) {
+    const moduleFeedback = document.getElementById('portal-module-feedback');
+    formModule.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const subjectId = document.getElementById('module-subject-select').value;
+      const title = document.getElementById('module-title').value.trim();
+      const description = document.getElementById('module-desc').value.trim();
+      const token = sessionStorage.getItem('honeypot_portal_token');
+
+      if (moduleFeedback) {
+        moduleFeedback.innerText = "⏳ Creating module...";
+        moduleFeedback.style.color = "var(--primary-amber)";
+        moduleFeedback.style.display = "block";
+      }
+
+      try {
+        const res = await fetch(`${apiBase}/add-module`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ subject_id: subjectId, title, description })
+        });
+        if (res.ok) {
+          if (moduleFeedback) {
+            moduleFeedback.innerText = "✅ Module created successfully!";
+            moduleFeedback.style.color = "#34D399";
+          }
+          formModule.reset();
+          
+          await fetchCurriculumAndMaterials();
+          
+          setTimeout(() => {
+            if (moduleFeedback) moduleFeedback.style.display = "none";
+          }, 3000);
+        } else {
+          const err = await res.json();
+          if (moduleFeedback) {
+            moduleFeedback.innerText = `❌ Error: ${err.error || 'Failed to create module'}`;
+            moduleFeedback.style.color = "#F87171";
+          }
+        }
+      } catch (err) {
+        if (moduleFeedback) {
+          moduleFeedback.innerText = "❌ Network error during module creation.";
+          moduleFeedback.style.color = "#F87171";
         }
       }
     });
