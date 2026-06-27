@@ -161,12 +161,18 @@ document.addEventListener('DOMContentLoaded', () => {
           portalTabMaterials.classList.add('active');
           portalTabAccounts.classList.remove('active');
         }
-        if (portalDashboardSplit) portalDashboardSplit.style.display = 'grid';
+        if (portalDashboardSplit) {
+          portalDashboardSplit.style.display = 'grid';
+          portalDashboardSplit.style.gridTemplateColumns = '280px 1fr 360px';
+        }
         if (portalAccountsSplit) portalAccountsSplit.style.display = 'none';
       } else {
         portalAdminSection.style.display = 'none';
         if (portalAdminTabs) portalAdminTabs.style.display = 'none';
-        if (portalDashboardSplit) portalDashboardSplit.style.display = 'grid';
+        if (portalDashboardSplit) {
+          portalDashboardSplit.style.display = 'grid';
+          portalDashboardSplit.style.gridTemplateColumns = '280px 1fr';
+        }
         if (portalAccountsSplit) portalAccountsSplit.style.display = 'none';
       }
       fetchCurriculumAndMaterials();
@@ -452,9 +458,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const filteredMods = modulesList.filter(m => m.subject_id === selectedSubjId);
     
     if (filteredMods.length === 0) {
-      matModSelect.innerHTML = '<option value="mod-default">General Materials</option>';
+      matModSelect.innerHTML = '<option value="mod-default">General Module Resources</option>';
     } else {
-      matModSelect.innerHTML = filteredMods.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
+      matModSelect.innerHTML = '<option value="mod-default">General Module Resources</option>' + filteredMods.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
     }
   };
 
@@ -493,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await fetchMaterials();
   };
 
-  // Render Subjects Sidebar List
+  // Render Subjects Sidebar List (Modules Sidebar)
   const renderSubjects = () => {
     const sidebar = document.getElementById('portal-subjects-sidebar');
     if (!sidebar) return;
@@ -501,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar.innerHTML = '';
     
     if (subjectsList.length === 0) {
-      sidebar.innerHTML = '<p style="color: #94A3B8; font-size: 0.8rem; text-align: center; padding: 20px;">No subjects available.</p>';
+      sidebar.innerHTML = '<p style="color: #94A3B8; font-size: 0.8rem; text-align: center; padding: 20px;">No modules available.</p>';
       return;
     }
     
@@ -523,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <i class="fas ${subj.icon || 'fa-folder'}" style="color: ${subj.color || '#F59E0B'}; font-size: 0.95rem; width: 16px; text-align: center;"></i>
           <span style="font-size: 0.8rem; font-weight: 700; color: white;">${subj.title}</span>
         </div>
-        <span style="font-size: 0.7rem; background: rgba(255,255,255,0.06); color: #94A3B8; padding: 2px 6px; border-radius: 20px;">${count}</span>
+        <span style="font-size: 0.7rem; background: rgba(255,255,255,0.06); color: #94A3B8; padding: 2px 6px; border-radius: 20px;">${count} Tasks</span>
       `;
       
       btn.addEventListener('click', () => {
@@ -537,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Render Modules timeline list for active subject
+  // Render Modules timeline list for active subject (renders Tasks list)
   const renderModules = () => {
     const timeline = document.getElementById('portal-modules-timeline');
     const headerBanner = document.getElementById('portal-subject-header-banner');
@@ -549,12 +555,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const activeSubj = subjectsList.find(s => s.id === activeSubjectId);
     if (!activeSubj) {
-      timeline.innerHTML = '<p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">Select a subject to view modules...</p>';
+      timeline.innerHTML = '<p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">Select a module to view tasks...</p>';
       if (headerBanner) headerBanner.style.display = 'none';
       return;
     }
     
-    // Display subject banner header
+    const subjectModules = modulesList.filter(m => m.subject_id === activeSubjectId); // Tasks under Module
+    
+    // Display subject banner header (Module info)
     if (headerBanner && subjectTitleEl && subjectDescEl) {
       subjectTitleEl.innerText = activeSubj.title;
       subjectDescEl.innerText = activeSubj.description || 'No description provided.';
@@ -563,6 +571,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const glowEl = document.getElementById('portal-subject-glow');
       if (glowEl) {
         glowEl.style.background = activeSubj.color || 'var(--primary-amber)';
+      }
+      
+      // Render progress inside active Module banner
+      const progressEl = document.getElementById('portal-subject-progress');
+      if (progressEl) {
+        if (subjectModules.length > 0) {
+          const completedCount = subjectModules.filter(t => isTaskCompleted(t.id)).length;
+          const percent = Math.round((completedCount / subjectModules.length) * 100);
+          progressEl.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #94A3B8;">
+              <span>Module Progress: <strong>${completedCount}/${subjectModules.length} Tasks</strong></span>
+              <div style="width: 100px; height: 8px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; display: inline-block; border: 1px solid rgba(255,255,255,0.08);">
+                <div style="width: ${percent}%; height: 100%; background: #10B981; transition: width 0.3s ease;"></div>
+              </div>
+              <span style="font-weight: 700; color: #34D399; margin-left: 2px;">${percent}%</span>
+            </div>
+          `;
+        } else {
+          progressEl.innerHTML = '';
+        }
       }
       
       // Admin delete subject button
@@ -579,60 +607,86 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    const subjectModules = modulesList.filter(m => m.subject_id === activeSubjectId);
     timeline.innerHTML = '';
+    const role = sessionStorage.getItem('honeypot_portal_role');
+
+    // 1. Render General Module Resources Card if any exist or if admin
+    const generalMaterials = materialsList.filter(item => item.subject_id === activeSubjectId && item.module_id === 'mod-default');
+    if (generalMaterials.length > 0 || role === 'admin') {
+      const card = document.createElement('div');
+      card.className = 'module-timeline-card open';
+      card.innerHTML = `
+        <div class="module-header" style="cursor: default;">
+          <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
+            <div style="font-size: 1.1rem; color: var(--primary-amber);"><i class="fas fa-folder-open"></i></div>
+            <div>
+              <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: white;">General Module Resources</h5>
+              <p style="margin: 3px 0 0 0; color: #94A3B8; font-size: 0.75rem;">Lesson plans and reference files for this module</p>
+            </div>
+          </div>
+        </div>
+        <div class="module-body">
+          <div class="resources-container">
+            ${renderItemsList(generalMaterials)}
+          </div>
+        </div>
+      `;
+      // Setup delete listener for items inside General Resources
+      card.querySelectorAll('.portal-delete-item-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          const title = btn.getAttribute('data-title');
+          if (confirm(`Are you sure you want to delete "${title}"?`)) {
+            await handleDeleteMaterial(id);
+          }
+        });
+      });
+      timeline.appendChild(card);
+    }
     
-    if (subjectModules.length === 0) {
+    if (subjectModules.length === 0 && generalMaterials.length === 0) {
       timeline.innerHTML = `
         <div style="text-align: center; padding: 60px 20px; border: 1px dashed rgba(255,255,255,0.06); border-radius: 12px; background: rgba(15, 23, 42, 0.15);">
           <i class="fas fa-folder-open" style="font-size: 2.5rem; color: #94A3B8; margin-bottom: 12px; opacity: 0.4;"></i>
-          <p style="color: #94A3B8; font-size: 0.9rem; margin: 0 0 10px 0;">No modules registered under this subject.</p>
-          ${sessionStorage.getItem('honeypot_portal_role') === 'admin' ? '<p style="color: var(--primary-amber); font-size: 0.75rem; font-weight: 600;">Use the Curriculum Panel on the right to add a module!</p>' : ''}
+          <p style="color: #94A3B8; font-size: 0.9rem; margin: 0 0 10px 0;">No tasks registered under this module.</p>
+          ${role === 'admin' ? '<p style="color: var(--primary-amber); font-size: 0.75rem; font-weight: 600;">Use the Curriculum Panel on the right to add a task!</p>' : ''}
         </div>
       `;
       return;
     }
     
-    const role = sessionStorage.getItem('honeypot_portal_role');
-    
+    // 2. Render Tasks Cards
     subjectModules.forEach((mod, idx) => {
       const card = document.createElement('div');
-      card.className = `module-timeline-card ${idx === 0 ? 'open' : ''}`;
+      // If general materials exist, start tasks collapsed by default. Otherwise first task is open.
+      card.className = `module-timeline-card ${idx === 0 && generalMaterials.length === 0 ? 'open' : ''}`;
       card.setAttribute('data-id', mod.id);
       
-      const filteredMaterials = materialsList.filter(item => item.module_id === mod.id);
-      const resources = filteredMaterials.filter(item => item.item_type !== 'task');
-      const tasks = filteredMaterials.filter(item => item.item_type === 'task');
+      const taskMaterials = materialsList.filter(item => item.module_id === mod.id);
+      const isChecked = isTaskCompleted(mod.id);
       
-      let completionHTML = '';
-      if (tasks.length > 0) {
-        const completedCount = tasks.filter(t => isTaskCompleted(t.id)).length;
-        const percent = Math.round((completedCount / tasks.length) * 100);
-        completionHTML = `
-          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #94A3B8;">
-            <span>Tasks: <strong>${completedCount}/${tasks.length}</strong></span>
-            <div style="width: 55px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; display: inline-block;">
-              <div style="width: ${percent}%; height: 100%; background: #10B981;"></div>
-            </div>
-          </div>
-        `;
-      }
+      const checkoffHTML = `
+        <button class="task-completion-check ${isChecked ? 'checked' : ''}" data-id="${mod.id}" title="${isChecked ? 'Mark Incomplete' : 'Mark Completed'}">
+          <i class="fas fa-check"></i>
+        </button>
+      `;
       
-      const deleteModBtnHTML = (role === 'admin' && mod.id !== 'mod-default')
-        ? `<button class="admin-action-btn delete portal-delete-mod-btn" data-id="${mod.id}" title="Remove Module" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i> Delete Module</button>`
+      const deleteModBtnHTML = (role === 'admin')
+        ? `<button class="admin-action-btn delete portal-delete-mod-btn" data-id="${mod.id}" title="Remove Task" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i> Delete Task</button>`
         : '';
         
       card.innerHTML = `
         <div class="module-header">
           <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
-            <div style="font-size: 1.1rem; color: var(--primary-amber);"><i class="fas fa-cubes"></i></div>
+            ${checkoffHTML}
             <div>
-              <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: white;">${mod.title}</h5>
+              <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: white; ${isChecked ? 'text-decoration: line-through; opacity: 0.7;' : ''}">${mod.title}</h5>
               <p style="margin: 3px 0 0 0; color: #94A3B8; font-size: 0.75rem;">${mod.description || 'No description provided.'}</p>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 16px;">
-            ${completionHTML}
             <div style="display: flex; align-items: center; gap: 8px;">
               ${deleteModBtnHTML}
               <i class="fas fa-chevron-down" style="color: #94A3B8; font-size: 0.8rem; transition: transform 0.3s ease;"></i>
@@ -640,43 +694,29 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <div class="module-body">
-          <div style="margin-bottom: 20px;">
-            <h6 class="curriculum-group-title"><i class="fas fa-book" style="color: #60A5FA;"></i> Lessons & Resources</h6>
-            <div class="resources-container">
-              ${renderItemsList(resources, 'resource')}
-            </div>
-          </div>
-          
-          <div>
-            <h6 class="curriculum-group-title"><i class="fas fa-tasks" style="color: #34D399;"></i> Exercises & Tasks</h6>
-            <div class="tasks-container">
-              ${renderItemsList(tasks, 'task')}
-            </div>
+          <h6 class="curriculum-group-title"><i class="fas fa-paperclip" style="color: #60A5FA;"></i> Task Materials & Files</h6>
+          <div class="resources-container">
+            ${renderItemsList(taskMaterials)}
           </div>
         </div>
       `;
       
       card.querySelector('.module-header').addEventListener('click', (e) => {
-        if (e.target.closest('.portal-delete-mod-btn')) return;
+        if (e.target.closest('.portal-delete-mod-btn') || e.target.closest('.task-completion-check')) return;
         
         const isOpen = card.classList.contains('open');
         if (isOpen) {
           card.classList.remove('open');
         } else {
-          // Keep only current open
-          document.querySelectorAll('.module-timeline-card').forEach(c => c.classList.remove('open'));
           card.classList.add('open');
         }
       });
       
-      card.querySelectorAll('.task-completion-check').forEach(chk => {
-        chk.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const taskId = chk.getAttribute('data-id');
-          toggleTaskCompletion(taskId);
-          renderModules();
-        });
+      card.querySelector('.task-completion-check').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleTaskCompletion(mod.id);
+        renderModules();
       });
       
       card.querySelectorAll('.portal-delete-item-btn').forEach(btn => {
@@ -691,12 +731,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
       
-      if (role === 'admin' && mod.id !== 'mod-default') {
+      if (role === 'admin') {
         card.querySelector('.portal-delete-mod-btn').addEventListener('click', async (e) => {
           e.preventDefault();
-          const id = e.currentTarget.getAttribute('data-id');
-          if (confirm(`Are you sure you want to permanently delete the module "${mod.title}" and ALL its files/resources? This cannot be undone.`)) {
-            await handleDeleteModule(id);
+          if (confirm(`Are you sure you want to permanently delete the task "${mod.title}" and ALL its files?`)) {
+            await handleDeleteModule(mod.id);
           }
         });
       }
@@ -705,10 +744,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Render items within a module (Resources or Tasks)
-  const renderItemsList = (items, type) => {
-    if (items.length === 0) {
-      return `<p style="font-size: 0.8rem; color: #64748B; font-style: italic; margin: 4px 0 0 12px; text-align: left;">No ${type === 'task' ? 'tasks' : 'resources'} listed in this module.</p>`;
+  // Render items within a task or module
+  const renderItemsList = (items) => {
+    if (!items || items.length === 0) {
+      return `<p style="font-size: 0.8rem; color: #64748B; font-style: italic; margin: 4px 0 0 12px; text-align: left;">No documents or links uploaded.</p>`;
     }
     
     const role = sessionStorage.getItem('honeypot_portal_role');
@@ -718,29 +757,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (item.type === 'pdf') icon = '<i class="fas fa-file-pdf"></i>';
       if (item.type === 'doc') icon = '<i class="fas fa-file-word"></i>';
       
-      const isTask = item.item_type === 'task';
-      const isChecked = isTask && isTaskCompleted(item.id);
-      
-      const checkoffHTML = isTask 
-        ? `<button class="task-completion-check ${isChecked ? 'checked' : ''}" data-id="${item.id}" title="${isChecked ? 'Mark Incomplete' : 'Mark Completed'}"><i class="fas fa-check"></i></button>`
-        : '';
-        
       const deleteBtnHTML = role === 'admin'
         ? `<button class="admin-action-btn delete portal-delete-item-btn" data-id="${item.id}" data-title="${item.title}" title="Delete Resource" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i></button>`
         : '';
         
-      const cardStyle = isChecked ? 'opacity: 0.65; border-color: rgba(16, 185, 129, 0.15);' : '';
-      const textStyle = isChecked ? 'text-decoration: line-through; color: #64748B;' : '';
-      
       return `
-        <div class="curriculum-item-card" style="${cardStyle}">
+        <div class="curriculum-item-card">
           <div style="display: flex; align-items: center; gap: 12px; text-align: left; flex-grow: 1;">
-            ${checkoffHTML}
             <div class="portal-type-badge ${item.type}" style="width: 32px; height: 32px; font-size: 0.9rem;">
               ${icon}
             </div>
             <div>
-              <h6 style="margin: 0; font-size: 0.85rem; font-weight: 700; color: white; ${textStyle}">${item.title}</h6>
+              <h6 style="margin: 0; font-size: 0.85rem; font-weight: 700; color: white;">${item.title}</h6>
               <p style="margin: 2px 0 0 0; color: #94A3B8; font-size: 0.75rem;">${item.description || 'No description'}</p>
             </div>
           </div>
