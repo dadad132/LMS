@@ -63,6 +63,22 @@ if [ -f "$WEB_ROOT/admin_password.txt" ]; then
     sudo mv "$WEB_ROOT/admin_password.txt" "/var/lib/lms/admin_password.txt"
     echo "  -> Migrated admin_password.txt"
 fi
+if [ -f "$WEB_ROOT/users.json" ]; then
+    sudo mv "$WEB_ROOT/users.json" "/var/lib/lms/users.json"
+    echo "  -> Migrated users.json"
+fi
+if [ -f "$WEB_ROOT/materials.json" ]; then
+    sudo mv "$WEB_ROOT/materials.json" "/var/lib/lms/materials.json"
+    echo "  -> Migrated materials.json"
+fi
+if [ -f "$WEB_ROOT/subjects.json" ]; then
+    sudo mv "$WEB_ROOT/subjects.json" "/var/lib/lms/subjects.json"
+    echo "  -> Migrated subjects.json"
+fi
+if [ -f "$WEB_ROOT/modules.json" ]; then
+    sudo mv "$WEB_ROOT/modules.json" "/var/lib/lms/modules.json"
+    echo "  -> Migrated modules.json"
+fi
 
 echo "📂 Deploying website files to $WEB_ROOT..."
 

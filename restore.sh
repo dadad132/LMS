@@ -70,6 +70,9 @@ found_team=""
 found_password=""
 found_users=""
 found_materials=""
+found_testimonials=""
+found_subjects=""
+found_modules=""
 found_uploads=""
 
 # Search recursively in the temp folder
@@ -77,6 +80,9 @@ team_paths=$(find "$temp_extract" -name "team.json")
 password_paths=$(find "$temp_extract" -name "admin_password.txt")
 users_paths=$(find "$temp_extract" -name "users.json")
 materials_paths=$(find "$temp_extract" -name "materials.json")
+testimonials_paths=$(find "$temp_extract" -name "testimonials.json")
+subjects_paths=$(find "$temp_extract" -name "subjects.json")
+modules_paths=$(find "$temp_extract" -name "modules.json")
 uploads_paths=$(find "$temp_extract" -type d -name "uploads")
 
 for p in $team_paths; do
@@ -99,6 +105,21 @@ for p in $materials_paths; do
     break
 done
 
+for p in $testimonials_paths; do
+    found_testimonials="$p"
+    break
+done
+
+for p in $subjects_paths; do
+    found_subjects="$p"
+    break
+done
+
+for p in $modules_paths; do
+    found_modules="$p"
+    break
+done
+
 for p in $uploads_paths; do
     # Ensure it's not the temp_extract root directory itself if it's named uploads somehow
     if [ "$(basename "$p")" = "uploads" ]; then
@@ -112,6 +133,13 @@ if [ -n "$found_team" ]; then
     echo "✅ Restored team.json profiles."
 else
     echo "⚠️  team.json not found in this backup archive."
+fi
+
+if [ -n "$found_testimonials" ]; then
+    cp -f "$found_testimonials" "$DATA_DIR/testimonials.json"
+    echo "✅ Restored testimonials.json client feedback."
+else
+    echo "⚠️  testimonials.json not found in this backup archive."
 fi
 
 if [ -n "$found_password" ]; then
@@ -135,6 +163,20 @@ else
     echo "⚠️  materials.json not found in this backup archive."
 fi
 
+if [ -n "$found_subjects" ]; then
+    cp -f "$found_subjects" "$DATA_DIR/subjects.json"
+    echo "✅ Restored subjects.json modules hierarchy."
+else
+    echo "⚠️  subjects.json not found in this backup archive."
+fi
+
+if [ -n "$found_modules" ]; then
+    cp -f "$found_modules" "$DATA_DIR/modules.json"
+    echo "✅ Restored modules.json tasks hierarchy."
+else
+    echo "⚠️  modules.json not found in this backup archive."
+fi
+
 if [ -n "$found_uploads" ]; then
     mkdir -p "$DATA_DIR/uploads"
     cp -rf "$found_uploads"/. "$DATA_DIR/uploads/"
@@ -153,7 +195,7 @@ if [ -d "$DATA_DIR/uploads" ]; then
     find "$DATA_DIR/uploads" -type f -exec chmod 644 {} \; 2>/dev/null || true
 fi
 
-for f in team.json admin_password.txt users.json materials.json; do
+for f in team.json testimonials.json admin_password.txt users.json materials.json subjects.json modules.json; do
     if [ -f "$DATA_DIR/$f" ]; then
         chmod 600 "$DATA_DIR/$f"
     fi
