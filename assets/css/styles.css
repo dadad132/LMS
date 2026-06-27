@@ -225,7 +225,7 @@ header.scrolled {
 nav ul {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 20px;
   list-style: none;
 }
 
@@ -1172,7 +1172,7 @@ footer {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   header {
     padding: 16px 0;
   }
