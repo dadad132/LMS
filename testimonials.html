@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Reviews & Testimonials | Honeypot Global</title>
+  
+  <meta name="description" content="Read real reviews and success stories from online English teachers mentored by Honeypot Global. Certified TEFL teachers hired by top ESL companies.">
+  
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* Dedicated Testimonials Page Styling */
+    .testimonials-hero {
+      background: linear-gradient(135deg, rgba(254, 243, 199, 0.5) 0%, rgba(254, 249, 195, 0.3) 100%);
+      padding: 140px 0 60px 0;
+      text-align: center;
+      position: relative;
+    }
+
+    .rating-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      padding: 8px 18px;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(217, 119, 6, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--dark-charcoal);
+      margin-bottom: 20px;
+    }
+
+    /* Interactive Carousel Box */
+    .carousel-section {
+      padding: 40px 0 80px 0;
+      background: white;
+    }
+
+    .carousel-container {
+      max-width: 860px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .carousel-box {
+      background: linear-gradient(135deg, #FFFFFF 0%, #FFFDF7 100%);
+      border: 2px solid rgba(245, 158, 11, 0.2);
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow: 0 20px 40px rgba(217, 119, 6, 0.08);
+      position: relative;
+      overflow: hidden;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.4s ease;
+    }
+
+    .carousel-box::before {
+      content: '“';
+      font-size: 8rem;
+      font-family: serif;
+      position: absolute;
+      top: -20px;
+      left: 24px;
+      color: var(--primary-amber);
+      opacity: 0.1;
+      pointer-events: none;
+    }
+
+    .carousel-quote {
+      font-size: 1.2rem;
+      line-height: 1.7;
+      color: var(--dark-charcoal);
+      font-style: italic;
+      margin-bottom: 30px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .carousel-author {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      border-top: 1px solid rgba(245, 158, 11, 0.12);
+      padding-top: 24px;
+    }
+
+    .carousel-user {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .carousel-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--accent-warm);
+      border: 3px solid var(--primary-amber);
+      color: var(--primary-amber);
+      font-size: 1.4rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      flex-shrink: 0;
+    }
+
+    .carousel-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .carousel-user-info h4 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      color: var(--dark-charcoal);
+    }
+
+    .carousel-user-info p {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--primary-amber);
+      margin: 0;
+    }
+
+    .carousel-stars {
+      color: #F59E0B;
+      font-size: 1rem;
+      display: flex;
+      gap: 4px;
+    }
+
+    /* Controls Bar */
+    .carousel-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 24px;
+      padding: 0 10px;
+    }
+
+    .carousel-nav-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid rgba(245, 158, 11, 0.25);
+      color: var(--primary-amber);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    }
+
+    .carousel-nav-btn:hover {
+      background: var(--primary-amber);
+      color: white;
+      transform: scale(1.08);
+      box-shadow: 0 6px 16px rgba(217, 119, 6, 0.25);
+    }
+
+    .carousel-dots {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(245, 158, 11, 0.25);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .dot.active {
+      width: 28px;
+      border-radius: 12px;
+      background: var(--primary-amber);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    }
+
+    .carousel-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Progress bar visualizer */
+    .carousel-progress-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(245, 158, 11, 0.1);
+      border-radius: 2px;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+
+    .carousel-progress-bar {
+      height: 100%;
+      background: var(--primary-amber);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVIGATION HEADER -->
+  <header class="scrolled">
+    <div class="container nav-wrapper">
+      <a href="index.html#home" class="logo">
+        <span class="logo-pot">🍯</span>Honeypot<span>Global</span>
+      </a>
+      
+      <button class="nav-toggle" aria-label="Toggle Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      
+      <nav>
+        <ul>
+          <li><a href="index.html#home">Home</a></li>
+          <li><a href="index.html#about">Our Story</a></li>
+          <li><a href="index.html#services">Training Center</a></li>
+          <li><a href="index.html#team">Our Team</a></li>
+          <li><a href="testimonials.html" class="active">Reviews</a></li>
+          <li><a href="index.html#social">Community</a></li>
+          <li><a href="index.html#contact" class="btn btn-primary" style="padding: 10px 15px; box-shadow: none;">Get Started <i class="fas fa-chevron-right" style="font-size: 0.8rem;"></i></a></li>
+          <li><a href="portal.html" class="btn btn-secondary" id="nav-portal-btn" style="padding: 10px 15px; box-shadow: none; margin-left: 8px;"><i class="fas fa-user-graduate"></i> Client Portal</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- TESTIMONIALS HERO BANNER -->
+  <section class="testimonials-hero">
+    <div class="container">
+      <div class="rating-badge">
+        <span style="color: #F59E0B;">⭐⭐⭐⭐⭐</span> 5.0 Average Rating &bull; Verified Teachers
+      </div>
+      <h1 style="font-size: 3rem; font-weight: 800; color: var(--dark-charcoal); margin-bottom: 16px;">
+        Student Reviews &amp; <span class="text-gradient">Success Stories</span>
+      </h1>
+      <p style="color: var(--text-muted); font-size: 1.15rem; max-width: 680px; margin: 0 auto;">
+        Discover how online ESL teachers achieved TEFL certification, passed ClassIn demos, and landed remote teaching positions with Honeypot Global.
+      </p>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE CYCLING CAROUSEL SHOWCASE -->
+  <section class="carousel-section">
+    <div class="container">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 0.85rem; font-weight: 800; letter-spacing: 1px; color: var(--primary-amber); text-transform: uppercase;">
+          <i class="fas fa-sync-alt fa-spin" style="margin-right: 6px;"></i> Live Cycling Showcase
+        </span>
+      </div>
+
+      <div class="carousel-container" id="carousel-wrapper">
+        <!-- Cycling Carousel Card Box -->
+        <div class="carousel-box" id="carousel-box">
+          <div class="carousel-quote" id="carousel-quote">
+            "Loading student testimonials..."
+          </div>
+          
+          <div class="carousel-author">
+            <div class="carousel-user">
+              <div class="carousel-avatar" id="carousel-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="carousel-user-info">
+                <h4 id="carousel-name">Student Name</h4>
+                <p id="carousel-company">Honeypot Graduate</p>
+              </div>
+            </div>
+            <div class="carousel-stars" id="carousel-stars">
+              <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="carousel-progress-track">
+          <div class="carousel-progress-bar" id="carousel-progress-bar"></div>
+        </div>
+
+        <!-- Controls Bar -->
+        <div class="carousel-controls">
+          <button class="carousel-nav-btn" id="carousel-prev-btn" title="Previous Review"><i class="fas fa-chevron-left"></i></button>
+          
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div class="carousel-dots" id="carousel-dots">
+              <!-- Dots rendered dynamically -->
+            </div>
+            <div class="carousel-status" id="carousel-status">
+              <i class="fas fa-play-circle" style="color: var(--primary-amber);"></i> Auto-cycling active (Pause on hover)
+            </div>
+          </div>
+          
+          <button class="carousel-nav-btn" id="carousel-next-btn" title="Next Review"><i class="fas fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALL TESTIMONIALS GRID SECTION -->
+  <section class="section-padding" style="background: var(--bg-light); border-top: 1px solid rgba(0,0,0,0.03);">
+    <div class="container">
+      <div class="section-header" style="text-align: center; margin-bottom: 40px;">
+        <h2>All Student Reviews</h2>
+        <p>Explore all feedback and testimonials from our global teaching family.</p>
+      </div>
+
+      <div id="all-testimonials-grid" class="testimonials-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FOOTER SECTION -->
+  <section class="section-padding" style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); color: white; text-align: center;">
+    <div class="container" style="max-width: 700px;">
+      <div style="font-size: 2.5rem; color: var(--primary-amber); margin-bottom: 16px;"><i class="fas fa-graduation-cap"></i></div>
+      <h2 style="font-size: 2.4rem; color: white; margin-bottom: 16px;">Ready to Start Your Teaching Journey?</h2>
+      <p style="color: #94A3B8; font-size: 1.1rem; margin-bottom: 32px;">
+        Join hundreds of successful online English teachers mentored by Honeypot Global. Get step-by-step guidance today!
+      </p>
+      <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+        <a href="https://honeypot.setmore.com/" target="_blank" rel="noopener" class="btn btn-primary" style="padding: 14px 28px;">Book Consultation <i class="fas fa-calendar-check"></i></a>
+        <a href="https://chat.whatsapp.com/GZbFEkeR02yHVsim31i3kM" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 14px 28px; background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);">Join WhatsApp <i class="fab fa-whatsapp"></i></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <h3>🍯 Honeypot<span>Global</span></h3>
+        <p>Welcome to Honeypotglobal where we help you do your absolute best in the online teaching world. Created by teachers, for teachers.</p>
+        <div class="footer-socials">
+          <a href="https://tiktok.com/@infohoneypotsa.co.za?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener" class="footer-social-icon" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+          <a href="https://instagram.com/honeypottefl?igsh=MXUyMzc3N2FydDVreQ==" target="_blank" rel="noopener" class="footer-social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.youtube.com/@HoneypotTEFL" target="_blank" rel="noopener" class="footer-social-icon" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="index.html#home">Home</a></li>
+          <li><a href="index.html#about">Our Story</a></li>
+          <li><a href="index.html#services">Training Center</a></li>
+          <li><a href="index.html#team">Our Mentors</a></li>
+          <li><a href="testimonials.html">Student Reviews</a></li>
+          <li><a href="portal.html">Client Portal</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="index.html#services">120-hour TEFL Mentorship</a></li>
+          <li><a href="index.html#services">ClassIn Software Mastery</a></li>
+          <li><a href="index.html#services">Demo Lesson Prep</a></li>
+          <li><a href="index.html#services">ESL Job Referrals</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Contact &amp; Help</h4>
+        <ul class="footer-contact-list">
+          <li><i class="fas fa-envelope"></i> <a href="mailto:honey@honeypotglobal.co.za">honey@honeypotglobal.co.za</a></li>
+          <li><i class="fab fa-whatsapp"></i> <a href="https://chat.whatsapp.com/GZbFEkeR02yHVsim31i3kM" target="_blank" rel="noopener">WhatsApp Support Group</a></li>
+          <li><i class="fas fa-map-marker-alt"></i> Vryheid, South Africa</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="container footer-bottom">
+      <p>&copy; 2026 Honeypotglobal. All rights reserved. Created in partnership with Global TEFL UK.</p>
+    </div>
+  </footer>
+
+  <!-- CAROUSEL SCRIPT -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://127.0.0.1:8001/api'
+        : '/api';
+
+      const defaultTestimonials = [
+        { id: "t1", name: "Lerato M.", company: "Native Camp ESL Teacher", text: "Honeypot Global transformed my online teaching! Hannelie guided me through the entire ClassIn setup and native English teaching methodology. Hired in just two weeks!", rating: 5, image: "" },
+        { id: "t2", name: "Johan v.d. Merwe", company: "120-hour TEFL Student", text: "Passing my 120-hour TEFL certificate was so much easier with Honeypot. The feedback on my lesson plans was incredibly detailed and helpful.", rating: 5, image: "" },
+        { id: "t3", name: "Chantal K.", company: "ESL Online Coach", text: "I highly recommend Honeypot Global. The mentorship program is top-notch and Hannelie gives constant encouragement.", rating: 5, image: "" }
+      ];
+
+      let testimonials = defaultTestimonials;
+      let currentIndex = 0;
+      let intervalTimer = null;
+      let progressTimer = null;
+      let isPaused = false;
+      const cycleDuration = 5000; // 5 seconds
+      let progressStartTime = 0;
+
+      // Elements
+      const quoteEl = document.getElementById('carousel-quote');
+      const nameEl = document.getElementById('carousel-name');
+      const companyEl = document.getElementById('carousel-company');
+      const avatarEl = document.getElementById('carousel-avatar');
+      const starsEl = document.getElementById('carousel-stars');
+      const dotsEl = document.getElementById('carousel-dots');
+      const progressBar = document.getElementById('carousel-progress-bar');
+      const prevBtn = document.getElementById('carousel-prev-btn');
+      const nextBtn = document.getElementById('carousel-next-btn');
+      const carouselWrapper = document.getElementById('carousel-wrapper');
+      const gridContainer = document.getElementById('all-testimonials-grid');
+
+      // Fetch Testimonials
+      const loadTestimonials = async () => {
+        try {
+          const res = await fetch(`${apiBase}/testimonials`);
+          if (res.ok) {
+            testimonials = await res.json();
+          }
+        } catch (err) {
+          console.warn("Using default testimonials.");
+        }
+        if (!testimonials || testimonials.length === 0) {
+          testimonials = defaultTestimonials;
+        }
+        initCarousel();
+        renderGrid();
+      };
+
+      const initCarousel = () => {
+        renderDots();
+        showTestimonial(0);
+        startTimer();
+      };
+
+      const showTestimonial = (index) => {
+        if (!testimonials || testimonials.length === 0) return;
+        currentIndex = (index + testimonials.length) % testimonials.length;
+        const test = testimonials[currentIndex];
+
+        // Animate Out & In
+        const box = document.getElementById('carousel-box');
+        box.style.opacity = '0.3';
+        box.style.transform = 'translateY(8px)';
+
+        setTimeout(() => {
+          quoteEl.innerText = `"${test.text}"`;
+          nameEl.innerText = test.name;
+          companyEl.innerText = test.company || 'Student';
+
+          // Avatar
+          if (test.image) {
+            avatarEl.innerHTML = `<img src="${test.image}" alt="${test.name}">`;
+          } else {
+            const initials = test.name ? test.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'S';
+            avatarEl.innerText = initials;
+          }
+
+          // Stars
+          let stars = '';
+          const r = parseInt(test.rating) || 5;
+          for (let i = 0; i < r; i++) stars += '<i class="fas fa-star"></i>';
+          starsEl.innerHTML = stars;
+
+          // Dots active state
+          const dots = dotsEl.querySelectorAll('.dot');
+          dots.forEach((d, i) => {
+            if (i === currentIndex) d.classList.add('active');
+            else d.classList.remove('active');
+          });
+
+          box.style.opacity = '1';
+          box.style.transform = 'translateY(0)';
+        }, 200);
+
+        resetProgress();
+      };
+
+      const renderDots = () => {
+        dotsEl.innerHTML = '';
+        testimonials.forEach((_, i) => {
+          const dot = document.createElement('div');
+          dot.className = `dot ${i === 0 ? 'active' : ''}`;
+          dot.addEventListener('click', () => {
+            showTestimonial(i);
+          });
+          dotsEl.appendChild(dot);
+        });
+      };
+
+      const renderGrid = () => {
+        if (!gridContainer) return;
+        gridContainer.innerHTML = '';
+        testimonials.forEach(test => {
+          const card = document.createElement('div');
+          card.className = 'testimonial-card';
+          
+          let starsHTML = '';
+          const rating = parseInt(test.rating) || 5;
+          for (let i = 0; i < rating; i++) starsHTML += '<i class="fas fa-star"></i>';
+          
+          const initials = test.name ? test.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'S';
+          const avatarHTML = test.image
+            ? `<div class="testimonial-avatar"><img src="${test.image}" alt="${test.name}"></div>`
+            : `<div class="testimonial-avatar">${initials}</div>`;
+
+          card.innerHTML = `
+            <div>
+              <div class="testimonial-stars">${starsHTML}</div>
+              <p class="testimonial-quote">${test.text}</p>
+            </div>
+            <div class="testimonial-profile">
+              ${avatarHTML}
+              <div class="testimonial-info">
+                <h5>${test.name}</h5>
+                <p>${test.company}</p>
+              </div>
+            </div>
+          `;
+          gridContainer.appendChild(card);
+        });
+      };
+
+      // Timers & Progress
+      const startTimer = () => {
+        clearInterval(intervalTimer);
+        clearInterval(progressTimer);
+
+        progressStartTime = Date.now();
+        
+        progressTimer = setInterval(() => {
+          if (isPaused) return;
+          const elapsed = Date.now() - progressStartTime;
+          const pct = Math.min((elapsed / cycleDuration) * 100, 100);
+          progressBar.style.width = `${pct}%`;
+        }, 50);
+
+        intervalTimer = setInterval(() => {
+          if (!isPaused) {
+            showTestimonial(currentIndex + 1);
+          }
+        }, cycleDuration);
+      };
+
+      const resetProgress = () => {
+        progressStartTime = Date.now();
+        progressBar.style.width = '0%';
+      };
+
+      // Event Controls
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          showTestimonial(currentIndex - 1);
+        });
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          showTestimonial(currentIndex + 1);
+        });
+      }
+
+      if (carouselWrapper) {
+        carouselWrapper.addEventListener('mouseenter', () => {
+          isPaused = true;
+          document.getElementById('carousel-status').innerHTML = '<i class="fas fa-pause-circle" style="color: var(--primary-amber);"></i> Paused (Hovering)';
+        });
+        carouselWrapper.addEventListener('mouseleave', () => {
+          isPaused = false;
+          progressStartTime = Date.now();
+          document.getElementById('carousel-status').innerHTML = '<i class="fas fa-play-circle" style="color: var(--primary-amber);"></i> Auto-cycling active (Pause on hover)';
+        });
+      }
+
+      // Mobile Nav Toggle
+      const navToggle = document.querySelector('.nav-toggle');
+      const navMenu = document.querySelector('nav');
+      if (navToggle && navMenu) {
+        navToggle.addEventListener('click', () => {
+          navToggle.classList.toggle('active');
+          navMenu.classList.toggle('active');
+        });
+      }
+
+      loadTestimonials();
+    });
+  </script>
+</body>
+</html>
