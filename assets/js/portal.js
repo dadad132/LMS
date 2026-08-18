@@ -153,19 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (role === 'admin') {
         portalAdminSection.style.display = 'block';
         if (portalAdminTabs) portalAdminTabs.style.display = 'flex';
-        
-        // Reset tabs to Materials active
-        const portalTabMaterials = document.getElementById('portal-tab-materials');
-        const portalTabAccounts = document.getElementById('portal-tab-accounts');
-        if (portalTabMaterials && portalTabAccounts) {
-          portalTabMaterials.classList.add('active');
-          portalTabAccounts.classList.remove('active');
-        }
-        if (portalDashboardSplit) {
-          portalDashboardSplit.style.display = 'grid';
-          portalDashboardSplit.style.gridTemplateColumns = '280px 1fr 360px';
-        }
-        if (portalAccountsSplit) portalAccountsSplit.style.display = 'none';
+        switchAdminMainTab('materials');
       } else {
         portalAdminSection.style.display = 'none';
         if (portalAdminTabs) portalAdminTabs.style.display = 'none';
@@ -174,6 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
           portalDashboardSplit.style.gridTemplateColumns = '280px 1fr';
         }
         if (portalAccountsSplit) portalAccountsSplit.style.display = 'none';
+        const portalTestimonialsSplit = document.getElementById('portal-testimonials-split');
+        if (portalTestimonialsSplit) portalTestimonialsSplit.style.display = 'none';
       }
       fetchCurriculumAndMaterials();
     } else {
@@ -186,31 +176,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Switch between Materials and Accounts in admin console
-  const portalTabMaterials = document.getElementById('portal-tab-materials');
-  const portalTabAccounts = document.getElementById('portal-tab-accounts');
-  const portalDashboardSplit = document.getElementById('portal-dashboard-split');
-  const portalAccountsSplit = document.getElementById('portal-accounts-split');
-
-  if (portalTabMaterials && portalTabAccounts && portalDashboardSplit && portalAccountsSplit) {
-    portalTabMaterials.addEventListener('click', () => {
-      portalTabMaterials.classList.add('active');
-      portalTabAccounts.classList.remove('active');
-      
-      portalDashboardSplit.style.display = 'grid';
-      portalAccountsSplit.style.display = 'none';
-      fetchMaterials();
-    });
-
-    portalTabAccounts.addEventListener('click', () => {
-      portalTabAccounts.classList.add('active');
-      portalTabMaterials.classList.remove('active');
-      
-      portalAccountsSplit.style.display = 'grid';
-      portalDashboardSplit.style.display = 'none';
-      fetchUsers();
+  // Password Visibility Toggle
+  const toggleLoginPasswordBtn = document.getElementById('toggle-login-password');
+  const loginPasswordInput = document.getElementById('login-password');
+  if (toggleLoginPasswordBtn && loginPasswordInput) {
+    toggleLoginPasswordBtn.addEventListener('click', () => {
+      const type = loginPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      loginPasswordInput.setAttribute('type', type);
+      toggleLoginPasswordBtn.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
     });
   }
+
+  // Switch between Materials, Accounts, and Testimonials in admin console
+  const portalTabMaterials = document.getElementById('portal-tab-materials');
+  const portalTabAccounts = document.getElementById('portal-tab-accounts');
+  const portalTabTestimonials = document.getElementById('portal-tab-testimonials');
+  const portalDashboardSplit = document.getElementById('portal-dashboard-split');
+  const portalAccountsSplit = document.getElementById('portal-accounts-split');
+  const portalTestimonialsSplit = document.getElementById('portal-testimonials-split');
+
+  const switchAdminMainTab = (activeTab) => {
+    [portalTabMaterials, portalTabAccounts, portalTabTestimonials].forEach(tab => {
+      if (tab) tab.classList.remove('active');
+    });
+    [portalDashboardSplit, portalAccountsSplit, portalTestimonialsSplit].forEach(split => {
+      if (split) split.style.display = 'none';
+    });
+
+    if (activeTab === 'materials' && portalTabMaterials && portalDashboardSplit) {
+      portalTabMaterials.classList.add('active');
+      portalDashboardSplit.style.display = 'grid';
+      portalDashboardSplit.style.gridTemplateColumns = '280px 1fr 360px';
+      fetchMaterials();
+    } else if (activeTab === 'accounts' && portalTabAccounts && portalAccountsSplit) {
+      portalTabAccounts.classList.add('active');
+      portalAccountsSplit.style.display = 'grid';
+      fetchUsers();
+    } else if (activeTab === 'testimonials' && portalTabTestimonials && portalTestimonialsSplit) {
+      portalTabTestimonials.classList.add('active');
+      portalTestimonialsSplit.style.display = 'grid';
+      fetchTestimonials();
+    }
+  };
+
+  if (portalTabMaterials) portalTabMaterials.addEventListener('click', () => switchAdminMainTab('materials'));
+  if (portalTabAccounts) portalTabAccounts.addEventListener('click', () => switchAdminMainTab('accounts'));
+  if (portalTabTestimonials) portalTabTestimonials.addEventListener('click', () => switchAdminMainTab('testimonials'));
 
   // Fetch registered users (Admin only)
   const fetchUsers = async () => {
@@ -1185,6 +1196,283 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+  }
+
+  // --- TESTIMONIALS MANAGEMENT IN PORTAL ---
+  let testimonialsList = [];
+  let currentTestimonialImage = '';
+
+  const fetchTestimonials = async () => {
+    try {
+      const res = await fetch(`${apiBase}/testimonials`);
+      if (res.ok) {
+        testimonialsList = await res.json();
+        renderTestimonials();
+      }
+    } catch (err) {
+      console.error("Error fetching testimonials in portal:", err);
+    }
+  };
+
+  const renderTestimonials = () => {
+    const container = document.getElementById('portal-testimonials-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+    if (testimonialsList.length === 0) {
+      container.innerHTML = `<p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">No testimonials found.</p>`;
+      return;
+    }
+
+    testimonialsList.forEach((test, index) => {
+      const card = document.createElement('div');
+      card.className = 'portal-testimonial-card';
+
+      const stars = '⭐'.repeat(test.rating || 5);
+      const isFirst = index === 0;
+      const isLast = index === testimonialsList.length - 1;
+
+      const avatarHTML = test.image
+        ? `<img src="${test.image}" alt="${test.name}">`
+        : (test.name ? test.name.charAt(0).toUpperCase() : 'S');
+
+      card.innerHTML = `
+        <div class="portal-testimonial-header">
+          <div class="portal-testimonial-user">
+            <div class="portal-testimonial-avatar">${avatarHTML}</div>
+            <div>
+              <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: white;">${test.name}</h5>
+              <p style="margin: 2px 0 0 0; color: var(--primary-amber); font-size: 0.78rem; font-weight: 600;">${test.company || 'Student'}</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="btn move-up-btn" data-index="${index}" ${isFirst ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} title="Move Up" style="padding: 4px 8px; font-size: 0.7rem; background: rgba(255,255,255,0.06); color: white; border: 1px solid rgba(255,255,255,0.1);"><i class="fas fa-arrow-up"></i></button>
+            <button class="btn move-down-btn" data-index="${index}" ${isLast ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} title="Move Down" style="padding: 4px 8px; font-size: 0.7rem; background: rgba(255,255,255,0.06); color: white; border: 1px solid rgba(255,255,255,0.1);"><i class="fas fa-arrow-down"></i></button>
+            <button class="btn edit-test-btn" data-id="${test.id}" title="Edit Testimonial" style="padding: 4px 8px; font-size: 0.7rem; background: rgba(59,130,246,0.15); color: #93C5FD; border: 1px solid rgba(59,130,246,0.3);"><i class="fas fa-edit"></i> Edit</button>
+            <button class="btn delete-test-btn" data-id="${test.id}" title="Delete Testimonial" style="padding: 4px 8px; font-size: 0.7rem; background: rgba(239,68,68,0.15); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.3);"><i class="fas fa-trash-alt"></i> Delete</button>
+          </div>
+        </div>
+        <div class="portal-star-rating">${stars} <span style="color: #94A3B8; font-size: 0.75rem; margin-left: 4px;">(${test.rating || 5}.0)</span></div>
+        <p class="portal-testimonial-quote">"${test.text}"</p>
+      `;
+
+      card.querySelector('.edit-test-btn').addEventListener('click', () => editTestimonial(test));
+      card.querySelector('.delete-test-btn').addEventListener('click', () => deleteTestimonial(test.id, test.name));
+
+      const moveUpBtn = card.querySelector('.move-up-btn');
+      if (moveUpBtn && !isFirst) {
+        moveUpBtn.addEventListener('click', () => moveTestimonial(index, -1));
+      }
+
+      const moveDownBtn = card.querySelector('.move-down-btn');
+      if (moveDownBtn && !isLast) {
+        moveDownBtn.addEventListener('click', () => moveTestimonial(index, 1));
+      }
+
+      container.appendChild(card);
+    });
+  };
+
+  const saveTestimonialsToServer = async (updatedList) => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    try {
+      const res = await fetch(`${apiBase}/testimonials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updatedList)
+      });
+      if (res.ok) {
+        testimonialsList = updatedList;
+        renderTestimonials();
+        return true;
+      } else {
+        const err = await res.json();
+        alert(`Failed to save testimonials: ${err.error || 'Unauthorized'}`);
+        return false;
+      }
+    } catch (err) {
+      alert("Network error saving testimonials.");
+      return false;
+    }
+  };
+
+  const editTestimonial = (test) => {
+    const formTitle = document.getElementById('portal-testimonial-form-title');
+    const editIdInput = document.getElementById('portal-edit-testimonial-id');
+    const nameInput = document.getElementById('portal-testimonial-name');
+    const companyInput = document.getElementById('portal-testimonial-company');
+    const ratingSelect = document.getElementById('portal-testimonial-rating');
+    const textInput = document.getElementById('portal-testimonial-text');
+    const cancelBtn = document.getElementById('portal-testimonial-cancel-btn');
+    const photoPreview = document.getElementById('portal-testimonial-photo-preview');
+    const clearPhotoBtn = document.getElementById('portal-testimonial-clear-photo');
+
+    if (formTitle) formTitle.innerHTML = `<i class="fas fa-edit" style="color: var(--primary-amber); margin-right: 6px;"></i> Edit Testimonial`;
+    if (editIdInput) editIdInput.value = test.id;
+    if (nameInput) nameInput.value = test.name || '';
+    if (companyInput) companyInput.value = test.company || '';
+    if (ratingSelect) ratingSelect.value = test.rating || 5;
+    if (textInput) textInput.value = test.text || '';
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+
+    currentTestimonialImage = test.image || '';
+    if (photoPreview) {
+      if (currentTestimonialImage) {
+        photoPreview.innerHTML = `<img src="${currentTestimonialImage}" alt="${test.name}">`;
+        if (clearPhotoBtn) clearPhotoBtn.style.display = 'inline-block';
+      } else {
+        const initials = test.name ? test.name.charAt(0).toUpperCase() : 'S';
+        photoPreview.innerHTML = initials;
+        if (clearPhotoBtn) clearPhotoBtn.style.display = 'none';
+      }
+    }
+  };
+
+  const resetTestimonialForm = () => {
+    const formTitle = document.getElementById('portal-testimonial-form-title');
+    const form = document.getElementById('portalTestimonialForm');
+    const cancelBtn = document.getElementById('portal-testimonial-cancel-btn');
+    const photoPreview = document.getElementById('portal-testimonial-photo-preview');
+    const clearPhotoBtn = document.getElementById('portal-testimonial-clear-photo');
+    const feedback = document.getElementById('portal-testimonial-feedback');
+    const fileInput = document.getElementById('portal-testimonial-file');
+
+    if (form) form.reset();
+    const editIdInput = document.getElementById('portal-edit-testimonial-id');
+    if (editIdInput) editIdInput.value = '';
+    currentTestimonialImage = '';
+    if (fileInput) fileInput.value = '';
+    if (formTitle) formTitle.innerHTML = `<i class="fas fa-comment-dots" style="color: var(--primary-amber); margin-right: 6px;"></i> Add Testimonial`;
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (clearPhotoBtn) clearPhotoBtn.style.display = 'none';
+    if (feedback) feedback.style.display = 'none';
+    if (photoPreview) photoPreview.innerHTML = `<i class="fas fa-user"></i>`;
+  };
+
+  const moveTestimonial = async (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= testimonialsList.length) return;
+
+    const newList = [...testimonialsList];
+    const temp = newList[index];
+    newList[index] = newList[targetIndex];
+    newList[targetIndex] = temp;
+
+    await saveTestimonialsToServer(newList);
+  };
+
+  const deleteTestimonial = async (id, name) => {
+    if (!confirm(`Are you sure you want to delete the testimonial from "${name}"?`)) return;
+    const newList = testimonialsList.filter(t => t.id !== id);
+    await saveTestimonialsToServer(newList);
+  };
+
+  // Photo upload and clear event listeners
+  const testimonialFileInput = document.getElementById('portal-testimonial-file');
+  const testimonialClearPhotoBtn = document.getElementById('portal-testimonial-clear-photo');
+
+  if (testimonialFileInput) {
+    testimonialFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        currentTestimonialImage = event.target.result;
+        const photoPreview = document.getElementById('portal-testimonial-photo-preview');
+        if (photoPreview) {
+          photoPreview.innerHTML = `<img src="${currentTestimonialImage}" alt="Preview">`;
+        }
+        if (testimonialClearPhotoBtn) testimonialClearPhotoBtn.style.display = 'inline-block';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (testimonialClearPhotoBtn) {
+    testimonialClearPhotoBtn.addEventListener('click', () => {
+      currentTestimonialImage = '';
+      if (testimonialFileInput) testimonialFileInput.value = '';
+      const photoPreview = document.getElementById('portal-testimonial-photo-preview');
+      if (photoPreview) photoPreview.innerHTML = `<i class="fas fa-user"></i>`;
+      testimonialClearPhotoBtn.style.display = 'none';
+    });
+  }
+
+  // Handle Form Submit
+  const portalTestimonialForm = document.getElementById('portalTestimonialForm');
+  if (portalTestimonialForm) {
+    portalTestimonialForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('portal-edit-testimonial-id').value;
+      const name = document.getElementById('portal-testimonial-name').value.trim();
+      const company = document.getElementById('portal-testimonial-company').value.trim();
+      const rating = parseInt(document.getElementById('portal-testimonial-rating').value) || 5;
+      const text = document.getElementById('portal-testimonial-text').value.trim();
+      const feedback = document.getElementById('portal-testimonial-feedback');
+
+      if (feedback) {
+        feedback.innerText = "⏳ Saving testimonial...";
+        feedback.style.color = "var(--primary-amber)";
+        feedback.style.display = "block";
+      }
+
+      let newList = [...testimonialsList];
+      if (editId) {
+        newList = newList.map(t => {
+          if (t.id === editId) {
+            return {
+              ...t,
+              name,
+              company,
+              rating,
+              text,
+              image: currentTestimonialImage
+            };
+          }
+          return t;
+        });
+      } else {
+        const newTestimonial = {
+          id: `t_${Date.now()}`,
+          name,
+          company,
+          rating,
+          text,
+          image: currentTestimonialImage
+        };
+        newList.push(newTestimonial);
+      }
+
+      const success = await saveTestimonialsToServer(newList);
+      if (success) {
+        if (feedback) {
+          feedback.innerText = "✅ Testimonial saved successfully!";
+          feedback.style.color = "#34D399";
+        }
+        setTimeout(() => {
+          resetTestimonialForm();
+        }, 1500);
+      } else {
+        if (feedback) {
+          feedback.innerText = "❌ Failed to save testimonial.";
+          feedback.style.color = "#F87171";
+        }
+      }
+    });
+  }
+
+  const addTestimonialBtn = document.getElementById('portal-add-testimonial-btn');
+  if (addTestimonialBtn) {
+    addTestimonialBtn.addEventListener('click', resetTestimonialForm);
+  }
+
+  const cancelTestimonialBtn = document.getElementById('portal-testimonial-cancel-btn');
+  if (cancelTestimonialBtn) {
+    cancelTestimonialBtn.addEventListener('click', resetTestimonialForm);
   }
 
   // Run initial state verifications

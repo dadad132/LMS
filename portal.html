@@ -101,14 +101,159 @@
     .gloss-card {
       backdrop-filter: blur(24px) saturate(120%);
       -webkit-backdrop-filter: blur(24px) saturate(120%);
-      background: rgba(30, 41, 59, 0.45);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 40px;
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      padding: 44px 40px;
       width: 100%;
-      max-width: 460px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 
-                  0 0 50px rgba(245, 158, 11, 0.03);
+      max-width: 480px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4), 
+                  0 0 60px rgba(245, 158, 11, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .auth-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--primary-amber);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .portal-features-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .portal-feature-pill {
+      font-size: 0.72rem;
+      color: #CBD5E1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 4px 10px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .input-icon-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon-group i.input-icon {
+      position: absolute;
+      left: 14px;
+      color: #94A3B8;
+      font-size: 0.9rem;
+      pointer-events: none;
+      transition: color 0.3s ease;
+    }
+
+    .input-icon-group .form-control {
+      padding-left: 42px;
+    }
+
+    .input-icon-group:focus-within i.input-icon {
+      color: var(--primary-amber);
+    }
+
+    .password-toggle-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #94A3B8;
+      cursor: pointer;
+      padding: 6px;
+      font-size: 0.9rem;
+      transition: color 0.3s ease;
+    }
+
+    .password-toggle-btn:hover {
+      color: var(--primary-amber);
+    }
+
+    /* Testimonials Management in Portal */
+    .portal-testimonial-card {
+      background: rgba(15, 23, 42, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .portal-testimonial-card:hover {
+      background: rgba(30, 41, 59, 0.55);
+      border-color: rgba(245, 158, 11, 0.25);
+    }
+
+    .portal-testimonial-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .portal-testimonial-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .portal-testimonial-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(245, 158, 11, 0.15);
+      border: 2px solid var(--primary-amber);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary-amber);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .portal-testimonial-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .portal-testimonial-quote {
+      font-size: 0.85rem;
+      color: #CBD5E1;
+      line-height: 1.5;
+      font-style: italic;
+      background: rgba(15, 23, 42, 0.3);
+      border-left: 3px solid var(--primary-amber);
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      margin: 0;
+    }
+
+    .portal-star-rating {
+      color: #F59E0B;
+      font-size: 0.8rem;
     }
 
     .form-group label {
@@ -444,51 +589,80 @@
   <!-- PORTAL AUTHENTICATION SCREEN -->
   <div class="auth-wrapper" id="portal-auth-screen">
     <div class="gloss-card">
-      <div style="text-align: center; margin-bottom: 28px;">
-        <div style="font-size: 3rem; color: var(--primary-amber); margin-bottom: 10px;"><i class="fas fa-user-lock"></i></div>
-        <h4 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; color: white;">Access Study Dashboard</h4>
-        <p style="font-size: 0.85rem; color: #94A3B8; margin: 0; line-height: 1.5;">Log in with your administrator or student credentials to access lesson plans, assignments, and study links.</p>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <span class="auth-badge"><i class="fas fa-shield-alt"></i> Honeypot Global Learning Portal</span>
+        <h4 style="font-size: 1.5rem; font-weight: 800; margin: 8px 0; color: white;">Access Study Dashboard</h4>
+        <p style="font-size: 0.85rem; color: #94A3B8; margin: 0; line-height: 1.5;">Sign in with your student or administrator credentials to view your lesson modules, assignment tasks, and study materials.</p>
+        
+        <div class="portal-features-row">
+          <span class="portal-feature-pill"><i class="fas fa-book-open" style="color: var(--primary-amber);"></i> Lesson Plans</span>
+          <span class="portal-feature-pill"><i class="fas fa-tasks" style="color: #34D399;"></i> Task Tracker</span>
+          <span class="portal-feature-pill"><i class="fas fa-user-lock" style="color: #60A5FA;"></i> Verified Security</span>
+        </div>
       </div>
       
       <!-- Auth Tabs (Only shown if setup isn't required) -->
       <div style="display: flex; border-bottom: 2px solid rgba(255,255,255,0.06); margin-bottom: 24px; gap: 12px;" id="auth-tabs-container">
-        <button id="auth-tab-login" class="admin-tab-btn active">Login</button>
-        <button id="auth-tab-register" class="admin-tab-btn" style="display: none;">Register</button>
+        <button id="auth-tab-login" class="admin-tab-btn active"><i class="fas fa-sign-in-alt"></i> Login</button>
+        <button id="auth-tab-register" class="admin-tab-btn" style="display: none;"><i class="fas fa-user-plus"></i> Register</button>
       </div>
       
       <!-- Login Form -->
       <form id="portalLoginForm">
         <div class="form-group" style="margin-bottom: 16px; text-align: left;">
           <label for="login-email" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Email Address *</label>
-          <input type="email" id="login-email" class="form-control" style="padding: 12px;" required placeholder="student@example.com">
+          <div class="input-icon-group">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" id="login-email" class="form-control" style="padding: 12px 12px 12px 40px; width: 100%; box-sizing: border-box;" required placeholder="e.g. student@honeypotglobal.co.za">
+          </div>
         </div>
         <div class="form-group" style="margin-bottom: 20px; text-align: left;">
           <label for="login-password" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Password *</label>
-          <input type="password" id="login-password" class="form-control" style="padding: 12px;" required placeholder="••••••••">
+          <div class="input-icon-group">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="login-password" class="form-control" style="padding: 12px 42px 12px 40px; width: 100%; box-sizing: border-box;" required placeholder="••••••••">
+            <button type="button" class="password-toggle-btn" id="toggle-login-password" title="Toggle password visibility"><i class="fas fa-eye"></i></button>
+          </div>
         </div>
-        <div id="portal-login-error" style="color: #F87171; font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; display: none; text-align: center;">
+        <div id="portal-login-error" style="color: #F87171; font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; display: none; text-align: center; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); padding: 10px; border-radius: 8px;">
           <i class="fas fa-exclamation-circle"></i> Invalid credentials.
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">Sign In <i class="fas fa-sign-in-alt"></i></button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; border-radius: 12px;">Sign In to Portal <i class="fas fa-chevron-right" style="font-size: 0.85rem;"></i></button>
       </form>
       
       <!-- Registration Form (Setup Mode) -->
       <form id="portalRegisterForm" style="display: none;">
         <div class="form-group" style="margin-bottom: 16px; text-align: left;">
           <label for="register-email" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Email Address *</label>
-          <input type="email" id="register-email" class="form-control" style="padding: 12px;" required placeholder="admin@honeypotglobal.co.za">
+          <div class="input-icon-group">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" id="register-email" class="form-control" style="padding: 12px 12px 12px 40px; width: 100%; box-sizing: border-box;" required placeholder="admin@honeypotglobal.co.za">
+          </div>
         </div>
         <div class="form-group" style="margin-bottom: 16px; text-align: left;">
           <label for="register-password" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Create Password *</label>
-          <input type="password" id="register-password" class="form-control" style="padding: 12px;" required placeholder="Minimum 4 characters">
+          <div class="input-icon-group">
+            <i class="fas fa-key input-icon"></i>
+            <input type="password" id="register-password" class="form-control" style="padding: 12px 12px 12px 40px; width: 100%; box-sizing: border-box;" required placeholder="Minimum 4 characters">
+          </div>
         </div>
         <div class="form-group" style="margin-bottom: 20px; text-align: left;">
           <label for="register-confirm" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Confirm Password *</label>
-          <input type="password" id="register-confirm" class="form-control" style="padding: 12px;" required placeholder="••••••••">
+          <div class="input-icon-group">
+            <i class="fas fa-check-circle input-icon"></i>
+            <input type="password" id="register-confirm" class="form-control" style="padding: 12px 12px 12px 40px; width: 100%; box-sizing: border-box;" required placeholder="••••••••">
+          </div>
         </div>
         <div id="portal-register-feedback" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; display: none; text-align: center;"></div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">Establish Primary Admin <i class="fas fa-shield-alt"></i></button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; border-radius: 12px;">Establish Primary Admin <i class="fas fa-shield-alt"></i></button>
       </form>
+
+      <!-- Return to Main Website Link -->
+      <div style="text-align: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <a href="index.html" style="color: #94A3B8; text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: color 0.3s ease; display: inline-flex; align-items: center; gap: 6px;" onmouseover="this.style.color='var(--primary-amber)'" onmouseout="this.style.color='#94A3B8'">
+          <i class="fas fa-arrow-left"></i> Return to Honeypot Global Website
+        </a>
+      </div>
     </div>
   </div>
 
@@ -511,6 +685,7 @@
       <div id="portal-admin-tabs" style="display: none; gap: 12px; margin-bottom: 24px; border-bottom: 2px solid rgba(255,255,255,0.06); padding-bottom: 10px;">
         <button id="portal-tab-materials" class="admin-tab-btn active"><i class="fas fa-book"></i> Study Materials</button>
         <button id="portal-tab-accounts" class="admin-tab-btn"><i class="fas fa-users-cog"></i> Manage Accounts</button>
+        <button id="portal-tab-testimonials" class="admin-tab-btn"><i class="fas fa-comments"></i> Student Testimonials</button>
       </div>
 
       <!-- SPLIT PANEL 1: Study Materials & Curriculum -->
@@ -750,7 +925,85 @@
           </form>
         </div>
       </div>
-      
+
+      <!-- SPLIT PANEL 3: Testimonials Management -->
+      <div class="admin-editor-split" id="portal-testimonials-split" style="display: none; grid-template-columns: 1fr 380px;">
+        
+        <!-- Left Pane: Testimonials List -->
+        <div class="admin-pane-list" style="padding: 0; border: none; box-shadow: none; background: none; display: flex; flex-direction: column; height: 100%; overflow: hidden; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-shrink: 0; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h4 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 4px 0; color: white;"><i class="fas fa-comments" style="color: var(--primary-amber); margin-right: 6px;"></i> Student Reviews & Testimonials</h4>
+              <p style="margin: 0; color: #94A3B8; font-size: 0.8rem;">Manage student success stories displayed across the Honeypot Global platform.</p>
+            </div>
+            <button id="portal-add-testimonial-btn" class="btn btn-primary" style="padding: 8px 14px; font-size: 0.8rem;"><i class="fas fa-plus"></i> Add Testimonial</button>
+          </div>
+          
+          <div id="portal-testimonials-list" class="admin-members-rows" style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 14px; padding-right: 6px; overflow-y: auto;">
+            <!-- Rendered dynamically -->
+            <p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">Loading testimonials...</p>
+          </div>
+        </div>
+
+        <!-- Right Pane: Testimonial Creator / Editor Form -->
+        <div class="admin-pane-form" style="border: 1px solid rgba(245, 158, 11, 0.15); background: rgba(15, 23, 42, 0.35); height: 100%; overflow-y: auto; box-sizing: border-box;">
+          <h4 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 18px 0; color: white; text-align: left;" id="portal-testimonial-form-title"><i class="fas fa-comment-dots" style="color: var(--primary-amber); margin-right: 6px;"></i> Add Testimonial</h4>
+          
+          <form id="portalTestimonialForm">
+            <input type="hidden" id="portal-edit-testimonial-id">
+            
+            <div class="form-group" style="margin-bottom: 14px; text-align: left;">
+              <label for="portal-testimonial-name" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Student Name *</label>
+              <input type="text" id="portal-testimonial-name" class="form-control" style="padding: 10px; font-size: 0.85rem;" placeholder="e.g. Lerato M." required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px; text-align: left;">
+              <label for="portal-testimonial-company" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Success Details / Hiring Company *</label>
+              <input type="text" id="portal-testimonial-company" class="form-control" style="padding: 10px; font-size: 0.85rem;" placeholder="e.g. Hired by Native Camp / 120h TEFL Student" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px; text-align: left;">
+              <label for="portal-testimonial-rating" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Rating Stars *</label>
+              <select id="portal-testimonial-rating" class="form-control" style="padding: 10px; font-size: 0.85rem;">
+                <option value="5">⭐⭐⭐⭐⭐ (5 / 5 Stars - Excellent)</option>
+                <option value="4">⭐⭐⭐⭐ (4 / 5 Stars - Great)</option>
+                <option value="3">⭐⭐⭐ (3 / 5 Stars - Good)</option>
+                <option value="2">⭐⭐ (2 / 5 Stars - Average)</option>
+                <option value="1">⭐ (1 / 5 Star)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px; text-align: left;">
+              <label for="portal-testimonial-text" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Review Quote *</label>
+              <textarea id="portal-testimonial-text" class="form-control" style="padding: 10px; font-size: 0.85rem; height: 90px; resize: none;" placeholder="What the student said about their training experience..." required></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 6px;">Student Photo (Optional)</label>
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <div id="portal-testimonial-photo-preview" style="width: 54px; height: 54px; border-radius: 50%; background: rgba(245,158,11,0.15); border: 2px solid var(--primary-amber); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--primary-amber); font-weight: 700; overflow: hidden; flex-shrink: 0;">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div style="flex: 1;">
+                  <label for="portal-testimonial-file" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.75rem; border-style: dashed; width: 100%; text-align: center; cursor: pointer; display: block; box-shadow: none; border-color: rgba(255,255,255,0.15); color: #E2E8F0;">
+                    <i class="fas fa-camera"></i> Choose Photo
+                  </label>
+                  <input type="file" id="portal-testimonial-file" style="display: none;" accept="image/*">
+                  <button type="button" id="portal-testimonial-clear-photo" style="display: none; background: none; border: none; color: #F87171; font-size: 0.7rem; cursor: pointer; margin-top: 4px; font-weight: 600;"><i class="fas fa-trash-alt"></i> Remove photo</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="portal-testimonial-feedback" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: none; text-align: center;"></div>
+
+            <div style="display: flex; gap: 10px;">
+              <button type="submit" class="btn btn-primary" style="flex: 1; padding: 11px; font-size: 0.85rem;"><i class="fas fa-save"></i> Save Testimonial</button>
+              <button type="button" id="portal-testimonial-cancel-btn" class="btn btn-secondary" style="padding: 11px; font-size: 0.85rem; display: none; border-color: rgba(255,255,255,0.15); color: #E2E8F0;">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   </div>
 

@@ -594,11 +594,18 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif self.path == "/api/testimonials":
+            user_session = self.get_session_user()
             auth_header = self.headers.get("X-Admin-Password")
             saved_password = self.get_admin_password()
             
-            if not saved_password or auth_header != saved_password:
-                self.send_json({"error": "Unauthorized"}, 401)
+            is_admin = False
+            if user_session and user_session.get("role") == "admin":
+                is_admin = True
+            elif saved_password and auth_header == saved_password:
+                is_admin = True
+                
+            if not is_admin:
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
                 return
 
             try:
