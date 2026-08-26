@@ -18,7 +18,10 @@ MODULES_FILE = os.path.join(DATA_DIR, "modules.json")
 TESTIMONIALS_FILE = os.path.join(DATA_DIR, "testimonials.json")
 
 # Create directories if they don't exist
-os.makedirs(UPLOADS_DIR, exist_ok=True)
+try:
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+except Exception:
+    pass
 
 # Default team data
 DEFAULT_TEAM = [
@@ -428,6 +431,43 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             self.send_json({"success": True, "subject": new_subject})
             return
 
+        elif self.path == "/api/edit-subject":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            target_id = body.get("id", "").strip()
+            title = body.get("title", "").strip()
+            description = body.get("description", "").strip()
+            icon = body.get("icon", "").strip()
+            color = body.get("color", "").strip()
+            
+            if not target_id or not title:
+                self.send_json({"error": "Subject ID and title are required"}, 400)
+                return
+                
+            subjects = self.get_subjects()
+            found = False
+            for s in subjects:
+                if s.get("id") == target_id:
+                    s["title"] = title
+                    s["description"] = description
+                    if icon:
+                        s["icon"] = icon
+                    if color:
+                        s["color"] = color
+                    found = True
+                    break
+                    
+            if not found:
+                self.send_json({"error": "Subject not found"}, 404)
+                return
+                
+            self.save_subjects(subjects)
+            self.send_json({"success": True, "message": "Subject updated successfully."})
+            return
+
         elif self.path == "/api/delete-subject":
             user_session = self.get_session_user()
             if not user_session or user_session["role"] != "admin":
@@ -502,6 +542,40 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             modules.append(new_module)
             self.save_modules(modules)
             self.send_json({"success": True, "module": new_module})
+            return
+
+        elif self.path == "/api/edit-module":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            target_id = body.get("id", "").strip()
+            title = body.get("title", "").strip()
+            description = body.get("description", "").strip()
+            subject_id = body.get("subject_id", "").strip()
+            
+            if not target_id or not title:
+                self.send_json({"error": "Module ID and title are required"}, 400)
+                return
+                
+            modules = self.get_modules()
+            found = False
+            for m in modules:
+                if m.get("id") == target_id:
+                    m["title"] = title
+                    m["description"] = description
+                    if subject_id:
+                        m["subject_id"] = subject_id
+                    found = True
+                    break
+                    
+            if not found:
+                self.send_json({"error": "Module not found"}, 404)
+                return
+                
+            self.save_modules(modules)
+            self.send_json({"success": True, "message": "Module updated successfully."})
             return
 
         elif self.path == "/api/delete-module":
@@ -809,6 +883,83 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             self.save_materials(materials)
             
             self.send_json({"success": True, "material": new_item})
+            return
+
+        elif self.path == "/api/edit-material":
+            # Verify Admin
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            item_id = body.get("id", "").strip()
+            if not item_id:
+                self.send_json({"error": "Material ID is required"}, 400)
+                return
+                
+            materials = self.get_materials()
+            target_item = None
+            for m in materials:
+                if m.get("id") == item_id:
+                    target_item = m
+                    break
+                    
+            if not target_item:
+                self.send_json({"error": "Material not found"}, 404)
+                return
+                
+            title = body.get("title", "").strip()
+            description = body.get("description", "").strip()
+            material_type = body.get("type", target_item.get("type", "link"))
+            url = body.get("url", "").strip()
+            file_obj = body.get("file")
+            subject_id = body.get("subject_id", target_item.get("subject_id", "subj-default")).strip()
+            module_id = body.get("module_id", target_item.get("module_id", "mod-default")).strip()
+            
+            if title:
+                target_item["title"] = title
+            target_item["description"] = description
+            target_item["subject_id"] = subject_id
+            target_item["module_id"] = module_id
+            target_item["type"] = material_type
+            
+            if material_type in ["pdf", "doc"]:
+                # If a new file is uploaded to replace the old one
+                if file_obj and isinstance(file_obj, dict) and file_obj.get("data"):
+                    # Remove old file if it existed
+                    old_url = target_item.get("url", "")
+                    if old_url.startswith("/uploads/"):
+                        old_filename = os.path.basename(old_url)
+                        old_filepath = os.path.join(UPLOADS_DIR, old_filename)
+                        if os.path.exists(old_filepath):
+                            try:
+                                os.remove(old_filepath)
+                            except Exception:
+                                pass
+                                
+                    # Save new file
+                    orig_filename = os.path.basename(file_obj["filename"])
+                    ext = os.path.splitext(orig_filename)[1]
+                    unique_name = f"{uuid.uuid4()}{ext}"
+                    filepath = os.path.join(UPLOADS_DIR, unique_name)
+                    
+                    try:
+                        with open(filepath, "wb") as f:
+                            f.write(file_obj["data"])
+                        os.chmod(filepath, 0o644)
+                        target_item["url"] = f"/uploads/{unique_name}"
+                        target_item["filename"] = orig_filename
+                    except Exception as e:
+                        self.send_json({"error": f"Failed to save replacement file: {str(e)}"}, 500)
+                        return
+            else:
+                # Link type
+                if url:
+                    target_item["url"] = url
+                    target_item["filename"] = ""
+                    
+            self.save_materials(materials)
+            self.send_json({"success": True, "material": target_item})
             return
 
         elif self.path == "/api/delete-material":

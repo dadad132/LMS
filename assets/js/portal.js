@@ -604,11 +604,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
-      // Admin delete subject button
+      // Admin edit & delete subject buttons
       const role = sessionStorage.getItem('honeypot_portal_role');
+      const editSubjectBtn = document.getElementById('portal-edit-subject-btn');
+      if (editSubjectBtn) {
+        if (role === 'admin') {
+          editSubjectBtn.style.display = 'inline-flex';
+          const newEditBtn = editSubjectBtn.cloneNode(true);
+          editSubjectBtn.parentNode.replaceChild(newEditBtn, editSubjectBtn);
+          newEditBtn.addEventListener('click', () => handleEditSubject(activeSubj.id));
+        } else {
+          editSubjectBtn.style.display = 'none';
+        }
+      }
+
       if (deleteSubjectBtn) {
         if (role === 'admin' && activeSubj.id !== 'subj-default') {
-          deleteSubjectBtn.style.display = 'block';
+          deleteSubjectBtn.style.display = 'inline-flex';
           const newBtn = deleteSubjectBtn.cloneNode(true);
           deleteSubjectBtn.parentNode.replaceChild(newBtn, deleteSubjectBtn);
           newBtn.addEventListener('click', () => handleDeleteSubject(activeSubj.id, activeSubj.title));
@@ -642,7 +654,15 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
       `;
-      // Setup delete listener for items inside General Resources
+      // Setup edit & delete listeners for items inside General Resources
+      card.querySelectorAll('.portal-edit-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          handleEditMaterial(id);
+        });
+      });
       card.querySelectorAll('.portal-delete-item-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.preventDefault();
@@ -684,8 +704,12 @@ document.addEventListener('DOMContentLoaded', () => {
         </button>
       `;
       
+      const editModBtnHTML = (role === 'admin')
+        ? `<button class="admin-action-btn edit portal-edit-mod-btn" data-id="${mod.id}" title="Edit Task" style="background: rgba(59, 130, 246, 0.12); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-edit"></i> Edit</button>`
+        : '';
+
       const deleteModBtnHTML = (role === 'admin')
-        ? `<button class="admin-action-btn delete portal-delete-mod-btn" data-id="${mod.id}" title="Remove Task" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i> Delete Task</button>`
+        ? `<button class="admin-action-btn delete portal-delete-mod-btn" data-id="${mod.id}" title="Remove Task" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i> Delete</button>`
         : '';
         
       card.innerHTML = `
@@ -699,6 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div style="display: flex; align-items: center; gap: 16px;">
             <div style="display: flex; align-items: center; gap: 8px;">
+              ${editModBtnHTML}
               ${deleteModBtnHTML}
               <i class="fas fa-chevron-down" style="color: #94A3B8; font-size: 0.8rem; transition: transform 0.3s ease;"></i>
             </div>
@@ -713,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       
       card.querySelector('.module-header').addEventListener('click', (e) => {
-        if (e.target.closest('.portal-delete-mod-btn') || e.target.closest('.task-completion-check')) return;
+        if (e.target.closest('.portal-delete-mod-btn') || e.target.closest('.portal-edit-mod-btn') || e.target.closest('.task-completion-check')) return;
         
         const isOpen = card.classList.contains('open');
         if (isOpen) {
@@ -730,6 +755,15 @@ document.addEventListener('DOMContentLoaded', () => {
         renderModules();
       });
       
+      card.querySelectorAll('.portal-edit-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.getAttribute('data-id');
+          handleEditMaterial(id);
+        });
+      });
+
       card.querySelectorAll('.portal-delete-item-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.preventDefault();
@@ -743,12 +777,25 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       
       if (role === 'admin') {
-        card.querySelector('.portal-delete-mod-btn').addEventListener('click', async (e) => {
-          e.preventDefault();
-          if (confirm(`Are you sure you want to permanently delete the task "${mod.title}" and ALL its files?`)) {
-            await handleDeleteModule(mod.id);
-          }
-        });
+        const editModBtn = card.querySelector('.portal-edit-mod-btn');
+        if (editModBtn) {
+          editModBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleEditModule(mod.id);
+          });
+        }
+
+        const delModBtn = card.querySelector('.portal-delete-mod-btn');
+        if (delModBtn) {
+          delModBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (confirm(`Are you sure you want to permanently delete the task "${mod.title}" and ALL its files?`)) {
+              await handleDeleteModule(mod.id);
+            }
+          });
+        }
       }
       
       timeline.appendChild(card);
@@ -768,8 +815,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (item.type === 'pdf') icon = '<i class="fas fa-file-pdf"></i>';
       if (item.type === 'doc') icon = '<i class="fas fa-file-word"></i>';
       
+      const editBtnHTML = role === 'admin'
+        ? `<button class="admin-action-btn edit portal-edit-item-btn" data-id="${item.id}" title="Edit Resource / Replace File" style="background: rgba(59, 130, 246, 0.12); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-edit"></i> Edit</button>`
+        : '';
+
       const deleteBtnHTML = role === 'admin'
-        ? `<button class="admin-action-btn delete portal-delete-item-btn" data-id="${item.id}" data-title="${item.title}" title="Delete Resource" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i></button>`
+        ? `<button class="admin-action-btn delete portal-delete-item-btn" data-id="${item.id}" data-title="${item.title}" title="Delete Resource" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-trash-alt"></i></button>`
         : '';
         
       return `
@@ -784,10 +835,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           
-          <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
             <a href="${item.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; box-shadow: none; display: flex; align-items: center; gap: 6px; border-color: rgba(255,255,255,0.12); color: #E2E8F0;">
               <i class="fas fa-external-link-alt"></i> Open
             </a>
+            ${editBtnHTML}
             ${deleteBtnHTML}
           </div>
         </div>
@@ -1008,16 +1060,111 @@ document.addEventListener('DOMContentLoaded', () => {
       if (activeForm) activeForm.style.display = 'block';
     };
 
-    subtabMaterial.addEventListener('click', () => switchSubtab(subtabMaterial, formMaterial));
-    subtabSubject.addEventListener('click', () => switchSubtab(subtabSubject, formSubject));
-    subtabModule.addEventListener('click', () => switchSubtab(subtabModule, formModule));
+    subtabMaterial.addEventListener('click', () => {
+      resetMaterialForm();
+      switchSubtab(subtabMaterial, formMaterial);
+    });
+    subtabSubject.addEventListener('click', () => {
+      resetSubjectForm();
+      switchSubtab(subtabSubject, formSubject);
+    });
+    subtabModule.addEventListener('click', () => {
+      resetModuleForm();
+      switchSubtab(subtabModule, formModule);
+    });
   };
   setupSubtabSwitches();
 
-  // Handle Study Material File Upload (Admin Form Submit)
+  // --- MATERIAL EDITING & UPLOAD HANDLERS ---
+  const handleEditMaterial = (id) => {
+    const item = materialsList.find(m => m.id === id);
+    if (!item) return;
+
+    // Switch right sidebar to upload/material form
+    if (subtabMaterial && formMaterial) {
+      [subtabMaterial, subtabSubject, subtabModule].forEach(btn => btn.classList.remove('active'));
+      [formMaterial, formSubject, formModule].forEach(frm => { if (frm) frm.style.display = 'none'; });
+      subtabMaterial.classList.add('active');
+      formMaterial.style.display = 'block';
+    }
+
+    document.getElementById('material-edit-id').value = item.id;
+    document.getElementById('material-subject-select').value = item.subject_id || 'subj-default';
+    populateModuleSelect(item.subject_id || 'subj-default');
+    document.getElementById('material-module-select').value = item.module_id || 'mod-default';
+    document.getElementById('material-item-type').value = item.item_type || 'resource';
+    document.getElementById('material-title').value = item.title || '';
+    document.getElementById('material-desc').value = item.description || '';
+    materialTypeSelect.value = item.type || 'link';
+
+    // Show/hide type specific groups
+    if (item.type === 'link') {
+      materialUrlGroup.style.display = 'block';
+      materialFileGroup.style.display = 'none';
+      document.getElementById('material-url').value = item.url || '';
+    } else {
+      materialUrlGroup.style.display = 'none';
+      materialFileGroup.style.display = 'block';
+      const fileInfo = document.getElementById('material-current-file-info');
+      const filenameDisplay = document.getElementById('current-filename-display');
+      if (fileInfo && filenameDisplay) {
+        fileInfo.style.display = 'block';
+        filenameDisplay.innerText = item.filename || (item.url ? item.url.split('/').pop() : 'Uploaded Document');
+      }
+      const fileBtnLabel = document.getElementById('material-file-btn-label');
+      if (fileBtnLabel) {
+        fileBtnLabel.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Choose New Document to Replace File';
+      }
+    }
+
+    const formTitle = document.getElementById('material-form-title');
+    if (formTitle) formTitle.innerHTML = '<i class="fas fa-edit" style="color: var(--primary-amber); margin-right: 6px;"></i> Edit Study Material';
+    
+    const submitBtn = document.getElementById('material-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+
+    const cancelBtn = document.getElementById('material-cancel-edit-btn');
+    if (cancelBtn) cancelBtn.style.display = 'block';
+
+    formMaterial.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const resetMaterialForm = () => {
+    if (!portalUploadForm) return;
+    portalUploadForm.reset();
+    document.getElementById('material-edit-id').value = '';
+    
+    const formTitle = document.getElementById('material-form-title');
+    if (formTitle) formTitle.innerHTML = 'Upload Study Material';
+    
+    const submitBtn = document.getElementById('material-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Save Resource';
+
+    const cancelBtn = document.getElementById('material-cancel-edit-btn');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+
+    const fileInfo = document.getElementById('material-current-file-info');
+    if (fileInfo) fileInfo.style.display = 'none';
+
+    const fileBtnLabel = document.getElementById('material-file-btn-label');
+    if (fileBtnLabel) fileBtnLabel.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Choose Document File';
+
+    if (selectedFileLabel) selectedFileLabel.innerText = '';
+    materialTypeSelect.value = 'link';
+    materialUrlGroup.style.display = 'block';
+    materialFileGroup.style.display = 'none';
+  };
+
+  const materialCancelBtn = document.getElementById('material-cancel-edit-btn');
+  if (materialCancelBtn) {
+    materialCancelBtn.addEventListener('click', resetMaterialForm);
+  }
+
+  // Handle Study Material File Upload or Edit (Admin Form Submit)
   if (portalUploadForm) {
     portalUploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const editId = document.getElementById('material-edit-id').value.trim();
       const subjectId = document.getElementById('material-subject-select').value;
       const moduleId = document.getElementById('material-module-select').value;
       const itemType = document.getElementById('material-item-type').value;
@@ -1029,12 +1176,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const token = sessionStorage.getItem('honeypot_portal_token');
 
       if (portalUploadFeedback) {
-        portalUploadFeedback.innerText = "⏳ Saving resource details...";
+        portalUploadFeedback.innerText = editId ? "⏳ Saving updated resource..." : "⏳ Saving resource details...";
         portalUploadFeedback.style.color = "var(--primary-amber)";
         portalUploadFeedback.style.display = "block";
       }
 
       const formData = new FormData();
+      if (editId) formData.append('id', editId);
       formData.append('subject_id', subjectId);
       formData.append('module_id', moduleId);
       formData.append('item_type', itemType);
@@ -1045,15 +1193,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (type === 'link') {
         formData.append('url', url);
       } else {
-        if (!file) {
+        if (!editId && !file) {
           alert("Please select a file to upload.");
           return;
         }
-        formData.append('file', file);
+        if (file) {
+          formData.append('file', file);
+        }
       }
 
+      const endpoint = editId ? `${apiBase}/edit-material` : `${apiBase}/upload-material`;
+
       try {
-        const res = await fetch(`${apiBase}/upload-material`, {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -1062,11 +1214,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (res.ok) {
           if (portalUploadFeedback) {
-            portalUploadFeedback.innerText = "✅ Resource uploaded and saved successfully!";
+            portalUploadFeedback.innerText = editId ? "✅ Resource updated successfully!" : "✅ Resource uploaded and saved successfully!";
             portalUploadFeedback.style.color = "#34D399";
           }
-          portalUploadForm.reset();
-          if (selectedFileLabel) selectedFileLabel.innerText = '';
+          resetMaterialForm();
           
           await fetchCurriculumAndMaterials();
           
@@ -1076,24 +1227,75 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           const err = await res.json();
           if (portalUploadFeedback) {
-            portalUploadFeedback.innerText = `❌ Error: ${err.error || 'Failed to upload resource'}`;
+            portalUploadFeedback.innerText = `❌ Error: ${err.error || 'Failed to save resource'}`;
             portalUploadFeedback.style.color = "#F87171";
           }
         }
       } catch (err) {
         if (portalUploadFeedback) {
-          portalUploadFeedback.innerText = "❌ Network error during resource upload.";
+          portalUploadFeedback.innerText = "❌ Network error during resource upload/update.";
           portalUploadFeedback.style.color = "#F87171";
         }
       }
     });
   }
 
-  // Handle Subject Creation (Admin Form Submit)
+  // --- MODULE (SUBJECT) EDITING & CREATION HANDLERS ---
+  const handleEditSubject = (id) => {
+    const subj = subjectsList.find(s => s.id === id);
+    if (!subj) return;
+
+    if (subtabSubject && formSubject) {
+      [subtabMaterial, subtabSubject, subtabModule].forEach(btn => btn.classList.remove('active'));
+      [formMaterial, formSubject, formModule].forEach(frm => { if (frm) frm.style.display = 'none'; });
+      subtabSubject.classList.add('active');
+      formSubject.style.display = 'block';
+    }
+
+    document.getElementById('subject-edit-id').value = subj.id;
+    document.getElementById('subject-title').value = subj.title || '';
+    document.getElementById('subject-desc').value = subj.description || '';
+    document.getElementById('subject-icon').value = subj.icon || 'fa-graduation-cap';
+    document.getElementById('subject-color').value = subj.color || '#F59E0B';
+
+    const formTitle = document.getElementById('subject-form-title');
+    if (formTitle) formTitle.innerHTML = '<i class="fas fa-edit" style="color: var(--primary-amber); margin-right: 6px;"></i> Edit Module';
+
+    const submitBtn = document.getElementById('subject-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Module Changes';
+
+    const cancelBtn = document.getElementById('subject-cancel-edit-btn');
+    if (cancelBtn) cancelBtn.style.display = 'block';
+
+    formSubject.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const resetSubjectForm = () => {
+    if (!formSubject) return;
+    formSubject.reset();
+    document.getElementById('subject-edit-id').value = '';
+
+    const formTitle = document.getElementById('subject-form-title');
+    if (formTitle) formTitle.innerHTML = 'Create New Module';
+
+    const submitBtn = document.getElementById('subject-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-folder-plus"></i> Create Module';
+
+    const cancelBtn = document.getElementById('subject-cancel-edit-btn');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+  };
+
+  const subjectCancelBtn = document.getElementById('subject-cancel-edit-btn');
+  if (subjectCancelBtn) {
+    subjectCancelBtn.addEventListener('click', resetSubjectForm);
+  }
+
+  // Handle Subject Creation or Edit (Admin Form Submit)
   if (formSubject) {
     const subjectFeedback = document.getElementById('portal-subject-feedback');
     formSubject.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const editId = document.getElementById('subject-edit-id').value.trim();
       const title = document.getElementById('subject-title').value.trim();
       const description = document.getElementById('subject-desc').value.trim();
       const icon = document.getElementById('subject-icon').value;
@@ -1101,28 +1303,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const token = sessionStorage.getItem('honeypot_portal_token');
 
       if (subjectFeedback) {
-        subjectFeedback.innerText = "⏳ Creating subject course...";
+        subjectFeedback.innerText = editId ? "⏳ Updating module details..." : "⏳ Creating module...";
         subjectFeedback.style.color = "var(--primary-amber)";
         subjectFeedback.style.display = "block";
       }
 
+      const endpoint = editId ? `${apiBase}/edit-subject` : `${apiBase}/add-subject`;
+      const payload = editId 
+        ? { id: editId, title, description, icon, color }
+        : { title, description, icon, color };
+
       try {
-        const res = await fetch(`${apiBase}/add-subject`, {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ title, description, icon, color })
+          body: JSON.stringify(payload)
         });
         if (res.ok) {
           const data = await res.json();
           if (subjectFeedback) {
-            subjectFeedback.innerText = "✅ Subject course created successfully!";
+            subjectFeedback.innerText = editId ? "✅ Module updated successfully!" : "✅ Module created successfully!";
             subjectFeedback.style.color = "#34D399";
           }
-          formSubject.reset();
-          activeSubjectId = data.subject.id; // Auto select new subject
+          resetSubjectForm();
+          if (!editId && data.subject) {
+            activeSubjectId = data.subject.id;
+          }
           
           await fetchCurriculumAndMaterials();
           
@@ -1132,50 +1341,105 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           const err = await res.json();
           if (subjectFeedback) {
-            subjectFeedback.innerText = `❌ Error: ${err.error || 'Failed to create subject'}`;
+            subjectFeedback.innerText = `❌ Error: ${err.error || 'Failed to save module'}`;
             subjectFeedback.style.color = "#F87171";
           }
         }
       } catch (err) {
         if (subjectFeedback) {
-          subjectFeedback.innerText = "❌ Network error during subject creation.";
+          subjectFeedback.innerText = "❌ Network error during module save.";
           subjectFeedback.style.color = "#F87171";
         }
       }
     });
   }
 
-  // Handle Module Creation (Admin Form Submit)
+  // --- TASK (MODULE) EDITING & CREATION HANDLERS ---
+  const handleEditModule = (id) => {
+    const mod = modulesList.find(m => m.id === id);
+    if (!mod) return;
+
+    if (subtabModule && formModule) {
+      [subtabMaterial, subtabSubject, subtabModule].forEach(btn => btn.classList.remove('active'));
+      [formMaterial, formSubject, formModule].forEach(frm => { if (frm) frm.style.display = 'none'; });
+      subtabModule.classList.add('active');
+      formModule.style.display = 'block';
+    }
+
+    document.getElementById('module-edit-id').value = mod.id;
+    document.getElementById('module-subject-select').value = mod.subject_id || activeSubjectId;
+    document.getElementById('module-title').value = mod.title || '';
+    document.getElementById('module-desc').value = mod.description || '';
+
+    const formTitle = document.getElementById('module-form-title');
+    if (formTitle) formTitle.innerHTML = '<i class="fas fa-edit" style="color: var(--primary-amber); margin-right: 6px;"></i> Edit Task';
+
+    const submitBtn = document.getElementById('module-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Task Changes';
+
+    const cancelBtn = document.getElementById('module-cancel-edit-btn');
+    if (cancelBtn) cancelBtn.style.display = 'block';
+
+    formModule.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const resetModuleForm = () => {
+    if (!formModule) return;
+    formModule.reset();
+    document.getElementById('module-edit-id').value = '';
+
+    const formTitle = document.getElementById('module-form-title');
+    if (formTitle) formTitle.innerHTML = 'Create New Task';
+
+    const submitBtn = document.getElementById('module-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-plus"></i> Create Task';
+
+    const cancelBtn = document.getElementById('module-cancel-edit-btn');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+  };
+
+  const moduleCancelBtn = document.getElementById('module-cancel-edit-btn');
+  if (moduleCancelBtn) {
+    moduleCancelBtn.addEventListener('click', resetModuleForm);
+  }
+
+  // Handle Task Creation or Edit (Admin Form Submit)
   if (formModule) {
     const moduleFeedback = document.getElementById('portal-module-feedback');
     formModule.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const editId = document.getElementById('module-edit-id').value.trim();
       const subjectId = document.getElementById('module-subject-select').value;
       const title = document.getElementById('module-title').value.trim();
       const description = document.getElementById('module-desc').value.trim();
       const token = sessionStorage.getItem('honeypot_portal_token');
 
       if (moduleFeedback) {
-        moduleFeedback.innerText = "⏳ Creating module...";
+        moduleFeedback.innerText = editId ? "⏳ Updating task details..." : "⏳ Creating task...";
         moduleFeedback.style.color = "var(--primary-amber)";
         moduleFeedback.style.display = "block";
       }
 
+      const endpoint = editId ? `${apiBase}/edit-module` : `${apiBase}/add-module`;
+      const payload = editId
+        ? { id: editId, subject_id: subjectId, title, description }
+        : { subject_id: subjectId, title, description };
+
       try {
-        const res = await fetch(`${apiBase}/add-module`, {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ subject_id: subjectId, title, description })
+          body: JSON.stringify(payload)
         });
         if (res.ok) {
           if (moduleFeedback) {
-            moduleFeedback.innerText = "✅ Module created successfully!";
+            moduleFeedback.innerText = editId ? "✅ Task updated successfully!" : "✅ Task created successfully!";
             moduleFeedback.style.color = "#34D399";
           }
-          formModule.reset();
+          resetModuleForm();
           
           await fetchCurriculumAndMaterials();
           
@@ -1185,13 +1449,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           const err = await res.json();
           if (moduleFeedback) {
-            moduleFeedback.innerText = `❌ Error: ${err.error || 'Failed to create module'}`;
+            moduleFeedback.innerText = `❌ Error: ${err.error || 'Failed to save task'}`;
             moduleFeedback.style.color = "#F87171";
           }
         }
       } catch (err) {
         if (moduleFeedback) {
-          moduleFeedback.innerText = "❌ Network error during module creation.";
+          moduleFeedback.innerText = "❌ Network error during task save.";
           moduleFeedback.style.color = "#F87171";
         }
       }

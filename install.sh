@@ -192,6 +192,10 @@ server {
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
     ssl_prefer_server_ciphers off;
 
+    # Allow large document/video uploads up to 100MB
+    client_max_body_size 100M;
+    client_body_timeout 120s;
+
     # Static site files served directly by Nginx (ultra-fast)
     root /var/www/html/lms;
     index index.html;
@@ -210,8 +214,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_connect_timeout 5s;
-        proxy_read_timeout 10s;
+        proxy_connect_timeout 30s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
     }
 
     location / {
@@ -227,6 +232,10 @@ server {
     listen [::]:80 default_server;
     server_name honeypotglobal.co.za www.honeypotglobal.co.za _;
 
+    # Allow large document/video uploads up to 100MB
+    client_max_body_size 100M;
+    client_body_timeout 120s;
+
     # Static site files served directly by Nginx (ultra-fast)
     root /var/www/html/lms;
     index index.html;
@@ -245,8 +254,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_connect_timeout 5s;
-        proxy_read_timeout 10s;
+        proxy_connect_timeout 30s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
     }
 
     location / {
