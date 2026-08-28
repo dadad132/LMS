@@ -51,16 +51,13 @@
 
     /* Custom Header */
     .portal-header {
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.95);
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       padding: 16px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      position: sticky;
-      top: 0;
+      position: relative;
       z-index: 100;
       box-sizing: border-box;
       width: 100%;
@@ -366,41 +363,41 @@
       box-sizing: border-box;
     }
 
-    /* Editor split full-height container */
+    /* Editor split layout */
     .admin-editor-split {
       display: grid;
-      grid-template-columns: minmax(220px, 260px) minmax(320px, 1fr) minmax(320px, 390px);
+      grid-template-columns: 250px 1fr 380px;
       gap: 20px;
-      flex: 1;
-      align-items: stretch;
-      box-sizing: border-box;
-      min-height: 560px;
       width: 100%;
-      max-width: 100%;
+      box-sizing: border-box;
+      align-items: start;
     }
 
-    @media (max-width: 1200px) {
+    .admin-editor-split.student-view {
+      grid-template-columns: 250px 1fr !important;
+    }
+
+    @media (max-width: 1280px) {
       .admin-editor-split {
-        grid-template-columns: minmax(200px, 240px) 1fr !important;
-        overflow-y: auto;
+        grid-template-columns: 240px 1fr !important;
       }
       .admin-pane-form#portal-admin-section {
-        grid-column: 1 / -1;
-        height: auto !important;
-        min-height: 480px;
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        box-sizing: border-box;
       }
       .dashboard-container {
-        height: auto !important;
-        min-height: calc(100vh - 76px);
-      }
-      .dashboard-panel {
-        height: auto !important;
+        padding: 16px;
       }
     }
 
-    @media (max-width: 860px) {
-      .admin-editor-split {
+    @media (max-width: 768px) {
+      .admin-editor-split,
+      .admin-editor-split.student-view {
         grid-template-columns: 1fr !important;
+      }
+      .admin-pane-form#portal-admin-section {
+        grid-column: 1 !important;
       }
     }
 
@@ -757,30 +754,25 @@
       <div class="admin-editor-split" id="portal-dashboard-split">
         
         <!-- Left Column: Course / Subject Hub Sidebar -->
-        <div class="admin-pane-form" style="border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(15, 23, 42, 0.3); padding: 20px; border-radius: 12px; display: flex; flex-direction: column; height: 100%; overflow: hidden; box-sizing: border-box;">
+        <div class="admin-pane-form" style="border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(15, 23, 42, 0.3); padding: 20px; border-radius: 12px; display: flex; flex-direction: column; box-sizing: border-box; min-width: 0;">
           <h5 style="font-size: 0.85rem; font-weight: 800; margin: 0 0 16px 0; color: white; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
             <i class="fas fa-cubes" style="color: var(--primary-amber);"></i> Modules
           </h5>
-          <div id="portal-subjects-sidebar" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-right: 2px;">
+          <div id="portal-subjects-sidebar" style="display: flex; flex-direction: column; gap: 8px;">
             <!-- Dynamically populated subjects list -->
             <p style="color: #94A3B8; font-size: 0.8rem; text-align: center; padding: 20px;">Loading modules...</p>
           </div>
         </div>
 
         <!-- Center Column: Modules & Materials Overview -->
-        <div class="admin-pane-list" style="padding: 0; border: none; box-shadow: none; background: none; display: flex; flex-direction: column; gap: 20px; height: 100%; overflow: hidden; box-sizing: border-box;">
+        <div class="admin-pane-list" style="padding: 0; border: none; box-shadow: none; background: none; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; min-width: 0;">
           <!-- Active Subject Header Banner -->
-          <div id="portal-subject-header-banner" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.45), rgba(15, 23, 42, 0.65)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 24px; position: relative; overflow: hidden; display: none; flex-shrink: 0;">
+          <div id="portal-subject-header-banner" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.45), rgba(15, 23, 42, 0.65)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 24px; position: relative; overflow: hidden; display: none;">
             <div id="portal-subject-glow" style="position: absolute; width: 140px; height: 140px; border-radius: 50%; filter: blur(50px); opacity: 0.15; top: -50px; right: -50px; background: var(--primary-amber);"></div>
-            <div style="display: flex; align-items: flex-start; justify-content: space-between; position: relative; z-index: 2; width: 100%; gap: 16px;">
-              <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; position: relative; z-index: 2; width: 100%; gap: 16px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 240px;">
                 <h3 id="portal-subject-title" style="margin: 0 0 8px 0; font-size: 1.3rem; font-weight: 800; color: white;">Module Title</h3>
-                <div id="portal-subject-desc-container">
-                  <div id="portal-subject-desc" style="margin: 0; color: #94A3B8; font-size: 0.88rem; line-height: 1.6; max-width: 100%; white-space: pre-line; word-break: break-word; max-height: 120px; overflow-y: auto; padding-right: 8px; transition: max-height 0.3s ease;">Module description goes here.</div>
-                  <button id="portal-expand-subject-btn" type="button" style="display: none; margin-top: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(245,158,11,0.25); color: var(--primary-amber); font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
-                    <i class="fas fa-expand-alt"></i> Extend Full Info
-                  </button>
-                </div>
+                <div id="portal-subject-desc" style="margin: 0; color: #94A3B8; font-size: 0.88rem; line-height: 1.6; white-space: pre-line; word-break: break-word;">Module description goes here.</div>
               </div>
               <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end;">
                 <div id="portal-subject-progress"></div>
@@ -792,7 +784,7 @@
           </div>
 
           <!-- Modules Vertical Timeline -->
-          <div id="portal-modules-timeline" class="admin-members-rows" style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding-right: 6px; overflow-y: auto;">
+          <div id="portal-modules-timeline" style="display: flex; flex-direction: column; gap: 16px;">
             <!-- Dynamically populated modules accordion cards -->
             <p style="text-align: center; padding: 40px; color: #94A3B8; font-size: 0.9rem;">Select a module to view tasks...</p>
           </div>
