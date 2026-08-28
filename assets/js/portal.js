@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeTab === 'materials' && portalTabMaterials && portalDashboardSplit) {
       portalTabMaterials.classList.add('active');
       portalDashboardSplit.style.display = 'grid';
-      portalDashboardSplit.style.gridTemplateColumns = '280px 1fr 360px';
+      portalDashboardSplit.style.gridTemplateColumns = '260px 1fr 400px';
       fetchMaterials();
     } else if (activeTab === 'accounts' && portalTabAccounts && portalAccountsSplit) {
       portalTabAccounts.classList.add('active');
@@ -583,6 +583,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (glowEl) {
         glowEl.style.background = activeSubj.color || 'var(--primary-amber)';
       }
+
+      // Expand / Collapse Info button for Module Banner
+      const expandSubjectBtn = document.getElementById('portal-expand-subject-btn');
+      if (expandSubjectBtn) {
+        if (activeSubj.description && activeSubj.description.length > 180) {
+          expandSubjectBtn.style.display = 'inline-flex';
+          expandSubjectBtn.innerHTML = '<i class="fas fa-expand-alt" style="margin-right: 4px;"></i> Extend Full Info';
+          subjectDescEl.style.maxHeight = '120px';
+
+          expandSubjectBtn.onclick = () => {
+            if (subjectDescEl.style.maxHeight === 'none') {
+              subjectDescEl.style.maxHeight = '120px';
+              expandSubjectBtn.innerHTML = '<i class="fas fa-expand-alt" style="margin-right: 4px;"></i> Extend Full Info';
+            } else {
+              subjectDescEl.style.maxHeight = 'none';
+              expandSubjectBtn.innerHTML = '<i class="fas fa-compress-alt" style="margin-right: 4px;"></i> Collapse Info';
+            }
+          };
+        } else {
+          expandSubjectBtn.style.display = 'none';
+          subjectDescEl.style.maxHeight = 'none';
+        }
+      }
       
       // Render progress inside active Module banner
       const progressEl = document.getElementById('portal-subject-progress');
@@ -697,6 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const taskMaterials = materialsList.filter(item => item.module_id === mod.id);
       const isChecked = isTaskCompleted(mod.id);
+      const isDescLong = mod.description && mod.description.length > 150;
       
       const checkoffHTML = `
         <button class="task-completion-check ${isChecked ? 'checked' : ''}" data-id="${mod.id}" title="${isChecked ? 'Mark Incomplete' : 'Mark Completed'}">
@@ -711,22 +735,29 @@ document.addEventListener('DOMContentLoaded', () => {
       const deleteModBtnHTML = (role === 'admin')
         ? `<button class="admin-action-btn delete portal-delete-mod-btn" data-id="${mod.id}" title="Remove Task" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem;"><i class="fas fa-trash-alt"></i> Delete</button>`
         : '';
+
+      const extendBtnHTML = isDescLong
+        ? `<button class="extend-task-btn" type="button" style="background: none; border: none; padding: 2px 0; color: var(--primary-amber); font-size: 0.72rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; margin-top: 4px;"><i class="fas fa-chevron-down"></i> Extend Info</button>`
+        : '';
         
       card.innerHTML = `
-        <div class="module-header">
-          <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
-            ${checkoffHTML}
-            <div>
-              <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: white; ${isChecked ? 'text-decoration: line-through; opacity: 0.7;' : ''}">${mod.title}</h5>
-              <p style="margin: 3px 0 0 0; color: #94A3B8; font-size: 0.75rem;">${mod.description || 'No description provided.'}</p>
+        <div class="module-header" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+          <div style="display: flex; align-items: flex-start; gap: 12px; text-align: left; flex: 1; min-width: 0;">
+            <div style="margin-top: 2px; flex-shrink: 0;">
+              ${checkoffHTML}
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <h5 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: white; word-break: break-word; ${isChecked ? 'text-decoration: line-through; opacity: 0.7;' : ''}">${mod.title}</h5>
+              <div class="task-desc-container" style="margin-top: 4px;">
+                <p class="task-desc-text" style="margin: 0; color: #94A3B8; font-size: 0.8rem; line-height: 1.55; white-space: pre-line; word-break: break-word; max-height: ${isDescLong ? '85px' : 'none'}; overflow-y: auto; padding-right: 4px; transition: max-height 0.25s ease;">${mod.description || 'No description provided.'}</p>
+                ${extendBtnHTML}
+              </div>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              ${editModBtnHTML}
-              ${deleteModBtnHTML}
-              <i class="fas fa-chevron-down" style="color: #94A3B8; font-size: 0.8rem; transition: transform 0.3s ease;"></i>
-            </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-top: 2px;">
+            ${editModBtnHTML}
+            ${deleteModBtnHTML}
+            <i class="fas fa-chevron-down" style="color: #94A3B8; font-size: 0.8rem; transition: transform 0.3s ease; margin-left: 4px;"></i>
           </div>
         </div>
         <div class="module-body">
@@ -738,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       
       card.querySelector('.module-header').addEventListener('click', (e) => {
-        if (e.target.closest('.portal-delete-mod-btn') || e.target.closest('.portal-edit-mod-btn') || e.target.closest('.task-completion-check')) return;
+        if (e.target.closest('.portal-delete-mod-btn') || e.target.closest('.portal-edit-mod-btn') || e.target.closest('.task-completion-check') || e.target.closest('.extend-task-btn') || e.target.closest('.task-desc-text')) return;
         
         const isOpen = card.classList.contains('open');
         if (isOpen) {
@@ -754,6 +785,22 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleTaskCompletion(mod.id);
         renderModules();
       });
+
+      const extendBtn = card.querySelector('.extend-task-btn');
+      if (extendBtn) {
+        extendBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const descP = card.querySelector('.task-desc-text');
+          if (descP.style.maxHeight === 'none') {
+            descP.style.maxHeight = '85px';
+            extendBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Extend Info';
+          } else {
+            descP.style.maxHeight = 'none';
+            extendBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Collapse Info';
+          }
+        });
+      }
       
       card.querySelectorAll('.portal-edit-item-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -824,18 +871,18 @@ document.addEventListener('DOMContentLoaded', () => {
         : '';
         
       return `
-        <div class="curriculum-item-card">
-          <div style="display: flex; align-items: center; gap: 12px; text-align: left; flex-grow: 1;">
-            <div class="portal-type-badge ${item.type}" style="width: 32px; height: 32px; font-size: 0.9rem;">
+        <div class="curriculum-item-card" style="align-items: flex-start;">
+          <div style="display: flex; align-items: flex-start; gap: 12px; text-align: left; flex-grow: 1; min-width: 0;">
+            <div class="portal-type-badge ${item.type}" style="width: 32px; height: 32px; font-size: 0.9rem; flex-shrink: 0; margin-top: 2px;">
               ${icon}
             </div>
-            <div>
-              <h6 style="margin: 0; font-size: 0.85rem; font-weight: 700; color: white;">${item.title}</h6>
-              <p style="margin: 2px 0 0 0; color: #94A3B8; font-size: 0.75rem;">${item.description || 'No description'}</p>
+            <div style="flex: 1; min-width: 0;">
+              <h6 style="margin: 0; font-size: 0.85rem; font-weight: 700; color: white; word-break: break-word;">${item.title}</h6>
+              <p class="material-desc-text" style="margin: 3px 0 0 0; color: #94A3B8; font-size: 0.76rem; line-height: 1.45; word-break: break-word; white-space: pre-line; max-height: 90px; overflow-y: auto; padding-right: 4px;">${item.description || 'No description'}</p>
             </div>
           </div>
           
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-top: 2px;">
             <a href="${item.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; box-shadow: none; display: flex; align-items: center; gap: 6px; border-color: rgba(255,255,255,0.12); color: #E2E8F0;">
               <i class="fas fa-external-link-alt"></i> Open
             </a>
