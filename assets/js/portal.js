@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
       portalAuthScreen.style.display = 'none';
       portalDashboardScreen.style.display = 'block';
       if (headerUserInfo) headerUserInfo.style.display = 'flex';
+      window.scrollTo(0, 0);
       
       portalUserDisplayEmail.innerText = email;
       portalUserRoleBadge.innerText = role.toUpperCase();
@@ -159,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (portalAdminTabs) portalAdminTabs.style.display = 'none';
         if (portalDashboardSplit) {
           portalDashboardSplit.style.display = 'grid';
-          portalDashboardSplit.style.gridTemplateColumns = '280px 1fr';
+          portalDashboardSplit.style.gridTemplateColumns = 'minmax(220px, 260px) 1fr';
         }
         if (portalAccountsSplit) portalAccountsSplit.style.display = 'none';
         const portalTestimonialsSplit = document.getElementById('portal-testimonials-split');
@@ -206,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeTab === 'materials' && portalTabMaterials && portalDashboardSplit) {
       portalTabMaterials.classList.add('active');
       portalDashboardSplit.style.display = 'grid';
-      portalDashboardSplit.style.gridTemplateColumns = '260px 1fr 400px';
+      portalDashboardSplit.style.gridTemplateColumns = 'minmax(220px, 260px) minmax(320px, 1fr) minmax(320px, 390px)';
       fetchMaterials();
     } else if (activeTab === 'accounts' && portalTabAccounts && portalAccountsSplit) {
       portalTabAccounts.classList.add('active');
@@ -1173,7 +1174,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelBtn = document.getElementById('material-cancel-edit-btn');
     if (cancelBtn) cancelBtn.style.display = 'block';
 
-    formMaterial.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const adminScrollable = portalAdminSection ? portalAdminSection.querySelector('div[style*="overflow-y"]') : null;
+    if (adminScrollable) adminScrollable.scrollTop = 0;
   };
 
   const resetMaterialForm = () => {
@@ -1314,7 +1316,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelBtn = document.getElementById('subject-cancel-edit-btn');
     if (cancelBtn) cancelBtn.style.display = 'block';
 
-    formSubject.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const adminScrollable = portalAdminSection ? portalAdminSection.querySelector('div[style*="overflow-y"]') : null;
+    if (adminScrollable) adminScrollable.scrollTop = 0;
   };
 
   const resetSubjectForm = () => {
@@ -1427,7 +1430,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelBtn = document.getElementById('module-cancel-edit-btn');
     if (cancelBtn) cancelBtn.style.display = 'block';
 
-    formModule.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const adminScrollable = portalAdminSection ? portalAdminSection.querySelector('div[style*="overflow-y"]') : null;
+    if (adminScrollable) adminScrollable.scrollTop = 0;
   };
 
   const resetModuleForm = () => {
