@@ -621,11 +621,11 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const reorderBtnsHTML = (role === 'admin')
         ? `
-          <div style="display: flex; align-items: center; gap: 3px; margin-left: auto; margin-right: 6px;" class="sidebar-reorder-group">
-            <button type="button" class="sidebar-move-btn" data-id="${subj.id}" data-dir="up" title="Move Module Up" ${idx === 0 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94A3B8; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem;"' : 'style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #CBD5E1; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;"'}>
+          <div style="display: flex; align-items: center; gap: 4px;" class="sidebar-reorder-group">
+            <button type="button" class="sidebar-move-btn" data-id="${subj.id}" data-dir="up" title="Move Module Up" ${idx === 0 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94A3B8; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;"' : 'style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #CBD5E1; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;"'}>
               <i class="fas fa-chevron-up"></i>
             </button>
-            <button type="button" class="sidebar-move-btn" data-id="${subj.id}" data-dir="down" title="Move Module Down" ${idx === subjectsList.length - 1 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94A3B8; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem;"' : 'style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #CBD5E1; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;"'}>
+            <button type="button" class="sidebar-move-btn" data-id="${subj.id}" data-dir="down" title="Move Module Down" ${idx === subjectsList.length - 1 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94A3B8; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;"' : 'style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #CBD5E1; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;"'}>
               <i class="fas fa-chevron-down"></i>
             </button>
           </div>
@@ -633,12 +633,14 @@ document.addEventListener('DOMContentLoaded', () => {
         : '';
 
       btn.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
-          <i class="fas ${subj.icon || 'fa-folder'}" style="color: ${subj.color || '#F59E0B'}; font-size: 0.95rem; width: 16px; text-align: center; flex-shrink: 0;"></i>
-          <span style="font-size: 0.8rem; font-weight: 700; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${subj.title}</span>
+        <div style="display: flex; align-items: flex-start; gap: 10px; width: 100%;">
+          <i class="fas ${subj.icon || 'fa-folder'}" style="color: ${subj.color || '#F59E0B'}; font-size: 0.95rem; margin-top: 3px; width: 16px; text-align: center; flex-shrink: 0;"></i>
+          <span style="font-size: 0.85rem; font-weight: 700; color: white; line-height: 1.35; word-break: break-word; flex: 1;">${subj.title}</span>
         </div>
-        ${reorderBtnsHTML}
-        <span style="font-size: 0.7rem; background: rgba(255,255,255,0.06); color: #94A3B8; padding: 2px 6px; border-radius: 20px; flex-shrink: 0;">${count} Tasks</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding-left: 26px; box-sizing: border-box; margin-top: 4px;">
+          <span style="font-size: 0.68rem; background: rgba(255,255,255,0.06); color: #94A3B8; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${count} ${count === 1 ? 'Task' : 'Tasks'}</span>
+          ${reorderBtnsHTML}
+        </div>
       `;
       
       btn.addEventListener('click', (e) => {
@@ -1267,6 +1269,23 @@ document.addEventListener('DOMContentLoaded', () => {
       matModSelect.value = item.module_id || 'mod-default';
     }
 
+    // Shortcut button to move item to the active module currently being viewed
+    const moveToActiveBtn = document.getElementById('material-move-to-active-btn');
+    if (moveToActiveBtn) {
+      const activeSubj = subjectsList.find(s => s.id === activeSubjectId);
+      if (activeSubj && activeSubj.id !== (item.subject_id || 'subj-default')) {
+        moveToActiveBtn.style.display = 'inline-flex';
+        moveToActiveBtn.innerHTML = `<i class="fas fa-arrow-right" style="margin-right: 4px;"></i> Move to ${activeSubj.title.substring(0, 16)}${activeSubj.title.length > 16 ? '...' : ''}`;
+        moveToActiveBtn.onclick = () => {
+          if (matSubjSelect) matSubjSelect.value = activeSubj.id;
+          updateUploadModuleOptions();
+          moveToActiveBtn.style.display = 'none';
+        };
+      } else {
+        moveToActiveBtn.style.display = 'none';
+      }
+    }
+
     document.getElementById('material-item-type').value = item.item_type || 'resource';
     document.getElementById('material-title').value = item.title || '';
     document.getElementById('material-desc').value = item.description || '';
@@ -1369,6 +1388,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fileBtnLabel) fileBtnLabel.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Choose Document File';
 
     if (selectedFileLabel) selectedFileLabel.innerText = '';
+    const moveToActiveBtn = document.getElementById('material-move-to-active-btn');
+    if (moveToActiveBtn) moveToActiveBtn.style.display = 'none';
     materialTypeSelect.value = 'link';
     materialUrlGroup.style.display = 'block';
     materialFileGroup.style.display = 'none';

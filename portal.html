@@ -366,7 +366,7 @@
     /* Editor split layout */
     .admin-editor-split {
       display: grid;
-      grid-template-columns: 250px 1fr 380px;
+      grid-template-columns: 280px 1fr 380px;
       gap: 20px;
       width: 100%;
       box-sizing: border-box;
@@ -374,12 +374,12 @@
     }
 
     .admin-editor-split.student-view {
-      grid-template-columns: 250px 1fr !important;
+      grid-template-columns: 280px 1fr !important;
     }
 
     @media (max-width: 1280px) {
       .admin-editor-split {
-        grid-template-columns: 240px 1fr !important;
+        grid-template-columns: 260px 1fr !important;
       }
       .admin-pane-form#portal-admin-section {
         grid-column: 1 / -1 !important;
@@ -480,15 +480,15 @@
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 10px;
-      padding: 14px 16px;
+      padding: 12px 14px;
       color: #94A3B8;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.25s ease;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
       margin-bottom: 8px;
+      box-sizing: border-box;
     }
 
     .subject-sidebar-btn:hover {
@@ -805,18 +805,33 @@
               <input type="hidden" id="material-edit-id" value="">
               <h5 id="material-form-title" style="font-size: 0.9rem; font-weight: 700; color: white; margin: 0 0 14px 0;">Upload Study Material</h5>
               
-              <div class="form-group" style="margin-bottom: 12px; text-align: left;">
-                <label for="material-subject-select" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Module *</label>
-                <select id="material-subject-select" class="form-control" style="padding: 10px; font-size: 0.8rem;" required>
-                  <!-- Dynamically populated modules list -->
-                </select>
-              </div>
+              <!-- Module & Task Placement / Move Container -->
+              <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="font-size: 0.74rem; font-weight: 800; color: #93C5FD; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-exchange-alt" style="margin-right: 4px;"></i> Location & Move
+                  </span>
+                  <button type="button" id="material-move-to-active-btn" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--primary-amber); font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer;">
+                    Move to Active Module
+                  </button>
+                </div>
+                <p style="margin: 0 0 10px 0; font-size: 0.72rem; color: #CBD5E1; line-height: 1.4;">
+                  To move this item to another module or task, select the destination below and click <strong>Save Changes</strong>:
+                </p>
 
-              <div class="form-group" style="margin-bottom: 12px; text-align: left;">
-                <label for="material-module-select" style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Task *</label>
-                <select id="material-module-select" class="form-control" style="padding: 10px; font-size: 0.8rem;" required>
-                  <!-- Dynamically populated based on module selection -->
-                </select>
+                <div class="form-group" style="margin-bottom: 10px; text-align: left;">
+                  <label for="material-subject-select" style="font-size: 0.72rem; font-weight: 700; color: #E2E8F0; display: block; margin-bottom: 4px;">Target Module *</label>
+                  <select id="material-subject-select" class="form-control" style="padding: 9px; font-size: 0.8rem;" required>
+                    <!-- Dynamically populated modules list -->
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0; text-align: left;">
+                  <label for="material-module-select" style="font-size: 0.72rem; font-weight: 700; color: #E2E8F0; display: block; margin-bottom: 4px;">Target Task *</label>
+                  <select id="material-module-select" class="form-control" style="padding: 9px; font-size: 0.8rem;" required>
+                    <!-- Dynamically populated based on module selection -->
+                  </select>
+                </div>
               </div>
 
               <input type="hidden" id="material-item-type" value="resource">
