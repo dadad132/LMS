@@ -544,6 +544,68 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             self.send_json({"success": True, "module": new_module})
             return
 
+        elif self.path == "/api/reorder-subjects":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            target_id = body.get("id", "").strip()
+            direction = body.get("direction", "").strip().lower()
+            if not target_id or direction not in ["up", "down"]:
+                self.send_json({"error": "Subject ID and direction ('up' or 'down') required"}, 400)
+                return
+                
+            subjects = self.get_subjects()
+            idx = next((i for i, s in enumerate(subjects) if s.get("id") == target_id), -1)
+            if idx == -1:
+                self.send_json({"error": "Subject not found"}, 404)
+                return
+                
+            swap_idx = idx - 1 if direction == "up" else idx + 1
+            if 0 <= swap_idx < len(subjects):
+                subjects[idx], subjects[swap_idx] = subjects[swap_idx], subjects[idx]
+                self.save_subjects(subjects)
+                
+            self.send_json({"success": True, "subjects": subjects})
+            return
+
+        elif self.path == "/api/reorder-modules":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            target_id = body.get("id", "").strip()
+            direction = body.get("direction", "").strip().lower()
+            if not target_id or direction not in ["up", "down"]:
+                self.send_json({"error": "Module ID and direction ('up' or 'down') required"}, 400)
+                return
+                
+            modules = self.get_modules()
+            target_mod = next((m for m in modules if m.get("id") == target_id), None)
+            if not target_mod:
+                self.send_json({"error": "Module not found"}, 404)
+                return
+                
+            subj_id = target_mod.get("subject_id")
+            sibling_indices = [i for i, m in enumerate(modules) if m.get("subject_id") == subj_id]
+            try:
+                pos = sibling_indices.index(modules.index(target_mod))
+            except ValueError:
+                self.send_json({"error": "Module index error"}, 500)
+                return
+                
+            swap_pos = pos - 1 if direction == "up" else pos + 1
+            if 0 <= swap_pos < len(sibling_indices):
+                orig_idx = sibling_indices[pos]
+                swap_idx = sibling_indices[swap_pos]
+                modules[orig_idx], modules[swap_idx] = modules[swap_idx], modules[orig_idx]
+                self.save_modules(modules)
+                
+            self.send_json({"success": True, "modules": modules})
+            return
+
         elif self.path == "/api/edit-module":
             user_session = self.get_session_user()
             if not user_session or user_session["role"] != "admin":
@@ -563,11 +625,22 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             found = False
             for m in modules:
                 if m.get("id") == target_id:
+                    old_subject_id = m.get("subject_id")
                     m["title"] = title
                     m["description"] = description
                     if subject_id:
                         m["subject_id"] = subject_id
                     found = True
+                    # If moved to another subject/module, cascade update materials under this task
+                    if subject_id and subject_id != old_subject_id:
+                        materials = self.get_materials()
+                        mat_updated = False
+                        for mat in materials:
+                            if mat.get("module_id") == target_id:
+                                mat["subject_id"] = subject_id
+                                mat_updated = True
+                        if mat_updated:
+                            self.save_materials(materials)
                     break
                     
             if not found:
@@ -913,6 +986,7 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             material_type = body.get("type", target_item.get("type", "link"))
             url = body.get("url", "").strip()
             file_obj = body.get("file")
+            remove_file = str(body.get("remove_file", "false")).lower() in ["true", "1", "yes"]
             subject_id = body.get("subject_id", target_item.get("subject_id", "subj-default")).strip()
             module_id = body.get("module_id", target_item.get("module_id", "mod-default")).strip()
             
@@ -923,20 +997,26 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             target_item["module_id"] = module_id
             target_item["type"] = material_type
             
-            if material_type in ["pdf", "doc"]:
+            def delete_existing_file():
+                old_url = target_item.get("url", "")
+                if old_url.startswith("/uploads/"):
+                    old_filename = os.path.basename(old_url)
+                    old_filepath = os.path.join(UPLOADS_DIR, old_filename)
+                    if os.path.exists(old_filepath):
+                        try:
+                            os.remove(old_filepath)
+                        except Exception:
+                            pass
+
+            if remove_file:
+                delete_existing_file()
+                target_item["filename"] = ""
+                target_item["url"] = url or ""
+            elif material_type in ["pdf", "doc"]:
                 # If a new file is uploaded to replace the old one
                 if file_obj and isinstance(file_obj, dict) and file_obj.get("data"):
-                    # Remove old file if it existed
-                    old_url = target_item.get("url", "")
-                    if old_url.startswith("/uploads/"):
-                        old_filename = os.path.basename(old_url)
-                        old_filepath = os.path.join(UPLOADS_DIR, old_filename)
-                        if os.path.exists(old_filepath):
-                            try:
-                                os.remove(old_filepath)
-                            except Exception:
-                                pass
-                                
+                    delete_existing_file()
+                    
                     # Save new file
                     orig_filename = os.path.basename(file_obj["filename"])
                     ext = os.path.splitext(orig_filename)[1]
@@ -953,13 +1033,53 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
                         self.send_json({"error": f"Failed to save replacement file: {str(e)}"}, 500)
                         return
             else:
-                # Link type
-                if url:
-                    target_item["url"] = url
-                    target_item["filename"] = ""
+                # Link type or notes type
+                if target_item.get("url", "").startswith("/uploads/"):
+                    delete_existing_file()
+                target_item["url"] = url
+                target_item["filename"] = ""
                     
             self.save_materials(materials)
             self.send_json({"success": True, "material": target_item})
+            return
+
+        elif self.path == "/api/reorder-materials":
+            user_session = self.get_session_user()
+            if not user_session or user_session["role"] != "admin":
+                self.send_json({"error": "Unauthorized. Admin role required."}, 401)
+                return
+            
+            target_id = body.get("id", "").strip()
+            direction = body.get("direction", "").strip().lower()
+            if not target_id or direction not in ["up", "down"]:
+                self.send_json({"error": "Material ID and direction ('up' or 'down') required"}, 400)
+                return
+                
+            materials = self.get_materials()
+            target_item = next((m for m in materials if m.get("id") == target_id), None)
+            if not target_item:
+                self.send_json({"error": "Material not found"}, 404)
+                return
+                
+            subj_id = target_item.get("subject_id")
+            mod_id = target_item.get("module_id")
+            
+            # Sibling materials in the same module and subject
+            sibling_indices = [i for i, m in enumerate(materials) if m.get("subject_id") == subj_id and m.get("module_id") == mod_id]
+            try:
+                pos = sibling_indices.index(materials.index(target_item))
+            except ValueError:
+                self.send_json({"error": "Material index error"}, 500)
+                return
+                
+            swap_pos = pos - 1 if direction == "up" else pos + 1
+            if 0 <= swap_pos < len(sibling_indices):
+                orig_idx = sibling_indices[pos]
+                swap_idx = sibling_indices[swap_pos]
+                materials[orig_idx], materials[swap_idx] = materials[swap_idx], materials[orig_idx]
+                self.save_materials(materials)
+                
+            self.send_json({"success": True, "materials": materials})
             return
 
         elif self.path == "/api/delete-material":

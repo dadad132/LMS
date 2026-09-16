@@ -60,12 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Material Type Select Toggle: Links vs Files
+  // Material Type Select Toggle: Links vs Files vs Notes
   if (materialTypeSelect && materialUrlGroup && materialFileGroup) {
     materialTypeSelect.addEventListener('change', () => {
       const val = materialTypeSelect.value;
       if (val === 'link') {
         materialUrlGroup.style.display = 'block';
+        materialFileGroup.style.display = 'none';
+      } else if (val === 'notes') {
+        materialUrlGroup.style.display = 'none';
         materialFileGroup.style.display = 'none';
       } else {
         materialUrlGroup.style.display = 'none';
@@ -516,6 +519,79 @@ document.addEventListener('DOMContentLoaded', () => {
     await fetchMaterials();
   };
 
+  // --- REORDERING HANDLERS ---
+  const handleReorderMaterial = async (id, direction) => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${apiBase}/reorder-materials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id, direction })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.materials) {
+          materialsList = data.materials;
+          renderModules();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to reorder material:", err);
+    }
+  };
+
+  const handleReorderModule = async (id, direction) => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${apiBase}/reorder-modules`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id, direction })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.modules) {
+          modulesList = data.modules;
+          renderModules();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to reorder task:", err);
+    }
+  };
+
+  const handleReorderSubject = async (id, direction) => {
+    const token = sessionStorage.getItem('honeypot_portal_token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${apiBase}/reorder-subjects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id, direction })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.subjects) {
+          subjectsList = data.subjects;
+          renderSubjects();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to reorder module:", err);
+    }
+  };
+
   // Render Subjects Sidebar List (Modules Sidebar)
   const renderSubjects = () => {
     const sidebar = document.getElementById('portal-subjects-sidebar');
@@ -534,22 +610,48 @@ document.addEventListener('DOMContentLoaded', () => {
       activeSubjectId = subjectsList[0].id;
     }
     
-    subjectsList.forEach(subj => {
-      const btn = document.createElement('button');
+    const role = sessionStorage.getItem('honeypot_portal_role');
+
+    subjectsList.forEach((subj, idx) => {
+      const btn = document.createElement('div');
       btn.className = `subject-sidebar-btn ${subj.id === activeSubjectId ? 'active' : ''}`;
       btn.setAttribute('data-id', subj.id);
       
       const count = modulesList.filter(m => m.subject_id === subj.id).length;
       
+      const reorderBtnsHTML = (role === 'admin')
+        ? `
+          <div style="display: flex; align-items: center; gap: 3px; margin-left: auto; margin-right: 6px;" class="sidebar-reorder-group">
+            <button type="button" class="sidebar-move-btn" data-id="${subj.id}" data-dir="up" title="Move Module Up" ${idx === 0 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94A3B8; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem;"' : 'style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #CBD5E1; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;"'}>
+              <i class="fas fa-chevron-up"></i>
+            </button>
+            <button type="button" class="sidebar-move-btn" data-id="${subj.id}" data-dir="down" title="Move Module Down" ${idx === subjectsList.length - 1 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94A3B8; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem;"' : 'style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #CBD5E1; padding: 2px 5px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;"'}>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+          </div>
+        `
+        : '';
+
       btn.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <i class="fas ${subj.icon || 'fa-folder'}" style="color: ${subj.color || '#F59E0B'}; font-size: 0.95rem; width: 16px; text-align: center;"></i>
-          <span style="font-size: 0.8rem; font-weight: 700; color: white;">${subj.title}</span>
+        <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+          <i class="fas ${subj.icon || 'fa-folder'}" style="color: ${subj.color || '#F59E0B'}; font-size: 0.95rem; width: 16px; text-align: center; flex-shrink: 0;"></i>
+          <span style="font-size: 0.8rem; font-weight: 700; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${subj.title}</span>
         </div>
-        <span style="font-size: 0.7rem; background: rgba(255,255,255,0.06); color: #94A3B8; padding: 2px 6px; border-radius: 20px;">${count} Tasks</span>
+        ${reorderBtnsHTML}
+        <span style="font-size: 0.7rem; background: rgba(255,255,255,0.06); color: #94A3B8; padding: 2px 6px; border-radius: 20px; flex-shrink: 0;">${count} Tasks</span>
       `;
       
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        const moveBtn = e.target.closest('.sidebar-move-btn');
+        if (moveBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (moveBtn.disabled) return;
+          const id = moveBtn.getAttribute('data-id');
+          const dir = moveBtn.getAttribute('data-dir');
+          handleReorderSubject(id, dir);
+          return;
+        }
         activeSubjectId = subj.id;
         document.querySelectorAll('.subject-sidebar-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -661,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
       `;
-      // Setup edit & delete listeners for items inside General Resources
+      // Setup edit, delete & move listeners for items inside General Resources
       card.querySelectorAll('.portal-edit-item-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -679,6 +781,16 @@ document.addEventListener('DOMContentLoaded', () => {
           if (confirm(`Are you sure you want to delete "${title}"?`)) {
             await handleDeleteMaterial(id);
           }
+        });
+      });
+      card.querySelectorAll('.portal-move-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (btn.disabled) return;
+          const id = btn.getAttribute('data-id');
+          const dir = btn.getAttribute('data-dir');
+          handleReorderMaterial(id, dir);
         });
       });
       timeline.appendChild(card);
@@ -711,6 +823,13 @@ document.addEventListener('DOMContentLoaded', () => {
         </button>
       `;
       
+      const moveUpModBtnHTML = (role === 'admin')
+        ? `<button class="admin-action-btn portal-move-mod-btn" data-id="${mod.id}" data-dir="up" title="Move Task Up" ${idx === 0 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255, 255, 255, 0.04); color: #94A3B8; border: 1px solid rgba(255, 255, 255, 0.08); padding: 5px 7px; border-radius: 4px; font-size: 0.7rem;"' : 'style="background: rgba(255, 255, 255, 0.06); color: #CBD5E1; border: 1px solid rgba(255, 255, 255, 0.15); padding: 5px 7px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"'}><i class="fas fa-chevron-up"></i></button>`
+        : '';
+      const moveDownModBtnHTML = (role === 'admin')
+        ? `<button class="admin-action-btn portal-move-mod-btn" data-id="${mod.id}" data-dir="down" title="Move Task Down" ${idx === subjectModules.length - 1 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255, 255, 255, 0.04); color: #94A3B8; border: 1px solid rgba(255, 255, 255, 0.08); padding: 5px 7px; border-radius: 4px; font-size: 0.7rem;"' : 'style="background: rgba(255, 255, 255, 0.06); color: #CBD5E1; border: 1px solid rgba(255, 255, 255, 0.15); padding: 5px 7px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"'}><i class="fas fa-chevron-down"></i></button>`
+        : '';
+
       const editModBtnHTML = (role === 'admin')
         ? `<button class="admin-action-btn edit portal-edit-mod-btn" data-id="${mod.id}" title="Edit Task" style="background: rgba(59, 130, 246, 0.12); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-edit"></i> Edit</button>`
         : '';
@@ -730,7 +849,9 @@ document.addEventListener('DOMContentLoaded', () => {
               <p class="task-desc-text" style="margin: 6px 0 0 0; color: #94A3B8; font-size: 0.82rem; line-height: 1.55; white-space: pre-line; word-break: break-word;">${mod.description || 'No description provided.'}</p>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-top: 3px;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-top: 3px;">
+            ${moveUpModBtnHTML}
+            ${moveDownModBtnHTML}
             ${editModBtnHTML}
             ${deleteModBtnHTML}
             <i class="fas fa-chevron-down" style="color: #94A3B8; font-size: 0.8rem; transition: transform 0.3s ease; margin-left: 4px;"></i>
@@ -745,7 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       
       card.querySelector('.module-header').addEventListener('click', (e) => {
-        if (e.target.closest('.portal-delete-mod-btn') || e.target.closest('.portal-edit-mod-btn') || e.target.closest('.task-completion-check') || e.target.closest('.task-desc-text')) return;
+        if (e.target.closest('.portal-delete-mod-btn') || e.target.closest('.portal-edit-mod-btn') || e.target.closest('.portal-move-mod-btn') || e.target.closest('.task-completion-check') || e.target.closest('.task-desc-text')) return;
         
         const isOpen = card.classList.contains('open');
         if (isOpen) {
@@ -760,6 +881,17 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         toggleTaskCompletion(mod.id);
         renderModules();
+      });
+
+      card.querySelectorAll('.portal-move-mod-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (btn.disabled) return;
+          const id = btn.getAttribute('data-id');
+          const dir = btn.getAttribute('data-dir');
+          handleReorderModule(id, dir);
+        });
       });
       
       card.querySelectorAll('.portal-edit-item-btn').forEach(btn => {
@@ -780,6 +912,17 @@ document.addEventListener('DOMContentLoaded', () => {
           if (confirm(`Are you sure you want to delete "${title}"?`)) {
             await handleDeleteMaterial(id);
           }
+        });
+      });
+
+      card.querySelectorAll('.portal-move-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (btn.disabled) return;
+          const id = btn.getAttribute('data-id');
+          const dir = btn.getAttribute('data-dir');
+          handleReorderMaterial(id, dir);
         });
       });
       
@@ -817,17 +960,32 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const role = sessionStorage.getItem('honeypot_portal_role');
     
-    return items.map(item => {
+    return items.map((item, idx) => {
       let icon = '<i class="fas fa-link"></i>';
       if (item.type === 'pdf') icon = '<i class="fas fa-file-pdf"></i>';
       if (item.type === 'doc') icon = '<i class="fas fa-file-word"></i>';
+      if (item.type === 'notes') icon = '<i class="fas fa-sticky-note"></i>';
       
+      const moveUpItemBtnHTML = (role === 'admin')
+        ? `<button class="admin-action-btn portal-move-item-btn" data-id="${item.id}" data-dir="up" title="Move Material Up" ${idx === 0 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255, 255, 255, 0.04); color: #94A3B8; border: 1px solid rgba(255, 255, 255, 0.08); padding: 5px 7px; border-radius: 4px; font-size: 0.7rem;"' : 'style="background: rgba(255, 255, 255, 0.06); color: #CBD5E1; border: 1px solid rgba(255, 255, 255, 0.15); padding: 5px 7px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"'}><i class="fas fa-chevron-up"></i></button>`
+        : '';
+
+      const moveDownItemBtnHTML = (role === 'admin')
+        ? `<button class="admin-action-btn portal-move-item-btn" data-id="${item.id}" data-dir="down" title="Move Material Down" ${idx === items.length - 1 ? 'disabled style="opacity: 0.25; cursor: default; background: rgba(255, 255, 255, 0.04); color: #94A3B8; border: 1px solid rgba(255, 255, 255, 0.08); padding: 5px 7px; border-radius: 4px; font-size: 0.7rem;"' : 'style="background: rgba(255, 255, 255, 0.06); color: #CBD5E1; border: 1px solid rgba(255, 255, 255, 0.15); padding: 5px 7px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"'}><i class="fas fa-chevron-down"></i></button>`
+        : '';
+
       const editBtnHTML = role === 'admin'
-        ? `<button class="admin-action-btn edit portal-edit-item-btn" data-id="${item.id}" title="Edit Resource / Replace File" style="background: rgba(59, 130, 246, 0.12); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-edit"></i> Edit</button>`
+        ? `<button class="admin-action-btn edit portal-edit-item-btn" data-id="${item.id}" title="Edit Resource / Move / Remove File" style="background: rgba(59, 130, 246, 0.12); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-edit"></i> Edit</button>`
         : '';
 
       const deleteBtnHTML = role === 'admin'
         ? `<button class="admin-action-btn delete portal-delete-item-btn" data-id="${item.id}" data-title="${item.title}" title="Delete Resource" style="background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-trash-alt"></i></button>`
+        : '';
+
+      const openBtnHTML = (item.url)
+        ? `<a href="${item.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; box-shadow: none; display: flex; align-items: center; gap: 6px; border-color: rgba(255,255,255,0.12); color: #E2E8F0;">
+            <i class="fas fa-external-link-alt"></i> Open
+          </a>`
         : '';
         
       return `
@@ -842,10 +1000,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           
-          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-top: 2px;">
-            <a href="${item.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; box-shadow: none; display: flex; align-items: center; gap: 6px; border-color: rgba(255,255,255,0.12); color: #E2E8F0;">
-              <i class="fas fa-external-link-alt"></i> Open
-            </a>
+          <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-top: 2px;">
+            ${openBtnHTML}
+            ${moveUpItemBtnHTML}
+            ${moveDownItemBtnHTML}
             ${editBtnHTML}
             ${deleteBtnHTML}
           </div>
@@ -1096,9 +1254,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('material-edit-id').value = item.id;
-    document.getElementById('material-subject-select').value = item.subject_id || 'subj-default';
-    populateModuleSelect(item.subject_id || 'subj-default');
-    document.getElementById('material-module-select').value = item.module_id || 'mod-default';
+    const removeFileEl = document.getElementById('material-remove-file');
+    if (removeFileEl) removeFileEl.value = 'false';
+
+    const matSubjSelect = document.getElementById('material-subject-select');
+    if (matSubjSelect) {
+      matSubjSelect.value = item.subject_id || 'subj-default';
+    }
+    updateUploadModuleOptions();
+    const matModSelect = document.getElementById('material-module-select');
+    if (matModSelect) {
+      matModSelect.value = item.module_id || 'mod-default';
+    }
+
     document.getElementById('material-item-type').value = item.item_type || 'resource';
     document.getElementById('material-title').value = item.title || '';
     document.getElementById('material-desc').value = item.description || '';
@@ -1109,14 +1277,30 @@ document.addEventListener('DOMContentLoaded', () => {
       materialUrlGroup.style.display = 'block';
       materialFileGroup.style.display = 'none';
       document.getElementById('material-url').value = item.url || '';
+    } else if (item.type === 'notes') {
+      materialUrlGroup.style.display = 'none';
+      materialFileGroup.style.display = 'none';
     } else {
       materialUrlGroup.style.display = 'none';
       materialFileGroup.style.display = 'block';
       const fileInfo = document.getElementById('material-current-file-info');
-      const filenameDisplay = document.getElementById('current-filename-display');
-      if (fileInfo && filenameDisplay) {
-        fileInfo.style.display = 'block';
-        filenameDisplay.innerText = item.filename || (item.url ? item.url.split('/').pop() : 'Uploaded Document');
+      if (fileInfo) {
+        if (item.url || item.filename) {
+          fileInfo.style.display = 'block';
+          fileInfo.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 0; word-break: break-all;">
+                Current file: <span id="current-filename-display" style="color: var(--primary-amber); font-weight: 600;">${item.filename || (item.url ? item.url.split('/').pop() : 'Uploaded Document')}</span>
+              </div>
+              <button type="button" id="material-remove-file-btn" class="btn" style="padding: 3px 8px; font-size: 0.7rem; background: rgba(239,68,68,0.15); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fas fa-trash-alt"></i> Remove Attachment
+              </button>
+            </div>
+          `;
+          setupRemoveFileBtn();
+        } else {
+          fileInfo.style.display = 'none';
+        }
       }
       const fileBtnLabel = document.getElementById('material-file-btn-label');
       if (fileBtnLabel) {
@@ -1137,10 +1321,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminScrollable) adminScrollable.scrollTop = 0;
   };
 
+  const setupRemoveFileBtn = () => {
+    const removeBtn = document.getElementById('material-remove-file-btn');
+    if (!removeBtn) return;
+    removeBtn.onclick = () => {
+      const removeFileEl = document.getElementById('material-remove-file');
+      if (removeFileEl) removeFileEl.value = 'true';
+      const fileInfo = document.getElementById('material-current-file-info');
+      if (fileInfo) {
+        fileInfo.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <span style="color: #FCA5A5; font-size: 0.75rem;"><i class="fas fa-trash-alt"></i> Attachment will be removed on Save.</span>
+            <button type="button" id="undo-remove-file-btn" class="btn" style="padding: 2px 8px; font-size: 0.7rem; background: rgba(255,255,255,0.1); color: white; border-radius: 4px; cursor: pointer;">Undo</button>
+          </div>
+        `;
+        const undoBtn = document.getElementById('undo-remove-file-btn');
+        if (undoBtn) {
+          undoBtn.onclick = () => {
+            const editId = document.getElementById('material-edit-id').value.trim();
+            if (editId) handleEditMaterial(editId);
+          };
+        }
+      }
+    };
+  };
+
   const resetMaterialForm = () => {
     if (!portalUploadForm) return;
     portalUploadForm.reset();
     document.getElementById('material-edit-id').value = '';
+    const removeFileEl = document.getElementById('material-remove-file');
+    if (removeFileEl) removeFileEl.value = 'false';
     
     const formTitle = document.getElementById('material-form-title');
     if (formTitle) formTitle.innerHTML = 'Upload Study Material';
@@ -1181,6 +1392,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const type = materialTypeSelect.value;
       const url = document.getElementById('material-url').value.trim();
       const file = materialFileInput.files[0];
+      const removeFile = document.getElementById('material-remove-file') ? document.getElementById('material-remove-file').value : 'false';
       const token = sessionStorage.getItem('honeypot_portal_token');
 
       if (portalUploadFeedback) {
@@ -1197,9 +1409,12 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('title', title);
       formData.append('description', description);
       formData.append('type', type);
+      formData.append('remove_file', removeFile);
 
       if (type === 'link') {
         formData.append('url', url);
+      } else if (type === 'notes') {
+        // Text notes - no file or URL required
       } else {
         if (!editId && !file) {
           alert("Please select a file to upload.");

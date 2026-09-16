@@ -840,8 +840,11 @@
                   <option value="link">Clickable Web Link / URL</option>
                   <option value="pdf">PDF Document</option>
                   <option value="doc">Word Document (DOCX/DOC)</option>
+                  <option value="notes">Text / Study Notes (No Attachment)</option>
                 </select>
               </div>
+
+              <input type="hidden" id="material-remove-file" value="false">
 
               <!-- Type Link -->
               <div class="form-group" id="material-url-group" style="margin-bottom: 14px; text-align: left;">
@@ -853,7 +856,14 @@
               <div class="form-group" id="material-file-group" style="margin-bottom: 14px; text-align: left; display: none;">
                 <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Document File *</label>
                 <div id="material-current-file-info" style="display: none; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; color: #94A3B8; margin-bottom: 8px;">
-                  Current file: <span id="current-filename-display" style="color: var(--primary-amber); font-weight: 600;"></span>
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 0; word-break: break-all;">
+                      Current file: <span id="current-filename-display" style="color: var(--primary-amber); font-weight: 600;"></span>
+                    </div>
+                    <button type="button" id="material-remove-file-btn" class="btn" style="padding: 3px 8px; font-size: 0.7rem; background: rgba(239,68,68,0.15); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                      <i class="fas fa-trash-alt"></i> Remove Attachment
+                    </button>
+                  </div>
                 </div>
                 <div style="position: relative;">
                   <label for="material-file" id="material-file-btn-label" class="btn btn-secondary" style="padding: 10px; font-size: 0.8rem; border-style: dashed; width: 100%; text-align: center; cursor: pointer; display: block; box-shadow: none; border-color: rgba(255,255,255,0.15); color: #E2E8F0;">
