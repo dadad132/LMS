@@ -38,9 +38,10 @@ pkill -f "/opt/LMS/api.py" 2>/dev/null || true
 find /etc/systemd/system /usr/lib/systemd/system /lib/systemd/system /run/systemd/system \
     \( -name "lms.service*" -o -name "lms-api*" -o -name "lms-website*" \) -exec rm -rf {} + 2>/dev/null || true
 rm -f /usr/local/bin/lms-api.py 2>/dev/null || true
+rm -rf /tmp/lms_bkp_check_* /tmp/lms_clone_* /tmp/lms_reinstall_* /tmp/lms_diag_* 2>/dev/null || true
 systemctl daemon-reload
 systemctl reset-failed 2>/dev/null || true
-echo "✅ Old services (lms, lms-website, lms-api) removed cleanly."
+echo "✅ Old services (lms, lms-website, lms-api) removed and /tmp RAM freed."
 
 # Step 2: Install Git, Nginx & Python if they are missing
 echo "🔧 Installing system dependencies (git, nginx, python3)..."
@@ -90,18 +91,20 @@ for SRC_DIR in "$WEB_ROOT" "$WEB_ROOT/data" "/opt/LMS" "/opt/LMS/data" "/opt/lms
 done
 
 # Auto-restore any missing or smaller database files from the largest backups in /var/backups/lms
+# NOTE: Never extract into /tmp (which is tmpfs RAM on AlmaLinux). Extract only tiny JSON/txt files on disk.
 if [ -d "/var/backups/lms" ]; then
+    STAGE_DIR="/var/lib/lms/.restore_stage"
     for BKP in $(ls -1S /var/backups/lms/*.tar.gz 2>/dev/null | head -n 5); do
-        TMP_EXTRACT="/tmp/lms_bkp_check_$$"
-        mkdir -p "$TMP_EXTRACT"
-        tar -xzf "$BKP" -C "$TMP_EXTRACT" 2>/dev/null || true
+        rm -rf "$STAGE_DIR"
+        mkdir -p "$STAGE_DIR"
+        tar -xzf "$BKP" -C "$STAGE_DIR" --exclude="*uploads*" 2>/dev/null || true
 
         for DBF in users.json materials.json subjects.json modules.json team.json testimonials.json admin_password.txt; do
             CUR_SIZE=0
             if [ -f "/var/lib/lms/$DBF" ]; then
                 CUR_SIZE=$(wc -c < "/var/lib/lms/$DBF" 2>/dev/null || echo 0)
             fi
-            FOUND_BKP_FILE=$(find "$TMP_EXTRACT" -name "$DBF" -type f 2>/dev/null | head -n 1)
+            FOUND_BKP_FILE=$(find "$STAGE_DIR" -name "$DBF" -type f 2>/dev/null | head -n 1)
             if [ -n "$FOUND_BKP_FILE" ]; then
                 BKP_SIZE=$(wc -c < "$FOUND_BKP_FILE" 2>/dev/null || echo 0)
                 if [ "$BKP_SIZE" -gt "$CUR_SIZE" ]; then
@@ -110,48 +113,40 @@ if [ -d "/var/backups/lms" ]; then
                 fi
             fi
         done
-
-        FOUND_UPLOADS=$(find "$TMP_EXTRACT" -type d -name "uploads" 2>/dev/null | head -n 1)
-        if [ -n "$FOUND_UPLOADS" ]; then
-            cp -rn "$FOUND_UPLOADS/"* "/var/lib/lms/uploads/" 2>/dev/null || true
-        fi
-
-        rm -rf "$TMP_EXTRACT"
+        rm -rf "$STAGE_DIR"
     done
+
+    # Restore uploaded files directly on disk from the single largest backup (without loading into RAM)
+    LARGEST_BKP=$(ls -1S /var/backups/lms/*.tar.gz 2>/dev/null | head -n 1)
+    if [ -n "$LARGEST_BKP" ]; then
+        tar -xzf "$LARGEST_BKP" --skip-old-files -C /var/lib/lms ./uploads 2>/dev/null || \
+        tar -xzf "$LARGEST_BKP" --skip-old-files -C /var/lib/lms uploads 2>/dev/null || true
+    fi
 fi
 
-echo "📂 Pulling latest code from GitHub and deploying to $WEB_ROOT..."
+echo "📂 Deploying website & API files to $WEB_ROOT..."
 mkdir -p "$WEB_ROOT"
 chmod 755 /var /var/www /var/www/html "$WEB_ROOT" 2>/dev/null || true
 
-# If current directory is a git repository, pull latest changes first
+# If current directory is a git repository, update it in place on disk
 if [ -d "./.git" ]; then
     echo "👉 Updating current git repository from origin/main..."
     git fetch origin main 2>/dev/null && git reset --hard origin/main 2>/dev/null || git pull origin main 2>/dev/null || true
 fi
 
-# Clone fresh from GitHub into /tmp so we always deploy a clean, complete copy
-TMP_CLONE="/tmp/lms_clone_$$"
-rm -rf "$TMP_CLONE"
-if (cd /tmp && git clone https://github.com/dadad132/LMS "$TMP_CLONE" 2>/dev/null) && [ -f "$TMP_CLONE/index.html" ]; then
-    echo "👉 Deploying fresh copy from GitHub to $WEB_ROOT..."
-    cp -rf "$TMP_CLONE"/. "$WEB_ROOT/"
-    rm -rf "$TMP_CLONE"
-elif [ -f "./index.html" ] && [ -f "./api.py" ]; then
-    rm -rf "$TMP_CLONE"
+if [ -f "./index.html" ] && [ -f "./api.py" ]; then
     if [ "$(cd . 2>/dev/null && pwd -P)" != "$(cd "$WEB_ROOT" 2>/dev/null && pwd -P)" ]; then
-        echo "👉 Copying files from current directory to $WEB_ROOT..."
-        cp -rf * "$WEB_ROOT/"
-        if [ -d "./.well-known" ]; then
-            cp -rf ./.well-known "$WEB_ROOT/"
-        fi
+        echo "👉 Copying files directly from $(pwd -P) to $WEB_ROOT..."
+        cp -rf . "$WEB_ROOT/"
     else
         echo "👉 Updating files in place in $WEB_ROOT..."
     fi
+elif [ -f "/opt/LMS/index.html" ] && [ -f "/opt/LMS/api.py" ]; then
+    echo "👉 Copying files directly from /opt/LMS to $WEB_ROOT..."
+    cp -rf /opt/LMS/. "$WEB_ROOT/"
 else
-    rm -rf "$TMP_CLONE"
-    echo "❌ Could not find website files to deploy."
-    exit 1
+    echo "👉 Cloning repository directly to $WEB_ROOT on disk..."
+    git clone https://github.com/dadad132/LMS "$WEB_ROOT.new" 2>/dev/null && cp -rf "$WEB_ROOT.new"/. "$WEB_ROOT/" && rm -rf "$WEB_ROOT.new"
 fi
 
 # Ensure RFC 9116 security.txt and MTA-STS policy exist in .well-known
@@ -208,6 +203,8 @@ After=network.target
 Type=simple
 User=root
 Environment="PYTHONUNBUFFERED=1"
+MemoryHigh=128M
+MemoryMax=256M
 ExecStart=/usr/bin/python3 /usr/local/bin/lms-api.py
 Restart=always
 RestartSec=5

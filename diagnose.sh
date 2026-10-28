@@ -45,16 +45,18 @@ LOG_FILE="/var/log/lms-diagnostic.log"
     echo ""
 
     echo "--- [2] INSPECTING ALL BACKUP ARCHIVES IN /var/backups/lms ---"
+    rm -rf /tmp/lms_bkp_check_* /tmp/lms_clone_* /tmp/lms_reinstall_* /tmp/lms_diag_* 2>/dev/null || true
     if [ -d "/var/backups/lms" ]; then
         ls -lhS /var/backups/lms/*.tar.gz 2>/dev/null || echo "No .tar.gz files in /var/backups/lms"
         echo ""
+        STAGE_DIR="/var/lib/lms/.diag_stage"
         for BKP in $(ls -1S /var/backups/lms/*.tar.gz 2>/dev/null | head -n 5); do
             echo "📦 Archive: $(basename "$BKP") ($(du -h "$BKP" | awk '{print $1}'))"
-            TMP_EXTRACT="/tmp/lms_diag_$$"
-            mkdir -p "$TMP_EXTRACT"
-            tar -xzf "$BKP" -C "$TMP_EXTRACT" 2>/dev/null || true
+            rm -rf "$STAGE_DIR"
+            mkdir -p "$STAGE_DIR"
+            tar -xzf "$BKP" -C "$STAGE_DIR" --exclude="*uploads*" 2>/dev/null || true
             for DBF in users.json materials.json subjects.json modules.json team.json testimonials.json; do
-                FOUND=$(find "$TMP_EXTRACT" -name "$DBF" -type f 2>/dev/null | head -n 1)
+                FOUND=$(find "$STAGE_DIR" -name "$DBF" -type f 2>/dev/null | head -n 1)
                 if [ -n "$FOUND" ]; then
                     SZ=$(wc -c < "$FOUND" 2>/dev/null || echo 0)
                     echo "   - $DBF: $SZ bytes"
@@ -68,13 +70,13 @@ LOG_FILE="/var/log/lms-diagnostic.log"
                     fi
                 fi
             done
-            FOUND_UPLOADS=$(find "$TMP_EXTRACT" -type d -name "uploads" 2>/dev/null | head -n 1)
-            if [ -n "$FOUND_UPLOADS" ]; then
-                mkdir -p /var/lib/lms/uploads
-                cp -rn "$FOUND_UPLOADS/"* /var/lib/lms/uploads/ 2>/dev/null || true
-            fi
-            rm -rf "$TMP_EXTRACT"
+            rm -rf "$STAGE_DIR"
         done
+        LARGEST_BKP=$(ls -1S /var/backups/lms/*.tar.gz 2>/dev/null | head -n 1)
+        if [ -n "$LARGEST_BKP" ]; then
+            tar -xzf "$LARGEST_BKP" --skip-old-files -C /var/lib/lms ./uploads 2>/dev/null || \
+            tar -xzf "$LARGEST_BKP" --skip-old-files -C /var/lib/lms uploads 2>/dev/null || true
+        fi
     else
         echo "Directory /var/backups/lms does not exist!"
     fi

@@ -31,18 +31,23 @@ rm -f /usr/local/bin/lms-api.py 2>/dev/null || true
 systemctl daemon-reload
 systemctl reset-failed 2>/dev/null || true
 
-echo "📥 Pulling latest LMS code from GitHub..."
-TMP_REPO="/tmp/lms_reinstall_$$"
-rm -rf "$TMP_REPO"
-(cd /tmp && git clone https://github.com/dadad132/LMS "$TMP_REPO")
+echo "🧹 Freeing any /tmp RAM usage from previous runs..."
+rm -rf /tmp/lms_bkp_check_* /tmp/lms_clone_* /tmp/lms_reinstall_* /tmp/lms_diag_* 2>/dev/null || true
 
-if [ -f "$TMP_REPO/install.sh" ]; then
-    cd "$TMP_REPO"
-    bash "$TMP_REPO/install.sh"
-    rm -rf "$TMP_REPO"
+if [ -d "./.git" ]; then
+    echo "📥 Updating repository in place from GitHub..."
+    git fetch origin main 2>/dev/null && git reset --hard origin/main 2>/dev/null || git pull origin main 2>/dev/null || true
+    bash "./install.sh"
+elif [ -d "/opt/LMS/.git" ]; then
+    echo "📥 Updating /opt/LMS in place from GitHub..."
+    cd /opt/LMS
+    git fetch origin main 2>/dev/null && git reset --hard origin/main 2>/dev/null || git pull origin main 2>/dev/null || true
+    bash "/opt/LMS/install.sh"
 elif [ -f "./install.sh" ]; then
     bash "./install.sh"
 else
-    echo "❌ Failed to pull repository from GitHub."
-    exit 1
+    mkdir -p /opt/LMS
+    git clone https://github.com/dadad132/LMS /opt/LMS
+    cd /opt/LMS
+    bash "/opt/LMS/install.sh"
 fi

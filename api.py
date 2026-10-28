@@ -5,12 +5,9 @@ import os
 import hashlib
 import uuid
 import time
-import re
-import urllib.request
+import shutil
 import mimetypes
 import sys
-import glob
-import tarfile
 from datetime import datetime
 
 PORT = 8001
@@ -130,65 +127,8 @@ except Exception:
     pass
 
 
-TRUSTPILOT_CACHE = {
-    "last_fetched": 0,
-    "reviews": TRUSTPILOT_REVIEWS
-}
-TRUSTPILOT_CACHE_TTL = 600  # Refresh live from Trustpilot every 10 minutes
-
 def get_live_trustpilot_reviews():
-    now = time.time()
-    if now - TRUSTPILOT_CACHE["last_fetched"] < TRUSTPILOT_CACHE_TTL and TRUSTPILOT_CACHE["reviews"]:
-        return TRUSTPILOT_CACHE["reviews"]
-    try:
-        req = urllib.request.Request(
-            "https://www.trustpilot.com/review/honeypotglobal.co.za",
-            headers={
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept-Language": "en-US,en;q=0.9"
-            }
-        )
-        with urllib.request.urlopen(req, timeout=6) as resp:
-            html = resp.read().decode("utf-8", errors="ignore")
-        match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', html, re.S)
-        if match:
-            next_data = json.loads(match.group(1))
-            raw_reviews = next_data.get("props", {}).get("pageProps", {}).get("reviews", [])
-            if raw_reviews and isinstance(raw_reviews, list):
-                live_list = []
-                for idx, r in enumerate(raw_reviews):
-                    consumer = r.get("consumer", {}) or {}
-                    author = consumer.get("displayName") or "Verified Teacher"
-                    country = consumer.get("countryCode") or "ZA"
-                    raw_date = (r.get("dates", {}) or {}).get("publishedDate") or ""
-                    formatted_date = ""
-                    if raw_date:
-                        try:
-                            dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
-                            formatted_date = dt.strftime("%b %Y")
-                        except Exception:
-                            formatted_date = raw_date[:10]
-                    rev_id = r.get("id") or f"tp_{idx+1}"
-                    live_list.append({
-                        "id": f"tp_{rev_id}",
-                        "name": author,
-                        "company": f"Verified Trustpilot Review • {country}",
-                        "title": r.get("title") or "",
-                        "text": r.get("text") or "",
-                        "rating": int(r.get("rating") or 5),
-                        "date": formatted_date,
-                        "source": "trustpilot",
-                        "url": "https://www.trustpilot.com/review/honeypotglobal.co.za",
-                        "image": consumer.get("imageUrl") or ""
-                    })
-                if live_list:
-                    TRUSTPILOT_CACHE["reviews"] = live_list
-                    TRUSTPILOT_CACHE["last_fetched"] = now
-                    return live_list
-    except Exception:
-        pass
-    TRUSTPILOT_CACHE["last_fetched"] = now
-    return TRUSTPILOT_CACHE["reviews"]
+    return TRUSTPILOT_REVIEWS
 
 
 # In-memory sessions dictionary: token -> {"email": email, "role": role}
@@ -569,7 +509,7 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 with open(file_path, "rb") as f:
-                    self.wfile.write(f.read())
+                    shutil.copyfileobj(f, self.wfile, 65536)
                 return
             self.send_json({"error": "Not Found"}, 404)
 
