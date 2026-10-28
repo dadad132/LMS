@@ -9,6 +9,12 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# If the user's terminal is standing in a deleted/unlinked folder, move to /tmp immediately
+if ! pwd >/dev/null 2>&1; then
+    cd /tmp || cd /
+fi
+SCRIPT_START_DIR="$(pwd -P 2>/dev/null || echo /tmp)"
+
 echo "🚀 Starting Honeypot Global Unified Server Installer..."
 echo "====================================================="
 
@@ -159,6 +165,12 @@ chmod 755 "$WEB_ROOT/api.py" 2>/dev/null || true
 cp -f "$WEB_ROOT/api.py" /usr/local/bin/lms-api.py
 chmod 755 /usr/local/bin/lms-api.py
 
+# Keep /root/install.sh synced if it exists so running sudo bash install.sh from /root always uses the latest script
+if [ -d "/root" ]; then
+    cp -f "$WEB_ROOT/install.sh" /root/install.sh 2>/dev/null || true
+    chmod +x /root/install.sh 2>/dev/null || true
+fi
+
 # Restore correct SELinux file context so Nginx and systemd can serve/execute these files
 if command -v restorecon &>/dev/null; then
     restorecon -R "$WEB_ROOT" &>/dev/null || true
@@ -168,6 +180,7 @@ echo "✅ Website files deployed."
 
 # Step 4: Configure the secure Python API Background Daemon
 echo "⚙️ Setting up backend API service daemon..."
+rm -rf /etc/systemd/system/lms-api.service.d /usr/lib/systemd/system/lms-api.service 2>/dev/null || true
 cat > /etc/systemd/system/lms-api.service << 'SERVICE'
 [Unit]
 Description=Honeypot Global Server API
@@ -176,7 +189,6 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/
 ExecStart=/usr/bin/python3 /usr/local/bin/lms-api.py
 Restart=always
 RestartSec=5
@@ -187,6 +199,7 @@ SERVICE
 
 chmod 644 /etc/systemd/system/lms-api.service
 systemctl daemon-reload
+systemctl reset-failed lms-api 2>/dev/null || true
 systemctl stop lms-api 2>/dev/null || true
 systemctl start lms-api
 systemctl enable lms-api &>/dev/null
