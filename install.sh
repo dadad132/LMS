@@ -47,10 +47,17 @@ echo "✅ Dependencies ready."
 WEB_ROOT="/var/www/html/lms"
 
 # Migrate existing database/password files to persistent secure directory before web root is wiped/updated
-echo "🔄 Migrating any existing database/password files to persistent storage..."
+echo "🔄 Checking & protecting persistent data in /var/lib/lms..."
 sudo mkdir -p "/var/lib/lms/uploads"
 sudo chmod 755 "/var/lib/lms"
 sudo chmod 755 "/var/lib/lms/uploads"
+
+# Take a pre-install snapshot if /var/lib/lms has existing data
+if [ -f "/var/lib/lms/team.json" ]; then
+    mkdir -p "/var/backups/lms"
+    tar -czf "/var/backups/lms/honeypot_backup_preinstall_$(date +%Y-%m-%d_%H%M%S).tar.gz" -C /var/lib/lms . 2>/dev/null || true
+fi
+
 if [ -f "$WEB_ROOT/team.json" ]; then
     sudo mv "$WEB_ROOT/team.json" "/var/lib/lms/team.json"
     echo "  -> Migrated team.json"
@@ -80,14 +87,49 @@ if [ -f "$WEB_ROOT/modules.json" ]; then
     echo "  -> Migrated modules.json"
 fi
 
+# If /var/lib/lms/team.json is missing or tiny (<1KB, i.e. no photos) and a larger backup exists in /var/backups/lms, auto-restore it
+if [ -d "/var/backups/lms" ]; then
+    CURRENT_TEAM_SIZE=0
+    if [ -f "/var/lib/lms/team.json" ]; then
+        CURRENT_TEAM_SIZE=$(wc -c < "/var/lib/lms/team.json" 2>/dev/null || echo 0)
+    fi
+    if [ "$CURRENT_TEAM_SIZE" -lt 1000 ]; then
+        for BKP in $(ls -1t /var/backups/lms/honeypot_backup_*.tar.gz 2>/dev/null); do
+            TMP_EXTRACT="/tmp/lms_bkp_check_$$"
+            mkdir -p "$TMP_EXTRACT"
+            tar -xzf "$BKP" -C "$TMP_EXTRACT" 2>/dev/null || true
+            if [ -f "$TMP_EXTRACT/team.json" ]; then
+                BKP_TEAM_SIZE=$(wc -c < "$TMP_EXTRACT/team.json" 2>/dev/null || echo 0)
+                if [ "$BKP_TEAM_SIZE" -gt 1000 ]; then
+                    cp -f "$TMP_EXTRACT/team.json" "/var/lib/lms/team.json"
+                    echo "✅ Restored custom team names & faces from backup: $(basename "$BKP")"
+                    # Also restore any missing database files from the backup
+                    for DBF in testimonials.json admin_password.txt users.json materials.json subjects.json modules.json; do
+                        if [ ! -f "/var/lib/lms/$DBF" ] && [ -f "$TMP_EXTRACT/$DBF" ]; then
+                            cp -f "$TMP_EXTRACT/$DBF" "/var/lib/lms/$DBF"
+                        fi
+                    done
+                    rm -rf "$TMP_EXTRACT"
+                    break
+                fi
+            fi
+            rm -rf "$TMP_EXTRACT"
+        done
+    fi
+fi
+
 echo "📂 Deploying website files to $WEB_ROOT..."
 
 if [ -f "./index.html" ]; then
-    echo "👉 Copying files from current directory..."
     mkdir -p "$WEB_ROOT"
-    cp -rf * "$WEB_ROOT/"
-    if [ -d "./.well-known" ]; then
-        cp -rf ./.well-known "$WEB_ROOT/"
+    if [ "$(cd . && pwd -P)" != "$(cd "$WEB_ROOT" 2>/dev/null && pwd -P)" ]; then
+        echo "👉 Copying files from current directory..."
+        cp -rf * "$WEB_ROOT/"
+        if [ -d "./.well-known" ]; then
+            cp -rf ./.well-known "$WEB_ROOT/"
+        fi
+    else
+        echo "👉 Already running inside $WEB_ROOT — updating in place..."
     fi
 else
     echo "👉 Cloning files from GitHub..."
@@ -193,9 +235,6 @@ SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
 if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ]; then
     echo "🔒 SSL certificates detected. Configuring HTTPS + Web Security Headers..."
     tee /etc/nginx/conf.d/lms.conf << 'EOF'
-# Hide Nginx version number from Server response header
-server_tokens off;
-
 server {
     listen 80;
     listen [::]:80;
@@ -282,9 +321,6 @@ EOF
 else
     echo "⚠️ No SSL certificates found. Configuring HTTP-only fallback with Security Headers..."
     tee /etc/nginx/conf.d/lms.conf << 'EOF'
-# Hide Nginx version number from Server response header
-server_tokens off;
-
 server {
     listen 80 default_server;
     listen [::]:80 default_server;

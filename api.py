@@ -8,21 +8,22 @@ import time
 import re
 import urllib.request
 import mimetypes
+import sys
+import glob
+import tarfile
 from datetime import datetime
 
 PORT = 8001
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = "/var/lib/lms"
+DATA_DIR = "/var/lib/lms" if sys.platform != "darwin" else os.path.join(BASE_DIR, "data")
 
-# Create directories if they don't exist, falling back to local ./data directory on macOS/dev
+# Create directories if they don't exist
 try:
     os.makedirs(os.path.join(DATA_DIR, "uploads"), exist_ok=True)
 except Exception:
-    DATA_DIR = os.path.join(BASE_DIR, "data")
-    try:
+    if sys.platform == "darwin":
+        DATA_DIR = os.path.join(BASE_DIR, "data")
         os.makedirs(os.path.join(DATA_DIR, "uploads"), exist_ok=True)
-    except Exception:
-        pass
 
 UPLOADS_DIR = os.path.join(DATA_DIR, "uploads")
 TEAM_FILE = os.path.join(DATA_DIR, "team.json")
@@ -456,15 +457,53 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif self.path == "/api/team":
+            data = None
             if os.path.exists(TEAM_FILE):
                 try:
                     with open(TEAM_FILE, "r") as f:
                         data = json.load(f)
-                    self.send_json(data)
-                    return
                 except Exception:
-                    pass
-            self.send_json(DEFAULT_TEAM)
+                    data = None
+
+            # If team.json is missing or equals DEFAULT_TEAM (no photos/edits), check legacy path & /var/backups/lms
+            is_unmodified_default = (not data) or (data == DEFAULT_TEAM)
+            if is_unmodified_default:
+                legacy_team = "/var/www/html/lms/team.json"
+                if os.path.exists(legacy_team) and os.path.abspath(legacy_team) != os.path.abspath(TEAM_FILE):
+                    try:
+                        with open(legacy_team, "r") as f:
+                            cand = json.load(f)
+                        if isinstance(cand, list) and cand and cand != DEFAULT_TEAM:
+                            data = cand
+                            with open(TEAM_FILE, "w") as out_f:
+                                json.dump(data, out_f, indent=2)
+                    except Exception:
+                        pass
+
+            if (not data) or (data == DEFAULT_TEAM):
+                backup_files = sorted(glob.glob("/var/backups/lms/honeypot_backup_*.tar.gz"), reverse=True)
+                for bkp in backup_files:
+                    try:
+                        with tarfile.open(bkp, "r:gz") as tar:
+                            for member_name in ("./team.json", "team.json"):
+                                try:
+                                    member = tar.getmember(member_name)
+                                    extracted = tar.extractfile(member)
+                                    if extracted:
+                                        cand = json.loads(extracted.read().decode("utf-8"))
+                                        if isinstance(cand, list) and cand and cand != DEFAULT_TEAM:
+                                            data = cand
+                                            with open(TEAM_FILE, "w") as out_f:
+                                                json.dump(data, out_f, indent=2)
+                                            break
+                                except KeyError:
+                                    continue
+                        if data and data != DEFAULT_TEAM:
+                            break
+                    except Exception:
+                        continue
+
+            self.send_json(data if (isinstance(data, list) and data) else DEFAULT_TEAM)
             return
 
         elif self.path == "/api/materials":

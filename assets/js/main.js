@@ -259,6 +259,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentUploadedImageBase64 = '';
 
   const saveTeamData = async () => {
+    try {
+      localStorage.setItem('honeypot_team', JSON.stringify(teamData));
+    } catch (e) {
+      // Ignore storage quota warnings
+    }
     if (apiAvailable) {
       const activePassword = sessionStorage.getItem('honeypot_admin_session_password') || '';
       try {
@@ -284,7 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
       }
     } else {
-      localStorage.setItem('honeypot_team', JSON.stringify(teamData));
       renderTeam();
       renderAdminMembersList();
       return true;
@@ -862,19 +866,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load Team
+    const cachedLocalTeam = (() => {
+      try {
+        return JSON.parse(localStorage.getItem('honeypot_team'));
+      } catch (e) {
+        return null;
+      }
+    })();
+    const isDefaultTeamList = (list) =>
+      Array.isArray(list) && JSON.stringify(list) === JSON.stringify(defaultTeam);
+
     if (apiAvailable) {
       try {
         const teamRes = await fetch(`${apiBase}/team`);
         if (teamRes.ok) {
-          teamData = await teamRes.json();
+          const serverTeam = await teamRes.json();
+          if (isDefaultTeamList(serverTeam) && Array.isArray(cachedLocalTeam) && cachedLocalTeam.length > 0 && !isDefaultTeamList(cachedLocalTeam)) {
+            // Server returned blank defaults while browser cache holds customized names/photos
+            teamData = cachedLocalTeam;
+          } else {
+            teamData = serverTeam;
+            if (Array.isArray(serverTeam) && !isDefaultTeamList(serverTeam)) {
+              try {
+                localStorage.setItem('honeypot_team', JSON.stringify(serverTeam));
+              } catch (e) {}
+            }
+          }
         } else {
-          teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+          teamData = cachedLocalTeam || defaultTeam;
         }
       } catch (err) {
-        teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+        teamData = cachedLocalTeam || defaultTeam;
       }
     } else {
-      teamData = JSON.parse(localStorage.getItem('honeypot_team')) || defaultTeam;
+      teamData = cachedLocalTeam || defaultTeam;
     }
     renderTeam();
 
