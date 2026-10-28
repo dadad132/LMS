@@ -15,6 +15,12 @@ if ! pwd >/dev/null 2>&1; then
 fi
 SCRIPT_START_DIR="$(pwd -P 2>/dev/null || echo /tmp)"
 
+# Ensure working DNS resolution on the server before using git or dnf
+if ! getent hosts github.com >/dev/null 2>&1; then
+    echo "🌐 Fixing server DNS resolution (/etc/resolv.conf)..."
+    printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\n" >> /etc/resolv.conf
+fi
+
 echo "🚀 Starting Honeypot Global Unified Server Installer..."
 echo "====================================================="
 
