@@ -17,15 +17,16 @@ if ! getent hosts github.com >/dev/null 2>&1; then
 fi
 
 echo "🧹 Removing old LMS service files across the server (keeping /var/backups/lms safe)..."
-for SVC in lms-website lms-api; do
+for SVC in lms lms-website lms-api; do
     systemctl stop "$SVC" 2>/dev/null || true
     systemctl disable "$SVC" 2>/dev/null || true
 done
 pkill -f "/var/www/html/lms/api.py" 2>/dev/null || true
 pkill -f "/usr/local/bin/lms-api.py" 2>/dev/null || true
+pkill -f "/opt/LMS/api.py" 2>/dev/null || true
 
 find /etc/systemd/system /usr/lib/systemd/system /lib/systemd/system /run/systemd/system \
-    \( -name "lms-api*" -o -name "lms-website*" \) -exec rm -rf {} + 2>/dev/null || true
+    \( -name "lms.service*" -o -name "lms-api*" -o -name "lms-website*" \) -exec rm -rf {} + 2>/dev/null || true
 rm -f /usr/local/bin/lms-api.py 2>/dev/null || true
 systemctl daemon-reload
 systemctl reset-failed 2>/dev/null || true

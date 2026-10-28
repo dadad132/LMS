@@ -264,8 +264,14 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
         return "Honeypot"
 
     def log_message(self, format, *args):
-        # Prevent spamming systemd logs
-        pass
+        msg = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {self.address_string()} - {format % args}"
+        print(msg, flush=True)
+        try:
+            log_file = "/var/log/lms-api.log" if sys.platform != "darwin" else os.path.join(DATA_DIR, "lms-api.log")
+            with open(log_file, "a") as lf:
+                lf.write(msg + "\n")
+        except Exception:
+            pass
 
     def send_security_headers(self):
         self.send_header(

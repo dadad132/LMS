@@ -26,20 +26,21 @@ echo "====================================================="
 
 # Step 1: Search the whole server for any old LMS services/processes and remove them (keeping backups safe)
 echo "🧹 Scanning server and removing old LMS service files (keeping /var/backups/lms safe)..."
-for SVC in lms-website lms-api; do
+for SVC in lms lms-website lms-api; do
     systemctl stop "$SVC" 2>/dev/null || true
     systemctl disable "$SVC" 2>/dev/null || true
 done
 pkill -f "/var/www/html/lms/api.py" 2>/dev/null || true
 pkill -f "/usr/local/bin/lms-api.py" 2>/dev/null || true
+pkill -f "/opt/LMS/api.py" 2>/dev/null || true
 
-# Remove all lms-api and lms-website systemd unit files & overrides across the entire server
+# Remove all lms, lms-api, and lms-website systemd unit files & overrides across the entire server
 find /etc/systemd/system /usr/lib/systemd/system /lib/systemd/system /run/systemd/system \
-    \( -name "lms-api*" -o -name "lms-website*" \) -exec rm -rf {} + 2>/dev/null || true
+    \( -name "lms.service*" -o -name "lms-api*" -o -name "lms-website*" \) -exec rm -rf {} + 2>/dev/null || true
 rm -f /usr/local/bin/lms-api.py 2>/dev/null || true
 systemctl daemon-reload
 systemctl reset-failed 2>/dev/null || true
-echo "✅ Old services removed cleanly."
+echo "✅ Old services (lms, lms-website, lms-api) removed cleanly."
 
 # Step 2: Install Git, Nginx & Python if they are missing
 echo "🔧 Installing system dependencies (git, nginx, python3)..."
@@ -68,12 +69,19 @@ mkdir -p "/var/backups/lms"
 mkdir -p "/var/lib/lms/uploads"
 chmod 755 "/var/lib/lms" "/var/lib/lms/uploads"
 
-# Migrate any database files from $WEB_ROOT or $WEB_ROOT/data if they exist
-for SRC_DIR in "$WEB_ROOT" "$WEB_ROOT/data"; do
+# Migrate any database files from known server directories if they are larger than current /var/lib/lms files
+for SRC_DIR in "$WEB_ROOT" "$WEB_ROOT/data" "/opt/LMS" "/opt/LMS/data" "/opt/lms-website" "/root/LMS"; do
     for DBF in team.json testimonials.json admin_password.txt users.json materials.json subjects.json modules.json; do
-        if [ -s "$SRC_DIR/$DBF" ] && [ ! -s "/var/lib/lms/$DBF" ]; then
-            cp -f "$SRC_DIR/$DBF" "/var/lib/lms/$DBF"
-            echo "  -> Migrated $DBF from $SRC_DIR"
+        if [ -s "$SRC_DIR/$DBF" ]; then
+            SRC_SIZE=$(wc -c < "$SRC_DIR/$DBF" 2>/dev/null || echo 0)
+            CUR_SIZE=0
+            if [ -f "/var/lib/lms/$DBF" ]; then
+                CUR_SIZE=$(wc -c < "/var/lib/lms/$DBF" 2>/dev/null || echo 0)
+            fi
+            if [ "$SRC_SIZE" -gt "$CUR_SIZE" ]; then
+                cp -f "$SRC_DIR/$DBF" "/var/lib/lms/$DBF"
+                echo "  -> Migrated $DBF ($SRC_SIZE bytes) from $SRC_DIR"
+            fi
         fi
     done
     if [ -d "$SRC_DIR/uploads" ]; then
@@ -81,9 +89,9 @@ for SRC_DIR in "$WEB_ROOT" "$WEB_ROOT/data"; do
     fi
 done
 
-# Auto-restore any missing or default database files from the most recent scheduled backups in /var/backups/lms
+# Auto-restore any missing or smaller database files from the largest backups in /var/backups/lms
 if [ -d "/var/backups/lms" ]; then
-    for BKP in $(ls -1t /var/backups/lms/honeypot_backup_2*.tar.gz /var/backups/lms/backup_*.tar.gz 2>/dev/null | head -n 3); do
+    for BKP in $(ls -1S /var/backups/lms/*.tar.gz 2>/dev/null | head -n 5); do
         TMP_EXTRACT="/tmp/lms_bkp_check_$$"
         mkdir -p "$TMP_EXTRACT"
         tar -xzf "$BKP" -C "$TMP_EXTRACT" 2>/dev/null || true
@@ -96,9 +104,9 @@ if [ -d "/var/backups/lms" ]; then
             FOUND_BKP_FILE=$(find "$TMP_EXTRACT" -name "$DBF" -type f 2>/dev/null | head -n 1)
             if [ -n "$FOUND_BKP_FILE" ]; then
                 BKP_SIZE=$(wc -c < "$FOUND_BKP_FILE" 2>/dev/null || echo 0)
-                if [ "$BKP_SIZE" -gt "$CUR_SIZE" ] && [ "$CUR_SIZE" -lt 850 ]; then
+                if [ "$BKP_SIZE" -gt "$CUR_SIZE" ]; then
                     cp -f "$FOUND_BKP_FILE" "/var/lib/lms/$DBF"
-                    echo "✅ Restored $DBF from backup: $(basename "$BKP")"
+                    echo "✅ Restored $DBF ($BKP_SIZE bytes) from backup: $(basename "$BKP")"
                 fi
             fi
         done
@@ -190,26 +198,29 @@ echo "✅ Website files deployed."
 
 # Step 4: Configure the secure Python API Background Daemon
 echo "⚙️ Setting up backend API service daemon..."
-rm -rf /etc/systemd/system/lms-api.service.d /usr/lib/systemd/system/lms-api.service 2>/dev/null || true
+rm -rf /etc/systemd/system/lms-api.service.d /usr/lib/systemd/system/lms-api.service /etc/systemd/system/lms.service 2>/dev/null || true
 cat > /etc/systemd/system/lms-api.service << 'SERVICE'
 [Unit]
-Description=Honeypot Global Server API
+Description=Honeypot Global Server API (LMS Website)
 After=network.target
 
 [Service]
 Type=simple
 User=root
+Environment="PYTHONUNBUFFERED=1"
 ExecStart=/usr/bin/python3 /usr/local/bin/lms-api.py
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
+Alias=lms.service
 SERVICE
 
 chmod 644 /etc/systemd/system/lms-api.service
+ln -sf /etc/systemd/system/lms-api.service /etc/systemd/system/lms.service
 systemctl daemon-reload
-systemctl reset-failed lms-api 2>/dev/null || true
+systemctl reset-failed lms-api lms 2>/dev/null || true
 systemctl stop lms-api 2>/dev/null || true
 systemctl start lms-api
 systemctl enable lms-api &>/dev/null
@@ -217,7 +228,7 @@ systemctl enable lms-api &>/dev/null
 # Verify the API actually started
 sleep 2
 if systemctl is-active --quiet lms-api; then
-    echo "✅ lms-api.service daemon is active on port 8001."
+    echo "✅ lms-api.service (and alias lms.service) daemon is active on port 8001."
 else
     echo "❌ lms-api.service failed to start. Check logs: journalctl -u lms-api -n 20"
     exit 1
@@ -468,9 +479,20 @@ elif [ -f "$WEB_ROOT/restore.sh" ]; then
     echo "✅ Restore helper registered: restore-lms"
 fi
 
-# Step 10: Final health check
+# Copy and register diagnose utility
+if [ -f "./diagnose.sh" ]; then
+    cp -f "./diagnose.sh" /usr/local/bin/diagnose-lms
+    chmod +x /usr/local/bin/diagnose-lms
+    echo "✅ Diagnostic helper registered: diagnose-lms"
+elif [ -f "$WEB_ROOT/diagnose.sh" ]; then
+    cp -f "$WEB_ROOT/diagnose.sh" /usr/local/bin/diagnose-lms
+    chmod +x /usr/local/bin/diagnose-lms
+    echo "✅ Diagnostic helper registered: diagnose-lms"
+fi
+
+# Step 10: Final health check & detailed diagnostic report
 echo ""
-echo "🔍 Running final health check..."
+echo "🔍 Running final health check & writing detailed diagnostic log to /var/log/lms-diagnostic.log..."
 sleep 1
 API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/api/auth-status 2>/dev/null || echo "000")
 if [ "$API_STATUS" = "200" ]; then
@@ -479,6 +501,48 @@ else
     echo "⚠️  API health check returned HTTP $API_STATUS — check: journalctl -u lms-api -n 20"
 fi
 
+{
+    echo "======================================================="
+    echo "📋 HONEYPOT GLOBAL - DETAILED SERVER DIAGNOSTIC REPORT"
+    echo "Generated: $(date)"
+    echo "======================================================="
+    echo ""
+    echo "1) SYSTEMD SERVICE STATUS (lms / lms-api):"
+    systemctl status lms-api --no-pager -l 2>&1 || true
+    echo ""
+    echo "2) AVAILABLE BACKUPS IN /var/backups/lms (Largest First):"
+    ls -lhS /var/backups/lms/*.tar.gz 2>/dev/null || echo "   No .tar.gz archives found in /var/backups/lms"
+    echo ""
+    echo "3) ACTIVE DATABASE FILES IN /var/lib/lms:"
+    ls -lh /var/lib/lms/ 2>/dev/null || true
+    python3 - << 'PYEOF'
+import os, json
+data_dir = "/var/lib/lms"
+for fname in ["users.json", "materials.json", "subjects.json", "modules.json", "team.json", "testimonials.json"]:
+    fpath = os.path.join(data_dir, fname)
+    if os.path.exists(fpath):
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            count = len(data) if isinstance(data, (list, dict)) else 1
+            print(f"   - {fname}: {os.path.getsize(fpath)} bytes ({count} records)")
+        except Exception as e:
+            print(f"   - {fname}: ERROR reading JSON ({e})")
+    else:
+        print(f"   - {fname}: MISSING")
+uploads_dir = os.path.join(data_dir, "uploads")
+if os.path.isdir(uploads_dir):
+    files = os.listdir(uploads_dir)
+    print(f"   - uploads/: {len(files)} uploaded files")
+PYEOF
+    echo ""
+    echo "4) LIVE API ENDPOINT CHECK (http://127.0.0.1:8001/api/auth-status):"
+    curl -s http://127.0.0.1:8001/api/auth-status | head -c 500 2>/dev/null || echo "   Failed to reach API"
+    echo ""
+    echo ""
+    echo "======================================================="
+} | tee /var/log/lms-diagnostic.log
+
 # Step 11: Print Deployment Summary
 IP=$(hostname -I | awk '{print $1}')
 echo ""
@@ -486,16 +550,15 @@ echo "════════════════════════�
 echo " 🎉 INSTALLATION COMPLETE WITH AUTO-BACKUPS!"
 echo "═══════════════════════════════════════════════════════"
 echo ""
-echo " 🌐 Domain:    http://honeypotglobal.co.za"
-echo " 💻 Server IP: http://$IP"
+echo " 🌐 Domain:         https://honeypotglobal.co.za"
+echo " 💻 Server IP:      http://$IP"
+echo " 📄 Diagnostic Log: /var/log/lms-diagnostic.log"
+echo " 📄 Live API Log:   /var/log/lms-api.log"
 echo ""
 echo " 💾 Backups Directory: $BACKUP_DIR/"
-echo " 💡 Runs automatically every 12 hours."
-echo "    Run manually at any time with: backup-lms"
+echo "    Run diagnostics at any time:   sudo bash diagnose.sh"
 echo "    Restore previous data with:    restore-lms"
 echo ""
-echo " 🚀 Edits made in the Admin Panel sync to disk"
-echo "    and persist for all global visitors!"
-echo ""
 echo "═══════════════════════════════════════════════════════"
+
 
