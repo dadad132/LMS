@@ -24,18 +24,22 @@ fi
 echo "🚀 Starting Honeypot Global Unified Server Installer..."
 echo "====================================================="
 
-# Step 1: Clean up old Flask/legacy services if they exist
-echo "🧹 Cleaning up legacy services (if any)..."
+# Step 1: Search the whole server for any old LMS services/processes and remove them (keeping backups safe)
+echo "🧹 Scanning server and removing old LMS service files (keeping /var/backups/lms safe)..."
 for SVC in lms-website lms-api; do
-    if systemctl is-active --quiet "$SVC" 2>/dev/null; then
-        systemctl stop "$SVC" 2>/dev/null || true
-    fi
-    if systemctl is-enabled --quiet "$SVC" 2>/dev/null; then
-        systemctl disable "$SVC" 2>/dev/null || true
-    fi
+    systemctl stop "$SVC" 2>/dev/null || true
+    systemctl disable "$SVC" 2>/dev/null || true
 done
-rm -f /etc/systemd/system/lms-website.service
+pkill -f "/var/www/html/lms/api.py" 2>/dev/null || true
+pkill -f "/usr/local/bin/lms-api.py" 2>/dev/null || true
+
+# Remove all lms-api and lms-website systemd unit files & overrides across the entire server
+find /etc/systemd/system /usr/lib/systemd/system /lib/systemd/system /run/systemd/system \
+    \( -name "lms-api*" -o -name "lms-website*" \) -exec rm -rf {} + 2>/dev/null || true
+rm -f /usr/local/bin/lms-api.py 2>/dev/null || true
 systemctl daemon-reload
+systemctl reset-failed 2>/dev/null || true
+echo "✅ Old services removed cleanly."
 
 # Step 2: Install Git, Nginx & Python if they are missing
 echo "🔧 Installing system dependencies (git, nginx, python3)..."
@@ -58,15 +62,14 @@ echo "✅ Dependencies ready."
 # Step 3: Deploy the static site & API files to the web root
 WEB_ROOT="/var/www/html/lms"
 
-# Migrate existing database/password files to persistent secure directory before web root is wiped/updated
-echo "🔄 Checking & protecting persistent data in /var/lib/lms..."
-sudo mkdir -p "/var/lib/lms/uploads"
-sudo chmod 755 "/var/lib/lms"
-sudo chmod 755 "/var/lib/lms/uploads"
+# Migrate existing database/password files to persistent secure directory before web root is updated
+echo "🔄 Checking & protecting persistent data in /var/lib/lms and /var/backups/lms..."
+mkdir -p "/var/backups/lms"
+mkdir -p "/var/lib/lms/uploads"
+chmod 755 "/var/lib/lms" "/var/lib/lms/uploads"
 
 # Take a pre-install snapshot ONLY if /var/lib/lms has existing user accounts or materials
 if [ -s "/var/lib/lms/users.json" ] || [ -s "/var/lib/lms/materials.json" ]; then
-    mkdir -p "/var/backups/lms"
     tar -czf "/var/backups/lms/honeypot_backup_preinstall_$(date +%Y-%m-%d_%H%M%S).tar.gz" -C /var/lib/lms . 2>/dev/null || true
 fi
 
@@ -74,12 +77,12 @@ fi
 for SRC_DIR in "$WEB_ROOT" "$WEB_ROOT/data"; do
     for DBF in team.json testimonials.json admin_password.txt users.json materials.json subjects.json modules.json; do
         if [ -s "$SRC_DIR/$DBF" ] && [ ! -s "/var/lib/lms/$DBF" ]; then
-            sudo cp -f "$SRC_DIR/$DBF" "/var/lib/lms/$DBF"
+            cp -f "$SRC_DIR/$DBF" "/var/lib/lms/$DBF"
             echo "  -> Migrated $DBF from $SRC_DIR"
         fi
     done
     if [ -d "$SRC_DIR/uploads" ]; then
-        sudo cp -rn "$SRC_DIR/uploads/"* "/var/lib/lms/uploads/" 2>/dev/null || true
+        cp -rn "$SRC_DIR/uploads/"* "/var/lib/lms/uploads/" 2>/dev/null || true
     fi
 done
 
@@ -114,32 +117,38 @@ if [ -d "/var/backups/lms" ]; then
     done
 fi
 
-echo "📂 Deploying website files to $WEB_ROOT..."
+echo "📂 Pulling latest code from GitHub and deploying to $WEB_ROOT..."
 mkdir -p "$WEB_ROOT"
 chmod 755 /var /var/www /var/www/html "$WEB_ROOT" 2>/dev/null || true
 
-if [ -f "./index.html" ] && [ -f "./api.py" ]; then
+# If current directory is a git repository, pull latest changes first
+if [ -d "./.git" ]; then
+    echo "👉 Updating current git repository from origin/main..."
+    git fetch origin main 2>/dev/null && git reset --hard origin/main 2>/dev/null || git pull origin main 2>/dev/null || true
+fi
+
+# Clone fresh from GitHub into /tmp so we always deploy a clean, complete copy
+TMP_CLONE="/tmp/lms_clone_$$"
+rm -rf "$TMP_CLONE"
+if (cd /tmp && git clone https://github.com/dadad132/LMS "$TMP_CLONE" 2>/dev/null) && [ -f "$TMP_CLONE/index.html" ]; then
+    echo "👉 Deploying fresh copy from GitHub to $WEB_ROOT..."
+    cp -rf "$TMP_CLONE"/. "$WEB_ROOT/"
+    rm -rf "$TMP_CLONE"
+elif [ -f "./index.html" ] && [ -f "./api.py" ]; then
+    rm -rf "$TMP_CLONE"
     if [ "$(cd . 2>/dev/null && pwd -P)" != "$(cd "$WEB_ROOT" 2>/dev/null && pwd -P)" ]; then
-        echo "👉 Copying files from current directory..."
+        echo "👉 Copying files from current directory to $WEB_ROOT..."
         cp -rf * "$WEB_ROOT/"
         if [ -d "./.well-known" ]; then
             cp -rf ./.well-known "$WEB_ROOT/"
         fi
     else
-        echo "👉 Already running inside $WEB_ROOT — updating in place..."
+        echo "👉 Updating files in place in $WEB_ROOT..."
     fi
 else
-    echo "👉 Fetching latest files from GitHub..."
-    TMP_CLONE="/tmp/lms_clone_$$"
     rm -rf "$TMP_CLONE"
-    (cd /tmp && git clone https://github.com/dadad132/LMS "$TMP_CLONE")
-    if [ -f "$TMP_CLONE/index.html" ]; then
-        cp -rf "$TMP_CLONE"/. "$WEB_ROOT/"
-        rm -rf "$TMP_CLONE"
-    else
-        echo "❌ Failed to clone repository from GitHub."
-        rm -rf "$TMP_CLONE"
-    fi
+    echo "❌ Could not find website files to deploy."
+    exit 1
 fi
 
 # Ensure RFC 9116 security.txt and MTA-STS policy exist in .well-known
