@@ -94,6 +94,126 @@ CUSTOM_DEFAULT_TESTIMONIALS = [
 
 DEFAULT_TESTIMONIALS = TRUSTPILOT_REVIEWS + CUSTOM_DEFAULT_TESTIMONIALS
 
+
+def _is_default_or_empty(filename, content_bytes):
+    if not content_bytes or not content_bytes.strip():
+        return True
+    if filename == "admin_password.txt":
+        return len(content_bytes.strip()) == 0
+    try:
+        parsed = json.loads(content_bytes.decode("utf-8", errors="ignore"))
+    except Exception:
+        return True
+    if not parsed:
+        return True
+    if filename == "team.json":
+        return parsed == DEFAULT_TEAM
+    if filename == "users.json":
+        return isinstance(parsed, dict) and len(parsed) == 0
+    if filename == "materials.json":
+        return isinstance(parsed, list) and len(parsed) == 0
+    if filename == "subjects.json":
+        return isinstance(parsed, list) and len(parsed) <= 1 and all(s.get("id") == "subj-default" for s in parsed if isinstance(s, dict))
+    if filename == "modules.json":
+        return isinstance(parsed, list) and len(parsed) <= 1 and all(m.get("id") == "mod-default" for m in parsed if isinstance(m, dict))
+    if filename == "testimonials.json":
+        return isinstance(parsed, list) and (parsed == DEFAULT_TESTIMONIALS or parsed == CUSTOM_DEFAULT_TESTIMONIALS)
+    return False
+
+
+def auto_restore_all_data_if_needed():
+    """Automatically recover any missing or empty/default database files & uploads from legacy paths or /var/backups/lms."""
+    if sys.platform == "darwin":
+        return
+    tracked_files = [
+        "team.json",
+        "users.json",
+        "admin_password.txt",
+        "materials.json",
+        "subjects.json",
+        "modules.json",
+        "testimonials.json",
+    ]
+    missing_or_empty = []
+    for fname in tracked_files:
+        fpath = os.path.join(DATA_DIR, fname)
+        if not os.path.exists(fpath):
+            missing_or_empty.append(fname)
+        else:
+            try:
+                with open(fpath, "rb") as f:
+                    raw = f.read()
+                if _is_default_or_empty(fname, raw):
+                    missing_or_empty.append(fname)
+            except Exception:
+                missing_or_empty.append(fname)
+
+    # 1. Check legacy directories first (/var/www/html/lms, /var/www/html/lms/data, /opt/lms-website)
+    legacy_dirs = ["/var/www/html/lms/data", "/var/www/html/lms", "/opt/lms-website"]
+    for fname in list(missing_or_empty):
+        for ldir in legacy_dirs:
+            cand_path = os.path.join(ldir, fname)
+            target_path = os.path.join(DATA_DIR, fname)
+            if os.path.exists(cand_path) and os.path.abspath(cand_path) != os.path.abspath(target_path):
+                try:
+                    with open(cand_path, "rb") as f:
+                        raw = f.read()
+                    if not _is_default_or_empty(fname, raw):
+                        with open(target_path, "wb") as out_f:
+                            out_f.write(raw)
+                        missing_or_empty.remove(fname)
+                        break
+                except Exception:
+                    pass
+
+    # 2. Check all backup archives in /var/backups/lms (newest to oldest)
+    backup_archives = sorted(
+        glob.glob("/var/backups/lms/honeypot_backup_*.tar.gz") + glob.glob("/var/backups/lms/backup_*.tar.gz"),
+        key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0,
+        reverse=True,
+    )
+    if not backup_archives:
+        return
+
+    for bkp in backup_archives:
+        try:
+            with tarfile.open(bkp, "r:gz") as tar:
+                members = tar.getmembers()
+                # Restore any missing/default JSON or password files from this backup if it has real data
+                for fname in list(missing_or_empty):
+                    for m in members:
+                        if os.path.basename(m.name) == fname and m.isfile():
+                            extracted = tar.extractfile(m)
+                            if extracted:
+                                raw = extracted.read()
+                                if not _is_default_or_empty(fname, raw):
+                                    target_path = os.path.join(DATA_DIR, fname)
+                                    with open(target_path, "wb") as out_f:
+                                        out_f.write(raw)
+                                    missing_or_empty.remove(fname)
+                                    break
+                # Restore any missing uploaded files in uploads/
+                for m in members:
+                    if m.isfile() and ("/uploads/" in m.name or m.name.startswith("uploads/") or m.name.startswith("./uploads/")):
+                        up_basename = os.path.basename(m.name)
+                        if up_basename:
+                            dest_up = os.path.join(UPLOADS_DIR, up_basename)
+                            if not os.path.exists(dest_up):
+                                extracted = tar.extractfile(m)
+                                if extracted:
+                                    with open(dest_up, "wb") as out_f:
+                                        out_f.write(extracted.read())
+        except Exception:
+            continue
+
+
+# Run automatic backup check on startup
+try:
+    auto_restore_all_data_if_needed()
+except Exception:
+    pass
+
+
 TRUSTPILOT_CACHE = {
     "last_fetched": 0,
     "reviews": TRUSTPILOT_REVIEWS
@@ -232,10 +352,9 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
         pass
 
     def send_security_headers(self):
-        self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:8001 http://localhost:8001 https://www.trustpilot.com; frame-src 'self' https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+            "default-src 'self' https: http: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'self';"
         )
         self.send_header("X-Frame-Options", "SAMEORIGIN")
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -430,6 +549,11 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/auth-status":
+            if not os.path.exists(PASSWORD_FILE) or not self.has_admin_user():
+                try:
+                    auto_restore_all_data_if_needed()
+                except Exception:
+                    pass
             setup_done = os.path.exists(PASSWORD_FILE)
             portal_admin_exists = self.has_admin_user()
             self.send_json({

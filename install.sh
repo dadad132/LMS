@@ -52,70 +52,54 @@ sudo mkdir -p "/var/lib/lms/uploads"
 sudo chmod 755 "/var/lib/lms"
 sudo chmod 755 "/var/lib/lms/uploads"
 
-# Take a pre-install snapshot if /var/lib/lms has existing data
-if [ -f "/var/lib/lms/team.json" ]; then
+# Take a pre-install snapshot ONLY if /var/lib/lms has existing user accounts or materials
+if [ -s "/var/lib/lms/users.json" ] || [ -s "/var/lib/lms/materials.json" ]; then
     mkdir -p "/var/backups/lms"
     tar -czf "/var/backups/lms/honeypot_backup_preinstall_$(date +%Y-%m-%d_%H%M%S).tar.gz" -C /var/lib/lms . 2>/dev/null || true
 fi
 
-if [ -f "$WEB_ROOT/team.json" ]; then
-    sudo mv "$WEB_ROOT/team.json" "/var/lib/lms/team.json"
-    echo "  -> Migrated team.json"
-fi
-if [ -f "$WEB_ROOT/testimonials.json" ]; then
-    sudo mv "$WEB_ROOT/testimonials.json" "/var/lib/lms/testimonials.json"
-    echo "  -> Migrated testimonials.json"
-fi
-if [ -f "$WEB_ROOT/admin_password.txt" ]; then
-    sudo mv "$WEB_ROOT/admin_password.txt" "/var/lib/lms/admin_password.txt"
-    echo "  -> Migrated admin_password.txt"
-fi
-if [ -f "$WEB_ROOT/users.json" ]; then
-    sudo mv "$WEB_ROOT/users.json" "/var/lib/lms/users.json"
-    echo "  -> Migrated users.json"
-fi
-if [ -f "$WEB_ROOT/materials.json" ]; then
-    sudo mv "$WEB_ROOT/materials.json" "/var/lib/lms/materials.json"
-    echo "  -> Migrated materials.json"
-fi
-if [ -f "$WEB_ROOT/subjects.json" ]; then
-    sudo mv "$WEB_ROOT/subjects.json" "/var/lib/lms/subjects.json"
-    echo "  -> Migrated subjects.json"
-fi
-if [ -f "$WEB_ROOT/modules.json" ]; then
-    sudo mv "$WEB_ROOT/modules.json" "/var/lib/lms/modules.json"
-    echo "  -> Migrated modules.json"
-fi
-
-# If /var/lib/lms/team.json is missing or tiny (<1KB, i.e. no photos) and a larger backup exists in /var/backups/lms, auto-restore it
-if [ -d "/var/backups/lms" ]; then
-    CURRENT_TEAM_SIZE=0
-    if [ -f "/var/lib/lms/team.json" ]; then
-        CURRENT_TEAM_SIZE=$(wc -c < "/var/lib/lms/team.json" 2>/dev/null || echo 0)
+# Migrate any database files from $WEB_ROOT or $WEB_ROOT/data if they exist
+for SRC_DIR in "$WEB_ROOT" "$WEB_ROOT/data"; do
+    for DBF in team.json testimonials.json admin_password.txt users.json materials.json subjects.json modules.json; do
+        if [ -s "$SRC_DIR/$DBF" ] && [ ! -s "/var/lib/lms/$DBF" ]; then
+            sudo cp -f "$SRC_DIR/$DBF" "/var/lib/lms/$DBF"
+            echo "  -> Migrated $DBF from $SRC_DIR"
+        fi
+    done
+    if [ -d "$SRC_DIR/uploads" ]; then
+        sudo cp -rn "$SRC_DIR/uploads/"* "/var/lib/lms/uploads/" 2>/dev/null || true
     fi
-    if [ "$CURRENT_TEAM_SIZE" -lt 1000 ]; then
-        for BKP in $(ls -1t /var/backups/lms/honeypot_backup_*.tar.gz 2>/dev/null); do
-            TMP_EXTRACT="/tmp/lms_bkp_check_$$"
-            mkdir -p "$TMP_EXTRACT"
-            tar -xzf "$BKP" -C "$TMP_EXTRACT" 2>/dev/null || true
-            if [ -f "$TMP_EXTRACT/team.json" ]; then
-                BKP_TEAM_SIZE=$(wc -c < "$TMP_EXTRACT/team.json" 2>/dev/null || echo 0)
-                if [ "$BKP_TEAM_SIZE" -gt 1000 ]; then
-                    cp -f "$TMP_EXTRACT/team.json" "/var/lib/lms/team.json"
-                    echo "✅ Restored custom team names & faces from backup: $(basename "$BKP")"
-                    # Also restore any missing database files from the backup
-                    for DBF in testimonials.json admin_password.txt users.json materials.json subjects.json modules.json; do
-                        if [ ! -f "/var/lib/lms/$DBF" ] && [ -f "$TMP_EXTRACT/$DBF" ]; then
-                            cp -f "$TMP_EXTRACT/$DBF" "/var/lib/lms/$DBF"
-                        fi
-                    done
-                    rm -rf "$TMP_EXTRACT"
-                    break
+done
+
+# Auto-restore any missing or empty database files (team, users, materials, subjects, modules, testimonials, uploads) from /var/backups/lms
+if [ -d "/var/backups/lms" ]; then
+    for BKP in $(ls -1t /var/backups/lms/honeypot_backup_*.tar.gz /var/backups/lms/backup_*.tar.gz 2>/dev/null); do
+        TMP_EXTRACT="/tmp/lms_bkp_check_$$"
+        mkdir -p "$TMP_EXTRACT"
+        tar -xzf "$BKP" -C "$TMP_EXTRACT" 2>/dev/null || true
+
+        for DBF in users.json materials.json subjects.json modules.json team.json testimonials.json admin_password.txt; do
+            CUR_SIZE=0
+            if [ -f "/var/lib/lms/$DBF" ]; then
+                CUR_SIZE=$(wc -c < "/var/lib/lms/$DBF" 2>/dev/null || echo 0)
+            fi
+            FOUND_BKP_FILE=$(find "$TMP_EXTRACT" -name "$DBF" -type f 2>/dev/null | head -n 1)
+            if [ -n "$FOUND_BKP_FILE" ]; then
+                BKP_SIZE=$(wc -c < "$FOUND_BKP_FILE" 2>/dev/null || echo 0)
+                if [ "$BKP_SIZE" -gt "$CUR_SIZE" ] && [ "$CUR_SIZE" -lt 850 ]; then
+                    cp -f "$FOUND_BKP_FILE" "/var/lib/lms/$DBF"
+                    echo "✅ Restored $DBF from backup: $(basename "$BKP")"
                 fi
             fi
-            rm -rf "$TMP_EXTRACT"
         done
-    fi
+
+        FOUND_UPLOADS=$(find "$TMP_EXTRACT" -type d -name "uploads" 2>/dev/null | head -n 1)
+        if [ -n "$FOUND_UPLOADS" ]; then
+            cp -rn "$FOUND_UPLOADS/"* "/var/lib/lms/uploads/" 2>/dev/null || true
+        fi
+
+        rm -rf "$TMP_EXTRACT"
+    done
 fi
 
 echo "📂 Deploying website files to $WEB_ROOT..."
@@ -232,8 +216,16 @@ DOMAIN="honeypotglobal.co.za"
 SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
 SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
 
+if [ ! -f "$SSL_CERT" ]; then
+    DETECTED_CERT=$(find /etc/letsencrypt/live/ -name "fullchain.pem" 2>/dev/null | head -n 1)
+    if [ -n "$DETECTED_CERT" ] && [ -f "$(dirname "$DETECTED_CERT")/privkey.pem" ]; then
+        SSL_CERT="$DETECTED_CERT"
+        SSL_KEY="$(dirname "$DETECTED_CERT")/privkey.pem"
+    fi
+fi
+
 if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ]; then
-    echo "🔒 SSL certificates detected. Configuring HTTPS + Web Security Headers..."
+    echo "🔒 SSL certificates detected ($SSL_CERT). Configuring HTTPS + Web Security Headers..."
     tee /etc/nginx/conf.d/lms.conf << 'EOF'
 server {
     listen 80;
@@ -249,8 +241,8 @@ server {
     server_name honeypotglobal.co.za www.honeypotglobal.co.za mta-sts.honeypotglobal.co.za;
     server_tokens off;
 
-    ssl_certificate /etc/letsencrypt/live/honeypotglobal.co.za/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/honeypotglobal.co.za/privkey.pem;
+    ssl_certificate __SSL_CERT__;
+    ssl_certificate_key __SSL_KEY__;
     ssl_session_timeout 1d;
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
@@ -259,8 +251,8 @@ server {
     ssl_prefer_server_ciphers off;
 
     # --- Web Security Headers ---
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src 'self' https://www.trustpilot.com; frame-src 'self' https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests;" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Content-Security-Policy "default-src 'self' https: http: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'self';" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
@@ -285,7 +277,7 @@ server {
     location /uploads/ {
         alias /var/lib/lms/uploads/;
         add_header Content-Disposition "attachment" always;
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
@@ -318,6 +310,8 @@ server {
     }
 }
 EOF
+    sed -i "s|__SSL_CERT__|$SSL_CERT|g" /etc/nginx/conf.d/lms.conf
+    sed -i "s|__SSL_KEY__|$SSL_KEY|g" /etc/nginx/conf.d/lms.conf
 else
     echo "⚠️ No SSL certificates found. Configuring HTTP-only fallback with Security Headers..."
     tee /etc/nginx/conf.d/lms.conf << 'EOF'
@@ -328,8 +322,7 @@ server {
     server_tokens off;
 
     # --- Web Security Headers ---
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src 'self' https://www.trustpilot.com; frame-src 'self' https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
+    add_header Content-Security-Policy "default-src 'self' https: http: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'self';" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
@@ -354,7 +347,6 @@ server {
     location /uploads/ {
         alias /var/lib/lms/uploads/;
         add_header Content-Disposition "attachment" always;
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
@@ -414,8 +406,8 @@ BACKUP_DIR="/var/backups/lms"
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
 
-# Check if dynamic data exists before backing up
-if [ -d "/var/lib/lms" ]; then
+# Check if dynamic data exists before backing up (never overwrite with empty directory)
+if [ -s "/var/lib/lms/users.json" ] || [ -s "/var/lib/lms/materials.json" ] || [ -s "/var/lib/lms/team.json" ]; then
     tar -czf "$BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz" -C /var/lib/lms . 2>/dev/null
     echo "✅ Backup saved: $BACKUP_DIR/honeypot_backup_$TIMESTAMP.tar.gz"
 else
