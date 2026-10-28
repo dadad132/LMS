@@ -68,11 +68,6 @@ mkdir -p "/var/backups/lms"
 mkdir -p "/var/lib/lms/uploads"
 chmod 755 "/var/lib/lms" "/var/lib/lms/uploads"
 
-# Take a pre-install snapshot ONLY if /var/lib/lms has existing user accounts or materials
-if [ -s "/var/lib/lms/users.json" ] || [ -s "/var/lib/lms/materials.json" ]; then
-    tar -czf "/var/backups/lms/honeypot_backup_preinstall_$(date +%Y-%m-%d_%H%M%S).tar.gz" -C /var/lib/lms . 2>/dev/null || true
-fi
-
 # Migrate any database files from $WEB_ROOT or $WEB_ROOT/data if they exist
 for SRC_DIR in "$WEB_ROOT" "$WEB_ROOT/data"; do
     for DBF in team.json testimonials.json admin_password.txt users.json materials.json subjects.json modules.json; do
@@ -86,9 +81,9 @@ for SRC_DIR in "$WEB_ROOT" "$WEB_ROOT/data"; do
     fi
 done
 
-# Auto-restore any missing or empty database files (team, users, materials, subjects, modules, testimonials, uploads) from /var/backups/lms
+# Auto-restore any missing or default database files from the most recent scheduled backups in /var/backups/lms
 if [ -d "/var/backups/lms" ]; then
-    for BKP in $(ls -1t /var/backups/lms/honeypot_backup_*.tar.gz /var/backups/lms/backup_*.tar.gz 2>/dev/null); do
+    for BKP in $(ls -1t /var/backups/lms/honeypot_backup_2*.tar.gz /var/backups/lms/backup_*.tar.gz 2>/dev/null | head -n 3); do
         TMP_EXTRACT="/tmp/lms_bkp_check_$$"
         mkdir -p "$TMP_EXTRACT"
         tar -xzf "$BKP" -C "$TMP_EXTRACT" 2>/dev/null || true
