@@ -103,10 +103,11 @@ if [ -d "/var/backups/lms" ]; then
 fi
 
 echo "📂 Deploying website files to $WEB_ROOT..."
+mkdir -p "$WEB_ROOT"
+chmod 755 /var /var/www /var/www/html "$WEB_ROOT" 2>/dev/null || true
 
-if [ -f "./index.html" ]; then
-    mkdir -p "$WEB_ROOT"
-    if [ "$(cd . && pwd -P)" != "$(cd "$WEB_ROOT" 2>/dev/null && pwd -P)" ]; then
+if [ -f "./index.html" ] && [ -f "./api.py" ]; then
+    if [ "$(cd . 2>/dev/null && pwd -P)" != "$(cd "$WEB_ROOT" 2>/dev/null && pwd -P)" ]; then
         echo "👉 Copying files from current directory..."
         cp -rf * "$WEB_ROOT/"
         if [ -d "./.well-known" ]; then
@@ -116,9 +117,17 @@ if [ -f "./index.html" ]; then
         echo "👉 Already running inside $WEB_ROOT — updating in place..."
     fi
 else
-    echo "👉 Cloning files from GitHub..."
-    rm -rf "$WEB_ROOT"
-    git clone https://github.com/dadad132/LMS "$WEB_ROOT"
+    echo "👉 Fetching latest files from GitHub..."
+    TMP_CLONE="/tmp/lms_clone_$$"
+    rm -rf "$TMP_CLONE"
+    (cd /tmp && git clone https://github.com/dadad132/LMS "$TMP_CLONE")
+    if [ -f "$TMP_CLONE/index.html" ]; then
+        cp -rf "$TMP_CLONE"/. "$WEB_ROOT/"
+        rm -rf "$TMP_CLONE"
+    else
+        echo "❌ Failed to clone repository from GitHub."
+        rm -rf "$TMP_CLONE"
+    fi
 fi
 
 # Ensure RFC 9116 security.txt and MTA-STS policy exist in .well-known
@@ -140,14 +149,20 @@ mx: *.honeypotglobal.co.za
 max_age: 604800
 MTA_STS_TXT
 
-# Fix file ownership and permissions so Nginx can read them
+# Fix file ownership and permissions so Nginx and systemd can read them
 chown -R root:root "$WEB_ROOT"
 chmod -R 755 "$WEB_ROOT"
 find "$WEB_ROOT" -type f -exec chmod 644 {} \;
+chmod 755 "$WEB_ROOT/api.py" 2>/dev/null || true
 
-# Restore correct SELinux file context so Nginx can serve these files
+# Also install api.py to /usr/local/bin/lms-api.py with standard bin_t SELinux context
+cp -f "$WEB_ROOT/api.py" /usr/local/bin/lms-api.py
+chmod 755 /usr/local/bin/lms-api.py
+
+# Restore correct SELinux file context so Nginx and systemd can serve/execute these files
 if command -v restorecon &>/dev/null; then
-    restorecon -R "$WEB_ROOT" &>/dev/null
+    restorecon -R "$WEB_ROOT" &>/dev/null || true
+    restorecon -v /usr/local/bin/lms-api.py &>/dev/null || true
 fi
 echo "✅ Website files deployed."
 
@@ -161,8 +176,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/var/www/html/lms
-ExecStart=/usr/bin/python3 /var/www/html/lms/api.py
+WorkingDirectory=/
+ExecStart=/usr/bin/python3 /usr/local/bin/lms-api.py
 Restart=always
 RestartSec=5
 

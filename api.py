@@ -14,7 +14,8 @@ import tarfile
 from datetime import datetime
 
 PORT = 8001
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = "/var/www/html/lms" if (sys.platform != "darwin" and os.path.isdir("/var/www/html/lms")) else _SCRIPT_DIR
 DATA_DIR = "/var/lib/lms" if sys.platform != "darwin" else os.path.join(BASE_DIR, "data")
 
 # Create directories if they don't exist
