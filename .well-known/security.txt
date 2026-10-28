@@ -1,0 +1,5 @@
+Contact: mailto:security@honeypotglobal.co.za
+Contact: mailto:honey@honeypotglobal.co.za
+Expires: 2027-10-28T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://honeypotglobal.co.za/.well-known/security.txt

@@ -86,11 +86,33 @@ if [ -f "./index.html" ]; then
     echo "👉 Copying files from current directory..."
     mkdir -p "$WEB_ROOT"
     cp -rf * "$WEB_ROOT/"
+    if [ -d "./.well-known" ]; then
+        cp -rf ./.well-known "$WEB_ROOT/"
+    fi
 else
     echo "👉 Cloning files from GitHub..."
     rm -rf "$WEB_ROOT"
     git clone https://github.com/dadad132/LMS "$WEB_ROOT"
 fi
+
+# Ensure RFC 9116 security.txt and MTA-STS policy exist in .well-known
+echo "🛡️ Configuring .well-known/security.txt and .well-known/mta-sts.txt..."
+mkdir -p "$WEB_ROOT/.well-known"
+cat > "$WEB_ROOT/.well-known/security.txt" << 'SECURITY_TXT'
+Contact: mailto:security@honeypotglobal.co.za
+Contact: mailto:honey@honeypotglobal.co.za
+Expires: 2027-10-28T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://honeypotglobal.co.za/.well-known/security.txt
+SECURITY_TXT
+
+cat > "$WEB_ROOT/.well-known/mta-sts.txt" << 'MTA_STS_TXT'
+version: STSv1
+mode: enforce
+mx: mail.honeypotglobal.co.za
+mx: *.honeypotglobal.co.za
+max_age: 604800
+MTA_STS_TXT
 
 # Fix file ownership and permissions so Nginx can read them
 chown -R root:root "$WEB_ROOT"
@@ -159,8 +181,8 @@ if command -v firewall-cmd &>/dev/null && systemctl is-active --quiet firewalld;
     echo "✅ Firewall: ports 80 and 443 open."
 fi
 
-# Step 7: Configure Nginx Server Block with Domain name & API Routing (HTTP/HTTPS Auto-detect)
-echo "🌐 Configuring Nginx..."
+# Step 7: Configure Nginx Server Block with Domain name, Security Headers & API Routing (HTTP/HTTPS Auto-detect)
+echo "🌐 Configuring Nginx with Web Security Headers..."
 rm -f /etc/nginx/conf.d/default.conf
 rm -f /etc/nginx/conf.d/lms.conf
 
@@ -169,19 +191,24 @@ SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
 SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
 
 if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ]; then
-    echo "🔒 SSL certificates detected. Configuring HTTPS..."
+    echo "🔒 SSL certificates detected. Configuring HTTPS + Web Security Headers..."
     tee /etc/nginx/conf.d/lms.conf << 'EOF'
+# Hide Nginx version number from Server response header
+server_tokens off;
+
 server {
     listen 80;
     listen [::]:80;
-    server_name honeypotglobal.co.za www.honeypotglobal.co.za;
+    server_name honeypotglobal.co.za www.honeypotglobal.co.za mta-sts.honeypotglobal.co.za;
+    server_tokens off;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name honeypotglobal.co.za www.honeypotglobal.co.za;
+    server_name honeypotglobal.co.za www.honeypotglobal.co.za mta-sts.honeypotglobal.co.za;
+    server_tokens off;
 
     ssl_certificate /etc/letsencrypt/live/honeypotglobal.co.za/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/honeypotglobal.co.za/privkey.pem;
@@ -192,6 +219,14 @@ server {
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
     ssl_prefer_server_ciphers off;
 
+    # --- Web Security Headers ---
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src 'self' https://www.trustpilot.com; frame-src 'self' https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests;" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
+
     # Allow large document/video uploads up to 100MB
     client_max_body_size 100M;
     client_body_timeout 120s;
@@ -200,10 +235,22 @@ server {
     root /var/www/html/lms;
     index index.html;
 
+    # Serve RFC 9116 security.txt, MTA-STS policy, and ACME challenges
+    location ^~ /.well-known/ {
+        default_type text/plain;
+        allow all;
+        try_files $uri =404;
+    }
+
     # Serve uploaded study materials directly
     location /uploads/ {
         alias /var/lib/lms/uploads/;
-        add_header Content-Disposition "attachment";
+        add_header Content-Disposition "attachment" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
         access_log off;
     }
 
@@ -214,6 +261,14 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_hide_header Server;
+        proxy_hide_header X-Powered-By;
+        proxy_hide_header Strict-Transport-Security;
+        proxy_hide_header Content-Security-Policy;
+        proxy_hide_header X-Frame-Options;
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Permissions-Policy;
         proxy_connect_timeout 30s;
         proxy_read_timeout 120s;
         proxy_send_timeout 120s;
@@ -225,12 +280,24 @@ server {
 }
 EOF
 else
-    echo "⚠️ No SSL certificates found. Configuring HTTP-only fallback..."
+    echo "⚠️ No SSL certificates found. Configuring HTTP-only fallback with Security Headers..."
     tee /etc/nginx/conf.d/lms.conf << 'EOF'
+# Hide Nginx version number from Server response header
+server_tokens off;
+
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name honeypotglobal.co.za www.honeypotglobal.co.za _;
+    server_name honeypotglobal.co.za www.honeypotglobal.co.za mta-sts.honeypotglobal.co.za _;
+    server_tokens off;
+
+    # --- Web Security Headers ---
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src 'self' https://www.trustpilot.com; frame-src 'self' https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
 
     # Allow large document/video uploads up to 100MB
     client_max_body_size 100M;
@@ -240,10 +307,22 @@ server {
     root /var/www/html/lms;
     index index.html;
 
+    # Serve RFC 9116 security.txt, MTA-STS policy, and ACME challenges
+    location ^~ /.well-known/ {
+        default_type text/plain;
+        allow all;
+        try_files $uri =404;
+    }
+
     # Serve uploaded study materials directly
     location /uploads/ {
         alias /var/lib/lms/uploads/;
-        add_header Content-Disposition "attachment";
+        add_header Content-Disposition "attachment" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
         access_log off;
     }
 
@@ -254,6 +333,14 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_hide_header Server;
+        proxy_hide_header X-Powered-By;
+        proxy_hide_header Strict-Transport-Security;
+        proxy_hide_header Content-Security-Policy;
+        proxy_hide_header X-Frame-Options;
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Permissions-Policy;
         proxy_connect_timeout 30s;
         proxy_read_timeout 120s;
         proxy_send_timeout 120s;
@@ -265,7 +352,7 @@ server {
 }
 EOF
 fi
-echo "✅ Nginx server block and API routing configured."
+echo "✅ Nginx server block, Web Security Headers, and API routing configured."
 
 # Step 8: Test & Restart Nginx
 echo "🔄 Starting Nginx web server..."

@@ -222,13 +222,29 @@ def parse_multipart(body_bytes, boundary):
     return result
 
 class APIHandler(http.server.BaseHTTPRequestHandler):
+    def version_string(self):
+        # Hide software version disclosure
+        return "Honeypot"
+
     def log_message(self, format, *args):
         # Prevent spamming systemd logs
         pass
 
+    def send_security_headers(self):
+        self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:8001 http://localhost:8001 https://www.trustpilot.com; frame-src 'self' https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+        )
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+
     def send_json(self, data, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_security_headers()
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Admin-Password, Authorization")
@@ -238,6 +254,7 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         # CORS preflight handler
         self.send_response(200)
+        self.send_security_headers()
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Admin-Password, Authorization")
@@ -506,6 +523,7 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
                 mime_type, _ = mimetypes.guess_type(file_path)
                 self.send_response(200)
                 self.send_header("Content-Type", mime_type or "application/octet-stream")
+                self.send_security_headers()
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 with open(file_path, "rb") as f:
