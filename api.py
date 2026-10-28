@@ -35,11 +35,50 @@ DEFAULT_TEAM = [
     { "id": "8", "name": "Brian Van Der Watt", "role": "Placement Coordinator", "avatar": "BW", "image": "" }
 ]
 
-# Default testimonial data
-DEFAULT_TESTIMONIALS = [
-    { "id": "t1", "name": "Lerato M.", "company": "Native Camp ESL Teacher", "text": "Honeypot Global transformed my online teaching! Hannelie guided me through the entire ClassIn setup and native English teaching methodology. Hired in just two weeks!", "rating": 5, "image": "" },
-    { "id": "t2", "name": "Johan v.d. Merwe", "company": "120-hour TEFL Student", "text": "Passing my 120-hour TEFL certificate was so much easier with Honeypot. The feedback on my lesson plans was incredibly detailed and helpful.", "rating": 5, "image": "" },
-    { "id": "t3", "name": "Chantal K.", "company": "ESL Online Coach", "text": "I highly recommend Honeypot Global. The mentorship program is top-notch and Hannelie gives constant encouragement.", "rating": 5, "image": "" }
+# Default testimonial data (includes verified Trustpilot reviews from https://www.trustpilot.com/review/honeypotglobal.co.za)
+TRUSTPILOT_REVIEWS = [
+    {
+        "id": "tp1",
+        "name": "Charlize",
+        "company": "Verified Trustpilot Review • ZA",
+        "title": "Worth it!",
+        "text": "The trainers were all absolutely amazing! They honestly made me feel so much more comfortable and confident going forward and I would recommend them to anyone wanting to go into online teaching.",
+        "rating": 5,
+        "date": "Sep 2026",
+        "source": "trustpilot",
+        "url": "https://www.trustpilot.com/review/honeypotglobal.co.za",
+        "image": ""
+    },
+    {
+        "id": "tp2",
+        "name": "Sanel du Plessis",
+        "company": "Verified Trustpilot Review • ZA",
+        "title": "Excellent team of people",
+        "text": "Excellent team of people - marketing team and tutors. Friendly, professional, very helpful with excellent experience in the field of TEFL and online teaching. It was a great privilege and honour to be part of the three week practical online classes.",
+        "rating": 5,
+        "date": "Sep 2026",
+        "source": "trustpilot",
+        "url": "https://www.trustpilot.com/review/honeypotglobal.co.za",
+        "image": ""
+    },
+    {
+        "id": "tp3",
+        "name": "Veronica Sader",
+        "company": "Verified Trustpilot Review • ZA",
+        "title": "THANK YOU HONEYPOT",
+        "text": "THANK YOU HONEYPOT. Don't waist your time applimg to ESL jobs by yourself and NEVER hearing back from schools. HONEYPOT assists you with the whole application process and more,teaching you how to create your Cv, introduction video, interview prep ,expectations from the schools and more. The teachers spend extra time with you if you need more help. I couldn't recommend HONEYPOT more",
+        "rating": 5,
+        "date": "Sep 2026",
+        "source": "trustpilot",
+        "url": "https://www.trustpilot.com/review/honeypotglobal.co.za",
+        "image": ""
+    }
+]
+
+DEFAULT_TESTIMONIALS = TRUSTPILOT_REVIEWS + [
+    { "id": "t1", "name": "Lerato M.", "company": "Native Camp ESL Teacher", "title": "Hired in just two weeks!", "text": "Honeypot Global transformed my online teaching! Hannelie guided me through the entire ClassIn setup and native English teaching methodology. Hired in just two weeks!", "rating": 5, "image": "" },
+    { "id": "t2", "name": "Johan v.d. Merwe", "company": "120-hour TEFL Student", "title": "Incredibly detailed feedback", "text": "Passing my 120-hour TEFL certificate was so much easier with Honeypot. The feedback on my lesson plans was incredibly detailed and helpful.", "rating": 5, "image": "" },
+    { "id": "t3", "name": "Chantal K.", "company": "ESL Online Coach", "title": "Top-notch mentorship", "text": "I highly recommend Honeypot Global. The mentorship program is top-notch and Hannelie gives constant encouragement.", "rating": 5, "image": "" }
 ]
 
 # In-memory sessions dictionary: token -> {"email": email, "role": role}
@@ -365,6 +404,11 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
                 try:
                     with open(TESTIMONIALS_FILE, "r") as f:
                         data = json.load(f)
+                    if isinstance(data, list):
+                        existing_ids = {item.get("id") for item in data if isinstance(item, dict)}
+                        missing_tp = [tp for tp in TRUSTPILOT_REVIEWS if tp["id"] not in existing_ids]
+                        if missing_tp:
+                            data = missing_tp + data
                     self.send_json(data)
                     return
                 except Exception:

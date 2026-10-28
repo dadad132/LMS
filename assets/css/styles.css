@@ -7,6 +7,10 @@
   --accent-honey: #FFB800;
   --accent-light: #FFFBEB;
   --accent-warm: #FEF3C7;
+  --bg-light: #FAF8F5;
+  
+  --trustpilot-green: #00B67A;
+  --trustpilot-dark: #005128;
   
   --dark-charcoal: #0F172A;
   --dark-slate: #1E293B;
@@ -15,14 +19,14 @@
   --text-light: #F8FAFC;
   
   --glass-bg: #FFFFFF;
-  --glass-border: rgba(245, 158, 11, 0.1);
-  --glass-shadow: 0 4px 20px 0 rgba(217, 119, 6, 0.04);
+  --glass-border: rgba(245, 158, 11, 0.14);
+  --glass-shadow: 0 10px 30px 0 rgba(217, 119, 6, 0.06);
   
   --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: all 0.2s ease;
   
-  --border-radius-sm: 8px;
-  --border-radius-md: 16px;
+  --border-radius-sm: 10px;
+  --border-radius-md: 18px;
   --border-radius-lg: 24px;
 }
 
@@ -187,13 +191,19 @@ header {
   width: 100%;
   z-index: 1000;
   transition: var(--transition-smooth);
-  padding: 20px 0;
+  padding: 18px 0;
+  background: rgba(250, 248, 245, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.06);
 }
 
 header.scrolled {
-  background: #FFFFFF;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.04);
-  border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.14);
   padding: 12px 0;
 }
 
@@ -279,17 +289,19 @@ nav ul a.active::after {
 /* --- HERO SECTION --- */
 .hero {
   position: relative;
-  padding: 160px 0 100px 0;
+  padding: 155px 0 100px 0;
   display: flex;
   align-items: center;
   min-height: 95vh;
+  background: radial-gradient(circle at 85% 20%, rgba(254, 243, 199, 0.75) 0%, transparent 45%),
+              radial-gradient(circle at 12% 75%, rgba(254, 243, 199, 0.5) 0%, transparent 45%);
 }
 
 .hero-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.05fr 0.95fr;
   align-items: center;
-  gap: 48px;
+  gap: 52px;
 }
 
 .hero-content {
@@ -300,36 +312,39 @@ nav ul a.active::after {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--accent-warm);
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
   color: var(--primary-amber);
-  padding: 8px 16px;
+  padding: 8px 18px;
   border-radius: 50px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.85rem;
-  margin-bottom: 24px;
-  border: 1px solid rgba(217, 119, 6, 0.15);
+  margin-bottom: 22px;
+  border: 1px solid rgba(217, 119, 6, 0.22);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.08);
 }
 
 .hero h1 {
-  font-size: 3.5rem;
+  font-size: 3.65rem;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.12;
   margin-bottom: 20px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 .hero p {
   font-size: 1.15rem;
   color: var(--text-dark);
-  margin-bottom: 36px;
-  max-width: 520px;
+  margin-bottom: 32px;
+  max-width: 540px;
+  line-height: 1.7;
 }
 
 .hero-actions {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
 }
 
 .hero-stats {
@@ -340,14 +355,16 @@ nav ul a.active::after {
 }
 
 .stat-item h3 {
-  font-size: 1.8rem;
+  font-size: 1.85rem;
   color: var(--primary-amber);
   margin-bottom: 4px;
+  font-weight: 800;
 }
 
 .stat-item p {
   font-size: 0.85rem;
   color: var(--text-muted);
+  font-weight: 500;
   margin: 0;
 }
 
@@ -362,14 +379,14 @@ nav ul a.active::after {
   position: relative;
   border-radius: var(--border-radius-lg);
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(217, 119, 6, 0.12);
-  border: 4px solid white;
+  box-shadow: 0 25px 55px rgba(217, 119, 6, 0.16), 0 8px 20px rgba(15, 23, 42, 0.05);
+  border: 5px solid white;
   transition: var(--transition-smooth);
 }
 
 .hero-media-wrapper:hover {
   transform: translateY(-8px) scale(1.01);
-  box-shadow: 0 30px 60px rgba(217, 119, 6, 0.18);
+  box-shadow: 0 32px 65px rgba(217, 119, 6, 0.22);
 }
 
 /* floating blobs - removed for less gloss */
@@ -391,21 +408,32 @@ nav ul a.active::after {
 }
 
 .comparison-card {
-  padding: 40px;
+  padding: 42px;
   border-radius: var(--border-radius-lg);
   transition: var(--transition-smooth);
 }
 
 .comparison-card.problem {
   background: white;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03);
+}
+
+.comparison-card.problem:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.06);
 }
 
 .comparison-card.solution {
-  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
-  border: 1px solid var(--accent-warm);
-  box-shadow: 0 10px 30px rgba(217, 119, 6, 0.06);
+  background: linear-gradient(145deg, #FFFFFF 0%, #FFFBEB 55%, #FEF3C7 100%);
+  border: 2px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 16px 40px rgba(217, 119, 6, 0.1);
+  position: relative;
+}
+
+.comparison-card.solution:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px rgba(217, 119, 6, 0.15);
 }
 
 .comparison-card h3 {
@@ -466,18 +494,35 @@ nav ul a.active::after {
   padding: 36px;
   border-radius: var(--border-radius-lg);
   background: white;
-  border: 1px solid rgba(245, 158, 11, 0.08);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(245, 158, 11, 0.12);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.03);
   transition: var(--transition-smooth);
   display: flex;
-  flex-direction: flex-start;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-gold), var(--primary-amber));
+  opacity: 0;
+  transition: var(--transition-smooth);
 }
 
 .service-card:hover {
   transform: translateY(-8px);
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 20px 40px rgba(217, 119, 6, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 22px 45px rgba(217, 119, 6, 0.1);
+}
+
+.service-card:hover::before {
+  opacity: 1;
 }
 
 .service-icon {
@@ -549,53 +594,56 @@ nav ul a.active::after {
 
 .story-media-card {
   position: relative;
-  background: linear-gradient(135deg, var(--accent-warm) 0%, var(--primary-gold) 100%);
+  background: linear-gradient(145deg, #D97706 0%, #B45309 55%, #78350F 100%);
   border-radius: var(--border-radius-lg);
-  padding: 40px;
+  padding: 48px 40px;
   text-align: center;
   color: white;
-  box-shadow: 0 20px 45px rgba(217, 119, 6, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 24px 50px rgba(180, 83, 9, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .story-media-card h3 {
   color: white;
-  font-size: 2rem;
+  font-size: 2.1rem;
   margin-bottom: 6px;
 }
 
 .story-media-card .role {
-  font-weight: 500;
-  opacity: 0.9;
+  font-weight: 600;
+  color: #FEF3C7;
   font-size: 1rem;
   margin-bottom: 24px;
+  letter-spacing: 0.03em;
 }
 
 .story-quote {
   font-size: 1.2rem;
   font-style: italic;
-  line-height: 1.5;
+  line-height: 1.6;
   font-family: 'Outfit', sans-serif;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   position: relative;
+  color: #FFFBEB;
 }
 
 .story-quote::before {
   content: '“';
-  font-size: 4rem;
+  font-size: 4.5rem;
   position: absolute;
-  top: -30px;
+  top: -32px;
   left: -10px;
-  opacity: 0.2;
+  opacity: 0.25;
 }
 
 .signature {
   font-family: 'Outfit', sans-serif;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.05em;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   display: inline-block;
-  padding: 6px 16px;
+  padding: 8px 20px;
   border-radius: 50px;
   font-size: 0.9rem;
 }
@@ -966,8 +1014,8 @@ footer {
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1.2fr;
-  gap: 56px;
+  grid-template-columns: 1.5fr repeat(auto-fit, minmax(170px, 1fr));
+  gap: 48px;
   margin-bottom: 60px;
 }
 
@@ -1015,14 +1063,14 @@ footer {
   transform: translateY(-3px);
 }
 
-.footer-links h4, .footer-contact h4 {
+.footer-links h4, .footer-contact h4, .footer-col h4 {
   color: white;
   font-size: 1.15rem;
   margin-bottom: 24px;
   position: relative;
 }
 
-.footer-links h4::after, .footer-contact h4::after {
+.footer-links h4::after, .footer-contact h4::after, .footer-col h4::after {
   content: '';
   position: absolute;
   bottom: -8px;
@@ -1032,19 +1080,19 @@ footer {
   background: var(--primary-gold);
 }
 
-.footer-links ul {
+.footer-links ul, .footer-col ul:not(.footer-contact-list) {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.footer-links a {
+.footer-links a, .footer-col ul:not(.footer-contact-list) a {
   color: #94A3B8;
   font-size: 0.95rem;
 }
 
-.footer-links a:hover {
+.footer-links a:hover, .footer-col ul:not(.footer-contact-list) a:hover {
   color: var(--primary-gold);
   padding-left: 6px;
 }
@@ -1663,24 +1711,24 @@ footer {
   border-color: var(--primary-gold) !important;
 }
 
-/* --- TESTIMONIALS SECTION STYLES --- */
+/* --- TESTIMONIALS & TRUSTPILOT SECTION STYLES --- */
 .testimonials {
   background: var(--accent-light);
 }
 
 .testimonials-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 32px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 28px;
+  margin-top: 24px;
 }
 
 .testimonial-card {
   background: white;
   border-radius: var(--border-radius-md);
   padding: 32px;
-  border: 1px solid rgba(245, 158, 11, 0.06);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.01);
+  border: 1px solid rgba(245, 158, 11, 0.12);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.03);
   transition: var(--transition-smooth);
   display: flex;
   flex-direction: column;
@@ -1688,45 +1736,116 @@ footer {
   position: relative;
 }
 
+.testimonial-card.trustpilot-card {
+  border-top: 4px solid var(--trustpilot-green);
+}
+
 .testimonial-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(245, 158, 11, 0.25);
-  box-shadow: 0 15px 35px rgba(217, 119, 6, 0.08);
+  transform: translateY(-6px);
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 18px 40px rgba(217, 119, 6, 0.09);
+}
+
+.testimonial-card.trustpilot-card:hover {
+  border-color: rgba(0, 182, 122, 0.45);
+  border-top-color: var(--trustpilot-green);
+  box-shadow: 0 18px 40px rgba(0, 182, 122, 0.1);
+}
+
+.testimonial-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .testimonial-stars {
   color: var(--accent-honey);
-  margin-bottom: 16px;
   font-size: 0.95rem;
   display: flex;
   gap: 4px;
+  align-items: center;
+}
+
+.tp-stars-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tp-star-box {
+  width: 22px;
+  height: 22px;
+  background: var(--trustpilot-green);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  border-radius: 3px;
+}
+
+.tp-verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--trustpilot-dark);
+  background: rgba(0, 182, 122, 0.12);
+  border: 1px solid rgba(0, 182, 122, 0.25);
+  padding: 4px 10px;
+  border-radius: 50px;
+  transition: var(--transition-fast);
+}
+
+.tp-verified-pill i {
+  color: var(--trustpilot-green);
+  font-size: 0.8rem;
+}
+
+.tp-verified-pill:hover {
+  background: var(--trustpilot-green);
+  color: white;
+}
+
+.tp-verified-pill:hover i {
+  color: white;
+}
+
+.testimonial-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--dark-charcoal);
+  margin: 0 0 10px 0;
+  line-height: 1.35;
 }
 
 .testimonial-quote {
   font-size: 0.95rem;
   color: var(--text-dark);
-  font-style: italic;
-  line-height: 1.6;
+  line-height: 1.65;
   margin-bottom: 24px;
   position: relative;
   flex-grow: 1;
 }
 
-.testimonial-quote::before {
-  content: '“';
-  font-size: 3rem;
-  position: absolute;
-  top: -20px;
-  left: -10px;
-  color: var(--primary-gold);
-  opacity: 0.15;
-  font-family: serif;
-}
-
 .testimonial-profile {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid rgba(15, 23, 42, 0.05);
+  padding-top: 18px;
+}
+
+.testimonial-profile-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .testimonial-avatar {
@@ -1740,10 +1859,15 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   border: 2px solid white;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
   flex-shrink: 0;
+}
+
+.testimonial-card.trustpilot-card .testimonial-avatar {
+  background: rgba(0, 182, 122, 0.14);
+  color: var(--trustpilot-dark);
 }
 
 .testimonial-avatar img {
@@ -1766,8 +1890,111 @@ footer {
 .testimonial-info p {
   font-size: 0.8rem;
   color: var(--primary-amber);
-  font-weight: 500;
+  font-weight: 600;
   margin: 0;
 }
+
+.testimonial-card.trustpilot-card .testimonial-info p {
+  color: var(--trustpilot-dark);
+}
+
+/* Trustpilot Banner Widget */
+.trustpilot-banner {
+  background: white;
+  border: 1px solid rgba(0, 182, 122, 0.25);
+  border-radius: var(--border-radius-lg);
+  padding: 24px 32px;
+  box-shadow: 0 12px 32px rgba(0, 182, 122, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+}
+
+.trustpilot-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.trustpilot-brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--dark-charcoal);
+}
+
+.trustpilot-brand-logo i {
+  color: var(--trustpilot-green);
+  font-size: 1.5rem;
+}
+
+.trustpilot-score-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.trustpilot-score-details strong {
+  font-size: 1rem;
+  color: var(--dark-charcoal);
+}
+
+.trustpilot-score-details span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.btn-trustpilot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--trustpilot-green);
+  color: white;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 12px 22px;
+  border-radius: 50px;
+  box-shadow: 0 6px 18px rgba(0, 182, 122, 0.25);
+  transition: var(--transition-smooth);
+}
+
+.btn-trustpilot:hover {
+  background: #009E69;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 182, 122, 0.35);
+}
+
+.hero-trustpilot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1px solid rgba(0, 182, 122, 0.28);
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dark-charcoal);
+  box-shadow: 0 4px 15px rgba(0, 182, 122, 0.08);
+  margin-bottom: 28px;
+  transition: var(--transition-fast);
+}
+
+.hero-trustpilot-pill:hover {
+  transform: translateY(-2px);
+  border-color: var(--trustpilot-green);
+  box-shadow: 0 8px 20px rgba(0, 182, 122, 0.14);
+}
+
 
 

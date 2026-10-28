@@ -258,9 +258,16 @@
   <!-- TESTIMONIALS HERO BANNER -->
   <section class="testimonials-hero">
     <div class="container">
-      <div class="rating-badge">
-        <span style="color: #F59E0B;">⭐⭐⭐⭐⭐</span> 5.0 Average Rating &bull; Verified Teachers
-      </div>
+      <a href="https://www.trustpilot.com/review/honeypotglobal.co.za" target="_blank" rel="noopener" class="hero-trustpilot-pill" style="margin-bottom: 20px;">
+        <span class="tp-stars-row">
+          <span class="tp-star-box"><i class="fas fa-star"></i></span>
+          <span class="tp-star-box"><i class="fas fa-star"></i></span>
+          <span class="tp-star-box"><i class="fas fa-star"></i></span>
+          <span class="tp-star-box"><i class="fas fa-star"></i></span>
+          <span class="tp-star-box"><i class="fas fa-star"></i></span>
+        </span>
+        <span>Verified <strong>5★ Reviews</strong> on <strong style="color: var(--trustpilot-dark);">Trustpilot</strong> &bull; View Profile <i class="fas fa-external-link-alt" style="font-size: 0.72rem; opacity: 0.75;"></i></span>
+      </a>
       <h1 style="font-size: 3rem; font-weight: 800; color: var(--dark-charcoal); margin-bottom: 16px;">
         Student Reviews &amp; <span class="text-gradient">Success Stories</span>
       </h1>
@@ -282,8 +289,12 @@
       <div class="carousel-container" id="carousel-wrapper">
         <!-- Cycling Carousel Card Box -->
         <div class="carousel-box" id="carousel-box">
-          <div class="carousel-quote" id="carousel-quote">
-            "Loading student testimonials..."
+          <div>
+            <div id="carousel-badge-row" style="margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;"></div>
+            <h3 id="carousel-title" style="font-size: 1.4rem; color: var(--dark-charcoal); margin-bottom: 12px; display: none;"></h3>
+            <div class="carousel-quote" id="carousel-quote">
+              "Loading student testimonials..."
+            </div>
           </div>
           
           <div class="carousel-author">
@@ -328,9 +339,32 @@
   <!-- ALL TESTIMONIALS GRID SECTION -->
   <section class="section-padding" style="background: var(--bg-light); border-top: 1px solid rgba(0,0,0,0.03);">
     <div class="container">
-      <div class="section-header" style="text-align: center; margin-bottom: 40px;">
-        <h2>All Student Reviews</h2>
-        <p>Explore all feedback and testimonials from our global teaching family.</p>
+      <div class="section-header" style="text-align: center; margin-bottom: 36px;">
+        <h2>Verified Trustpilot &amp; Student Reviews</h2>
+        <p>Explore authentic feedback from our global teaching family on Trustpilot and beyond.</p>
+      </div>
+
+      <!-- Trustpilot Summary Banner -->
+      <div class="trustpilot-banner">
+        <div class="trustpilot-banner-left">
+          <div class="trustpilot-brand-logo">
+            <i class="fas fa-star"></i> Trustpilot
+          </div>
+          <div class="tp-stars-row">
+            <span class="tp-star-box"><i class="fas fa-star"></i></span>
+            <span class="tp-star-box"><i class="fas fa-star"></i></span>
+            <span class="tp-star-box"><i class="fas fa-star"></i></span>
+            <span class="tp-star-box"><i class="fas fa-star"></i></span>
+            <span class="tp-star-box"><i class="fas fa-star"></i></span>
+          </div>
+          <div class="trustpilot-score-details">
+            <strong>Honeypotglobal &bull; Rated Great (100% 5-Star Reviews)</strong>
+            <span>Read or write a verified review on <strong>trustpilot.com/review/honeypotglobal.co.za</strong></span>
+          </div>
+        </div>
+        <a href="https://www.trustpilot.com/review/honeypotglobal.co.za" target="_blank" rel="noopener" class="btn-trustpilot">
+          <i class="fas fa-star"></i> Review Us on Trustpilot <i class="fas fa-external-link-alt" style="font-size: 0.78rem;"></i>
+        </a>
       </div>
 
       <div id="all-testimonials-grid" class="testimonials-grid">
@@ -411,10 +445,50 @@
         ? 'http://127.0.0.1:8001/api'
         : '/api';
 
+      const trustpilotReviews = [
+        {
+          id: "tp1",
+          name: "Charlize",
+          company: "Verified Trustpilot Review • ZA",
+          title: "Worth it!",
+          text: "The trainers were all absolutely amazing! They honestly made me feel so much more comfortable and confident going forward and I would recommend them to anyone wanting to go into online teaching.",
+          rating: 5,
+          date: "Sep 2026",
+          source: "trustpilot",
+          url: "https://www.trustpilot.com/review/honeypotglobal.co.za",
+          image: ""
+        },
+        {
+          id: "tp2",
+          name: "Sanel du Plessis",
+          company: "Verified Trustpilot Review • ZA",
+          title: "Excellent team of people",
+          text: "Excellent team of people - marketing team and tutors. Friendly, professional, very helpful with excellent experience in the field of TEFL and online teaching. It was a great privilege and honour to be part of the three week practical online classes.",
+          rating: 5,
+          date: "Sep 2026",
+          source: "trustpilot",
+          url: "https://www.trustpilot.com/review/honeypotglobal.co.za",
+          image: ""
+        },
+        {
+          id: "tp3",
+          name: "Veronica Sader",
+          company: "Verified Trustpilot Review • ZA",
+          title: "THANK YOU HONEYPOT",
+          text: "THANK YOU HONEYPOT. Don't waist your time applimg to ESL jobs by yourself and NEVER hearing back from schools. HONEYPOT assists you with the whole application process and more,teaching you how to create your Cv, introduction video, interview prep ,expectations from the schools and more. The teachers spend extra time with you if you need more help. I couldn't recommend HONEYPOT more",
+          rating: 5,
+          date: "Sep 2026",
+          source: "trustpilot",
+          url: "https://www.trustpilot.com/review/honeypotglobal.co.za",
+          image: ""
+        }
+      ];
+
       const defaultTestimonials = [
-        { id: "t1", name: "Lerato M.", company: "Native Camp ESL Teacher", text: "Honeypot Global transformed my online teaching! Hannelie guided me through the entire ClassIn setup and native English teaching methodology. Hired in just two weeks!", rating: 5, image: "" },
-        { id: "t2", name: "Johan v.d. Merwe", company: "120-hour TEFL Student", text: "Passing my 120-hour TEFL certificate was so much easier with Honeypot. The feedback on my lesson plans was incredibly detailed and helpful.", rating: 5, image: "" },
-        { id: "t3", name: "Chantal K.", company: "ESL Online Coach", text: "I highly recommend Honeypot Global. The mentorship program is top-notch and Hannelie gives constant encouragement.", rating: 5, image: "" }
+        ...trustpilotReviews,
+        { id: "t1", name: "Lerato M.", company: "Native Camp ESL Teacher", title: "Hired in just two weeks!", text: "Honeypot Global transformed my online teaching! Hannelie guided me through the entire ClassIn setup and native English teaching methodology. Hired in just two weeks!", rating: 5, image: "" },
+        { id: "t2", name: "Johan v.d. Merwe", company: "120-hour TEFL Student", title: "Incredibly detailed feedback", text: "Passing my 120-hour TEFL certificate was so much easier with Honeypot. The feedback on my lesson plans was incredibly detailed and helpful.", rating: 5, image: "" },
+        { id: "t3", name: "Chantal K.", company: "ESL Online Coach", title: "Top-notch mentorship", text: "I highly recommend Honeypot Global. The mentorship program is top-notch and Hannelie gives constant encouragement.", rating: 5, image: "" }
       ];
 
       let testimonials = defaultTestimonials;
@@ -422,10 +496,12 @@
       let intervalTimer = null;
       let progressTimer = null;
       let isPaused = false;
-      const cycleDuration = 5000; // 5 seconds
+      const cycleDuration = 5500; // 5.5 seconds
       let progressStartTime = 0;
 
       // Elements
+      const titleEl = document.getElementById('carousel-title');
+      const badgeRowEl = document.getElementById('carousel-badge-row');
       const quoteEl = document.getElementById('carousel-quote');
       const nameEl = document.getElementById('carousel-name');
       const companyEl = document.getElementById('carousel-company');
@@ -448,8 +524,14 @@
         } catch (err) {
           console.warn("Using default testimonials.");
         }
-        if (!testimonials || testimonials.length === 0) {
+        if (!testimonials || !Array.isArray(testimonials) || testimonials.length === 0) {
           testimonials = defaultTestimonials;
+        } else {
+          const existingIds = new Set(testimonials.map(item => item.id));
+          const missingTp = trustpilotReviews.filter(tp => !existingIds.has(tp.id));
+          if (missingTp.length > 0) {
+            testimonials = [...missingTp, ...testimonials];
+          }
         }
         initCarousel();
         renderGrid();
@@ -465,6 +547,7 @@
         if (!testimonials || testimonials.length === 0) return;
         currentIndex = (index + testimonials.length) % testimonials.length;
         const test = testimonials[currentIndex];
+        const isTrustpilot = test.source === 'trustpilot' || (test.company && test.company.toLowerCase().includes('trustpilot'));
 
         // Animate Out & In
         const box = document.getElementById('carousel-box');
@@ -472,6 +555,23 @@
         box.style.transform = 'translateY(8px)';
 
         setTimeout(() => {
+          if (titleEl) {
+            if (test.title) {
+              titleEl.style.display = 'block';
+              titleEl.innerText = `"${test.title}"`;
+            } else {
+              titleEl.style.display = 'none';
+            }
+          }
+
+          if (badgeRowEl) {
+            if (isTrustpilot) {
+              badgeRowEl.innerHTML = `<a href="${test.url || 'https://www.trustpilot.com/review/honeypotglobal.co.za'}" target="_blank" rel="noopener" class="tp-verified-pill"><i class="fas fa-check-circle"></i> Verified Trustpilot Review</a>`;
+            } else {
+              badgeRowEl.innerHTML = '';
+            }
+          }
+
           quoteEl.innerText = `"${test.text}"`;
           nameEl.innerText = test.name;
           companyEl.innerText = test.company || 'Student';
@@ -485,10 +585,17 @@
           }
 
           // Stars
-          let stars = '';
           const r = parseInt(test.rating) || 5;
-          for (let i = 0; i < r; i++) stars += '<i class="fas fa-star"></i>';
-          starsEl.innerHTML = stars;
+          if (isTrustpilot) {
+            let tpStars = '<div class="tp-stars-row">';
+            for (let i = 0; i < r; i++) tpStars += '<span class="tp-star-box"><i class="fas fa-star"></i></span>';
+            tpStars += '</div>';
+            starsEl.innerHTML = tpStars;
+          } else {
+            let stars = '';
+            for (let i = 0; i < r; i++) stars += '<i class="fas fa-star"></i>';
+            starsEl.innerHTML = stars;
+          }
 
           // Dots active state
           const dots = dotsEl.querySelectorAll('.dot');
@@ -520,12 +627,29 @@
         if (!gridContainer) return;
         gridContainer.innerHTML = '';
         testimonials.forEach(test => {
+          const isTrustpilot = test.source === 'trustpilot' || (test.company && test.company.toLowerCase().includes('trustpilot'));
           const card = document.createElement('div');
-          card.className = 'testimonial-card';
+          card.className = `testimonial-card${isTrustpilot ? ' trustpilot-card' : ''}`;
           
-          let starsHTML = '';
           const rating = parseInt(test.rating) || 5;
-          for (let i = 0; i < rating; i++) starsHTML += '<i class="fas fa-star"></i>';
+          let starsHTML = '';
+          if (isTrustpilot) {
+            starsHTML = '<div class="tp-stars-row">';
+            for (let i = 0; i < rating; i++) starsHTML += '<span class="tp-star-box"><i class="fas fa-star"></i></span>';
+            starsHTML += '</div>';
+          } else {
+            starsHTML = '<div class="testimonial-stars">';
+            for (let i = 0; i < rating; i++) starsHTML += '<i class="fas fa-star"></i>';
+            starsHTML += '</div>';
+          }
+
+          const verifiedBadgeHTML = isTrustpilot
+            ? `<a href="${test.url || 'https://www.trustpilot.com/review/honeypotglobal.co.za'}" target="_blank" rel="noopener" class="tp-verified-pill"><i class="fas fa-check-circle"></i> Verified on Trustpilot</a>`
+            : '';
+
+          const titleHTML = test.title
+            ? `<h4 class="testimonial-title">"${test.title}"</h4>`
+            : '';
           
           const initials = test.name ? test.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'S';
           const avatarHTML = test.image
@@ -534,15 +658,22 @@
 
           card.innerHTML = `
             <div>
-              <div class="testimonial-stars">${starsHTML}</div>
-              <p class="testimonial-quote">${test.text}</p>
+              <div class="testimonial-card-top">
+                ${starsHTML}
+                ${verifiedBadgeHTML}
+              </div>
+              ${titleHTML}
+              <p class="testimonial-quote">"${test.text}"</p>
             </div>
             <div class="testimonial-profile">
-              ${avatarHTML}
-              <div class="testimonial-info">
-                <h5>${test.name}</h5>
-                <p>${test.company}</p>
+              <div class="testimonial-profile-left">
+                ${avatarHTML}
+                <div class="testimonial-info">
+                  <h5>${test.name}</h5>
+                  <p>${test.company}</p>
+                </div>
               </div>
+              ${test.date ? `<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">${test.date}</span>` : ''}
             </div>
           `;
           gridContainer.appendChild(card);
