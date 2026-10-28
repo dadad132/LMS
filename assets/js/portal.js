@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   
   // Base configuration
-  const isServer = window.location.hostname !== '' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-  const apiBase = isServer ? '/api' : '';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isServer = window.location.hostname !== '';
+  const apiBase = isLocalhost ? 'http://127.0.0.1:8001/api' : (isServer ? '/api' : '');
 
   // Elements
   const portalAuthScreen = document.getElementById('portal-auth-screen');

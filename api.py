@@ -5,9 +5,25 @@ import os
 import hashlib
 import uuid
 import time
+import re
+import urllib.request
+import mimetypes
+from datetime import datetime
 
 PORT = 8001
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = "/var/lib/lms"
+
+# Create directories if they don't exist, falling back to local ./data directory on macOS/dev
+try:
+    os.makedirs(os.path.join(DATA_DIR, "uploads"), exist_ok=True)
+except Exception:
+    DATA_DIR = os.path.join(BASE_DIR, "data")
+    try:
+        os.makedirs(os.path.join(DATA_DIR, "uploads"), exist_ok=True)
+    except Exception:
+        pass
+
 UPLOADS_DIR = os.path.join(DATA_DIR, "uploads")
 TEAM_FILE = os.path.join(DATA_DIR, "team.json")
 PASSWORD_FILE = os.path.join(DATA_DIR, "admin_password.txt")
@@ -16,12 +32,6 @@ MATERIALS_FILE = os.path.join(DATA_DIR, "materials.json")
 SUBJECTS_FILE = os.path.join(DATA_DIR, "subjects.json")
 MODULES_FILE = os.path.join(DATA_DIR, "modules.json")
 TESTIMONIALS_FILE = os.path.join(DATA_DIR, "testimonials.json")
-
-# Create directories if they don't exist
-try:
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
-except Exception:
-    pass
 
 # Default team data
 DEFAULT_TEAM = [
@@ -35,7 +45,7 @@ DEFAULT_TEAM = [
     { "id": "8", "name": "Brian Van Der Watt", "role": "Placement Coordinator", "avatar": "BW", "image": "" }
 ]
 
-# Default testimonial data (includes verified Trustpilot reviews from https://www.trustpilot.com/review/honeypotglobal.co.za)
+# Fallback verified Trustpilot reviews from https://www.trustpilot.com/review/honeypotglobal.co.za
 TRUSTPILOT_REVIEWS = [
     {
         "id": "tp1",
@@ -75,11 +85,74 @@ TRUSTPILOT_REVIEWS = [
     }
 ]
 
-DEFAULT_TESTIMONIALS = TRUSTPILOT_REVIEWS + [
+CUSTOM_DEFAULT_TESTIMONIALS = [
     { "id": "t1", "name": "Lerato M.", "company": "Native Camp ESL Teacher", "title": "Hired in just two weeks!", "text": "Honeypot Global transformed my online teaching! Hannelie guided me through the entire ClassIn setup and native English teaching methodology. Hired in just two weeks!", "rating": 5, "image": "" },
     { "id": "t2", "name": "Johan v.d. Merwe", "company": "120-hour TEFL Student", "title": "Incredibly detailed feedback", "text": "Passing my 120-hour TEFL certificate was so much easier with Honeypot. The feedback on my lesson plans was incredibly detailed and helpful.", "rating": 5, "image": "" },
     { "id": "t3", "name": "Chantal K.", "company": "ESL Online Coach", "title": "Top-notch mentorship", "text": "I highly recommend Honeypot Global. The mentorship program is top-notch and Hannelie gives constant encouragement.", "rating": 5, "image": "" }
 ]
+
+DEFAULT_TESTIMONIALS = TRUSTPILOT_REVIEWS + CUSTOM_DEFAULT_TESTIMONIALS
+
+TRUSTPILOT_CACHE = {
+    "last_fetched": 0,
+    "reviews": TRUSTPILOT_REVIEWS
+}
+TRUSTPILOT_CACHE_TTL = 600  # Refresh live from Trustpilot every 10 minutes
+
+def get_live_trustpilot_reviews():
+    now = time.time()
+    if now - TRUSTPILOT_CACHE["last_fetched"] < TRUSTPILOT_CACHE_TTL and TRUSTPILOT_CACHE["reviews"]:
+        return TRUSTPILOT_CACHE["reviews"]
+    try:
+        req = urllib.request.Request(
+            "https://www.trustpilot.com/review/honeypotglobal.co.za",
+            headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+        match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', html, re.S)
+        if match:
+            next_data = json.loads(match.group(1))
+            raw_reviews = next_data.get("props", {}).get("pageProps", {}).get("reviews", [])
+            if raw_reviews and isinstance(raw_reviews, list):
+                live_list = []
+                for idx, r in enumerate(raw_reviews):
+                    consumer = r.get("consumer", {}) or {}
+                    author = consumer.get("displayName") or "Verified Teacher"
+                    country = consumer.get("countryCode") or "ZA"
+                    raw_date = (r.get("dates", {}) or {}).get("publishedDate") or ""
+                    formatted_date = ""
+                    if raw_date:
+                        try:
+                            dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+                            formatted_date = dt.strftime("%b %Y")
+                        except Exception:
+                            formatted_date = raw_date[:10]
+                    rev_id = r.get("id") or f"tp_{idx+1}"
+                    live_list.append({
+                        "id": f"tp_{rev_id}",
+                        "name": author,
+                        "company": f"Verified Trustpilot Review • {country}",
+                        "title": r.get("title") or "",
+                        "text": r.get("text") or "",
+                        "rating": int(r.get("rating") or 5),
+                        "date": formatted_date,
+                        "source": "trustpilot",
+                        "url": "https://www.trustpilot.com/review/honeypotglobal.co.za",
+                        "image": consumer.get("imageUrl") or ""
+                    })
+                if live_list:
+                    TRUSTPILOT_CACHE["reviews"] = live_list
+                    TRUSTPILOT_CACHE["last_fetched"] = now
+                    return live_list
+    except Exception:
+        pass
+    TRUSTPILOT_CACHE["last_fetched"] = now
+    return TRUSTPILOT_CACHE["reviews"]
+
 
 # In-memory sessions dictionary: token -> {"email": email, "role": role}
 SESSIONS = {}
@@ -400,23 +473,44 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             return
 
         elif self.path == "/api/testimonials":
+            live_tp = get_live_trustpilot_reviews()
             if os.path.exists(TESTIMONIALS_FILE):
                 try:
                     with open(TESTIMONIALS_FILE, "r") as f:
                         data = json.load(f)
                     if isinstance(data, list):
-                        existing_ids = {item.get("id") for item in data if isinstance(item, dict)}
-                        missing_tp = [tp for tp in TRUSTPILOT_REVIEWS if tp["id"] not in existing_ids]
-                        if missing_tp:
-                            data = missing_tp + data
-                    self.send_json(data)
-                    return
+                        # Filter out old static Trustpilot entries so fresh live Trustpilot reviews stay synced
+                        custom_entries = [
+                            item for item in data
+                            if isinstance(item, dict) and item.get("source") != "trustpilot" and not str(item.get("id", "")).startswith("tp")
+                        ]
+                        self.send_json(live_tp + custom_entries)
+                        return
                 except Exception:
                     pass
-            self.send_json(DEFAULT_TESTIMONIALS)
+            self.send_json(live_tp + CUSTOM_DEFAULT_TESTIMONIALS)
             return
 
         else:
+            req_path = self.path.split("?")[0].split("#")[0]
+            if req_path == "/" or req_path == "":
+                req_path = "/index.html"
+            if req_path.startswith("/uploads/"):
+                file_path = os.path.join(UPLOADS_DIR, os.path.basename(req_path))
+            else:
+                file_path = os.path.abspath(os.path.join(BASE_DIR, req_path.lstrip("/")))
+                if not file_path.startswith(BASE_DIR):
+                    self.send_json({"error": "Forbidden"}, 403)
+                    return
+            if os.path.isfile(file_path):
+                mime_type, _ = mimetypes.guess_type(file_path)
+                self.send_response(200)
+                self.send_header("Content-Type", mime_type or "application/octet-stream")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                with open(file_path, "rb") as f:
+                    self.wfile.write(f.read())
+                return
             self.send_json({"error": "Not Found"}, 404)
 
     def do_POST(self):

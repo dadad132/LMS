@@ -527,10 +527,9 @@
         if (!testimonials || !Array.isArray(testimonials) || testimonials.length === 0) {
           testimonials = defaultTestimonials;
         } else {
-          const existingIds = new Set(testimonials.map(item => item.id));
-          const missingTp = trustpilotReviews.filter(tp => !existingIds.has(tp.id));
-          if (missingTp.length > 0) {
-            testimonials = [...missingTp, ...testimonials];
+          const hasTrustpilot = testimonials.some(item => item && (item.source === 'trustpilot' || String(item.id || '').startsWith('tp')));
+          if (!hasTrustpilot) {
+            testimonials = [...trustpilotReviews, ...testimonials];
           }
         }
         initCarousel();

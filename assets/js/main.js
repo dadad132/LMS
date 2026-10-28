@@ -182,8 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let teamData = defaultTeam;
   let apiAvailable = false;
   let serverAuthSetup = false;
-  const isServer = window.location.hostname !== '' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-  const apiBase = isServer ? '/api' : '';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isServer = window.location.hostname !== '';
+  const apiBase = isLocalhost ? 'http://127.0.0.1:8001/api' : (isServer ? '/api' : '');
 
   const teamGrid = document.getElementById('team-grid');
 
@@ -894,10 +895,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (Array.isArray(testimonialsData)) {
-      const existingIds = new Set(testimonialsData.map(item => item.id));
-      const missingTp = trustpilotReviews.filter(tp => !existingIds.has(tp.id));
-      if (missingTp.length > 0) {
-        testimonialsData = [...missingTp, ...testimonialsData];
+      const hasTrustpilot = testimonialsData.some(item => item && (item.source === 'trustpilot' || String(item.id || '').startsWith('tp')));
+      if (!hasTrustpilot) {
+        testimonialsData = [...trustpilotReviews, ...testimonialsData];
       }
     } else {
       testimonialsData = defaultTestimonials;
